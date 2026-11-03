@@ -2559,6 +2559,11 @@ nav.cms-language-switcher .cms-language-option:focus-visible {
     animation: slscModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+.slsc-search-modal-backdrop.is-open {
+    display: flex !important;
+}
+
+.slsc-search-modal-backdrop[hidden]:not(.is-open),
 .slsc-search-modal-backdrop[hidden] {
     display: none !important;
 }

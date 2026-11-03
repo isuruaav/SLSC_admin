@@ -11,7 +11,7 @@ export function initializeSearch(doc = document, win = window) {
     const modalResults = modal.querySelector('[data-modal-search-results]');
     const suggestedSection = modal.querySelector('[data-suggested-topics]');
     const closeButtons = modal.querySelectorAll('[data-close-search-modal]');
-    const openButtons = doc.querySelectorAll('[data-open-search-modal]');
+    const openButtons = doc.querySelectorAll('[data-open-search-modal], [data-open-search], .search-trigger, .search-toggle-btn, .managed-school-search-btn');
     const suggestedPills = modal.querySelectorAll('.slsc-suggested-pill');
 
     const suggestUrl = modal.dataset.suggestUrl;
@@ -52,6 +52,8 @@ export function initializeSearch(doc = document, win = window) {
     function openModal() {
         previousActiveElement = doc.activeElement;
         modal.hidden = false;
+        modal.classList.add('is-open');
+        modal.style.display = 'flex';
         doc.body.style.overflow = 'hidden';
 
         if (modalInput) {
@@ -60,18 +62,26 @@ export function initializeSearch(doc = document, win = window) {
             showSuggestedTopics();
             setTimeout(() => {
                 modalInput.focus();
-            }, 50);
+            }, 60);
         }
     }
 
     function closeModal() {
         modal.hidden = true;
+        modal.classList.remove('is-open');
+        modal.style.display = 'none';
         doc.body.style.overflow = '';
         if (currentAbortController) currentAbortController.abort();
         if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
             previousActiveElement.focus();
         }
     }
+
+    // Expose globally for cross-script integration
+    win.slscSearch = {
+        open: openModal,
+        close: closeModal
+    };
 
     function showSuggestedTopics() {
         if (suggestedSection) suggestedSection.hidden = false;
@@ -192,13 +202,23 @@ export function initializeSearch(doc = document, win = window) {
         }
     }
 
-    // Open Trigger Buttons
+    // Direct click listeners on initially discovered buttons
     openButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             openModal();
         });
     });
+
+    // Delegated click listener on document for maximum reliability (works with dynamic header / layout items)
+    doc.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-open-search-modal], [data-open-search], .search-trigger, .search-toggle-btn, .managed-school-search-btn');
+        if (trigger) {
+            e.preventDefault();
+            e.stopPropagation();
+            openModal();
+        }
+    }, true);
 
     // Close Trigger Buttons
     closeButtons.forEach(btn => {

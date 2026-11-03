@@ -151,7 +151,7 @@
                 </span>
             </a>
             <div class="header-actions">
-                <button class="search-trigger enhanced-only" type="button" data-open-search data-i18n-aria="searchSite" aria-label="{{ __('theme-slsc::interface.searchSite') }}" aria-haspopup="dialog">
+                <button class="search-trigger enhanced-only" type="button" data-open-search data-open-search-modal data-i18n-aria="searchSite" aria-label="{{ __('theme-slsc::interface.searchSite') }}" aria-haspopup="dialog">
                     <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
                     <span data-i18n="searchShort">{{ __('theme-slsc::interface.searchShort') }}</span>
                     <kbd>Ctrl K</kbd>
@@ -184,11 +184,7 @@
                         </a>
                     @endforeach
                 </div>
-                <a class="nav-official" href="https://alt.army.lk/signaller/" target="_blank" rel="noopener noreferrer">
-                    <span class="status-dot" aria-hidden="true"></span>
-                    <span data-i18n="officialPortal">{{ __('theme-slsc::interface.officialPortal') }}</span>
-                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-external"></use></svg>
-                </a>
+
             </div>
         </nav>
         <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>

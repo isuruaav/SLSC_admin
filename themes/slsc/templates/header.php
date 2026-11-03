@@ -73,7 +73,7 @@ $navItems        = $navItems ?? [
                 <a class="nav-link<?= $id === 'top' ? ' current' : '' ?>" href="#<?= esc($id) ?>" data-i18n="<?= esc($key) ?>" data-page-link<?= $id === 'top' ? ' aria-current="location"' : '' ?>><?= esc($label) ?></a>
                 <?php endforeach; ?>
             </div>
-            <a class="nav-official" href="https://alt.army.lk/signaller/" target="_blank" rel="noopener noreferrer"><span class="status-dot" aria-hidden="true"></span><span data-i18n="officialPortal">Official portal</span><?= icon('external') ?></a>
+
         </div>
     </nav>
     <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>

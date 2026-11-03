@@ -270,6 +270,19 @@ export function initializeSite(d = document, w = window) {
         $$('[data-search-scope]').forEach(button => { const active = button.dataset.searchScope === searchScope; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
     }
     function openSearch(opener) {
+        if (w.slscSearch && typeof w.slscSearch.open === 'function') {
+            w.slscSearch.open();
+            return;
+        }
+        const slscModal = d.querySelector('[data-search-modal]');
+        if (slscModal) {
+            slscModal.hidden = false;
+            slscModal.classList.add('is-open');
+            slscModal.style.display = 'flex';
+            d.body.style.overflow = 'hidden';
+            slscModal.querySelector('[data-modal-search-input]')?.focus();
+            return;
+        }
         if (!dialog || dialog.open || $('#registrationDialog')?.open) return;
         closeMenu(); searchOpener = opener ?? d.activeElement; searchScope = 'all'; searchInput.value = '';
         renderSearch();
@@ -278,6 +291,16 @@ export function initializeSite(d = document, w = window) {
     }
     function finishSearch() { d.body.classList.remove('modal-open'); searchOpener?.focus(); syncPlayback(); }
     function closeSearch() {
+        if (w.slscSearch && typeof w.slscSearch.close === 'function') {
+            w.slscSearch.close();
+        }
+        const slscModal = d.querySelector('[data-search-modal]');
+        if (slscModal && !slscModal.hidden) {
+            slscModal.hidden = true;
+            slscModal.classList.remove('is-open');
+            slscModal.style.display = 'none';
+            d.body.style.overflow = '';
+        }
         if (!dialog?.open) return;
         if (typeof dialog.close === 'function') dialog.close(); else { dialog.removeAttribute('open'); finishSearch(); }
     }
@@ -304,6 +327,7 @@ export function initializeSite(d = document, w = window) {
     });
     on(d, 'keydown', event => {
         if ($('#registrationDialog')?.open) return;
+        if (d.querySelector('[data-search-modal]')) return; // Handled by search.js
         const editable = event.target instanceof w.Element && event.target.closest('input,textarea,select,[contenteditable="true"]');
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (dialog?.open) closeSearch(); else openSearch(d.activeElement); }
         else if (event.key === '/' && !editable && !dialog?.open) { event.preventDefault(); openSearch(d.activeElement); }
