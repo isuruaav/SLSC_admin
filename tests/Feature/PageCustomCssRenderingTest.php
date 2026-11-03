@@ -22,7 +22,7 @@ it('renders scoped styles for the correct language and editor', function (string
         ->assertSee('@media (max-width: 767px)', false)
         ->assertDontSee('.unrelated-page', false)
         ->assertSee('පාඨමාලා');
-})->with(['en', 'si'])->with(['html', 'visual'])->with(['school-of-signals', null]);
+})->with(['en', 'si'])->with(['html', 'visual'])->with(['slsc', null]);
 
 it('omits invalid CSS from a manually modified database record', function (): void {
     $page = Page::factory()->published()->create(['content' => '<p>Safe page</p>']);

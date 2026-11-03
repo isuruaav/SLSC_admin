@@ -10,7 +10,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     Permission::findOrCreate('settings.manage', 'web');
 
@@ -27,7 +27,7 @@ beforeEach(function (): void {
     ]);
 
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => 'footer',
         'locale' => 'en',
         'published_html' => '<footer class="managed-school-footer">[[contact_details]][[social_links]]</footer>',

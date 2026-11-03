@@ -9,7 +9,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Livewire\Livewire;
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 });
 
 it('seeds the supplied courses and only lists active courses with their details', function (): void {

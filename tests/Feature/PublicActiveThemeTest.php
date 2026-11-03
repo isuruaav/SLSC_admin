@@ -13,11 +13,11 @@ it('uses the default public home when no active theme is configured', function (
 });
 
 it('uses an installed active theme home view', function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 
     $this->get(route('home'))
         ->assertOk()
-        ->assertSeeText('Training Mission');
+        ->assertSeeText('SRI LANKA SIGNAL CORPS');
 });
 
 it('falls back safely when the configured theme is unavailable', function (): void {

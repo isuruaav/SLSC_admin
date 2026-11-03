@@ -315,6 +315,25 @@
                 <span data-i18n="motto">{{ __('theme-slsc::interface.motto') }}</span>
             </div>
             <p class="muted commandant-note" data-i18n="mottoSubtitle">{{ __('theme-slsc::interface.mottoSubtitle') }}</p>
+
+            @if ($commandantLeader && ($commandantProfileUrl = $commandantLeader->profileUrlForLocale($homeLocale)))
+                <div class="commandant-actions" style="margin-top: 1rem;">
+                    <a href="{{ $commandantProfileUrl }}" class="button button-outline">
+                        <span>{{ __('theme-slsc::home.leadership.read_more') ?: 'Read More' }}</span>
+                    </a>
+                </div>
+            @endif
+
+            @php
+                $schoolLeadershipUrl = $homeLocale === 'en'
+                    ? route('school-leadership.index')
+                    : route('school-leadership.localized', ['locale' => $homeLocale]);
+            @endphp
+            <div class="sos-leadership-link" style="margin-top: 0.75rem;">
+                <a href="{{ $schoolLeadershipUrl }}" class="button button-outline">
+                    <span>{{ __('theme-slsc::home.leadership.view_all') ?: 'View School Leadership' }}</span>
+                </a>
+            </div>
         </div>
     </div>
 </section>

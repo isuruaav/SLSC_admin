@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Permission;
 
 beforeEach(function (): void {
     Permission::findOrCreate('theme-layouts.manage', 'web');
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
     $this->editor = User::factory()->create();
     $this->editor->givePermissionTo('theme-layouts.manage');
     $this->actingAs($this->editor);
@@ -19,8 +19,8 @@ beforeEach(function (): void {
 
 it('offers localized default links without creating or replacing stored layouts', function (): void {
     $service = app(NavigationEditorService::class);
-    $english = $service->configuration('en', 'school-of-signals');
-    $sinhala = $service->configuration('si', 'school-of-signals');
+    $english = $service->configuration('en', 'slsc');
+    $sinhala = $service->configuration('si', 'slsc');
 
     expect($english['defaultHtml'])->toContain('[[site_url:/]]', '>Home</span>', '>Courses</span>', 'fa-solid fa-house', '[[mobile_menu_toggle]]')
         ->and($sinhala['defaultHtml'])->toContain('[[site_url:/si/courses]]', __('public.home', [], 'si'))
@@ -33,7 +33,7 @@ it('only offers published pages in the selected language', function (): void {
     Page::factory()->published()->create(['locale' => 'si', 'title' => 'Sinhala Page']);
     Page::factory()->create(['locale' => 'en', 'title' => 'Draft Page']);
 
-    $config = app(NavigationEditorService::class)->configuration('en', 'school-of-signals');
+    $config = app(NavigationEditorService::class)->configuration('en', 'slsc');
 
     expect($config['pages'])->toBe([
         ['label' => 'English Page', 'href' => '[[site_url:/en/pages/english-page]]'],
@@ -98,8 +98,8 @@ it('checks layout permission again before rendering a preview or publishing', fu
 });
 
 it('offers icons that exist in the bundled Font Awesome stylesheet', function (): void {
-    $config = app(NavigationEditorService::class)->configuration('en', 'school-of-signals');
-    $stylesheet = file_get_contents(base_path('themes/school-of-signals/assets/fonts/fontawesome-7/css/all.min.css'));
+    $config = app(NavigationEditorService::class)->configuration('en', 'slsc');
+    $stylesheet = file_get_contents(base_path('themes/slsc/assets/fonts/fontawesome-7/css/all.min.css'));
 
     expect($config['icons'])->toHaveCount(30);
     foreach ($config['icons'] as $icon) {

@@ -11,7 +11,7 @@ uses(RefreshDatabase::class);
 
 it('renders the published layout for the requested language', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<header id="english-header">English Header</header>',
@@ -21,7 +21,7 @@ it('renders the published layout for the requested language', function (): void 
     ]);
 
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::Sinhala->value,
         'published_html' => '<header id="sinhala-header">සිංහල Header</header>',
@@ -31,7 +31,7 @@ it('renders the published layout for the requested language', function (): void 
     ]);
 
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         siteSettings: null,
         primaryMenu: null,
@@ -53,7 +53,7 @@ it('renders the published layout for the requested language', function (): void 
 
 it('falls back to the published english layout when sinhala is unavailable', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<header id="english-fallback">English Fallback</header>',
@@ -63,7 +63,7 @@ it('falls back to the published english layout when sinhala is unavailable', fun
     ]);
 
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         siteSettings: null,
         primaryMenu: null,
@@ -84,7 +84,7 @@ it('falls back to the published english layout when sinhala is unavailable', fun
 
 it('ignores a draft translation and uses the published english fallback', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Footer->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<footer id="published-english-footer">English Footer</footer>',
@@ -94,7 +94,7 @@ it('ignores a draft translation and uses the published english fallback', functi
     ]);
 
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Footer->value,
         'locale' => ThemeLayoutLocale::Tamil->value,
         'draft_html' => '<footer id="draft-tamil-footer">தமிழ் Footer</footer>',
@@ -103,7 +103,7 @@ it('ignores a draft translation and uses the published english fallback', functi
     ]);
 
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Footer,
         siteSettings: null,
         primaryMenu: null,
@@ -124,7 +124,7 @@ it('ignores a draft translation and uses the published english fallback', functi
 
 it('returns null when neither the requested nor english layout is published', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::Tamil->value,
         'draft_html' => '<header id="draft-only">Draft Only</header>',
@@ -133,7 +133,7 @@ it('returns null when neither the requested nor english layout is published', fu
     ]);
 
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         siteSettings: null,
         primaryMenu: null,
@@ -150,7 +150,7 @@ it('returns null when neither the requested nor english layout is published', fu
 
 it('renders the secure mobile menu toggle placeholder', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<header>[[mobile_menu_toggle]]<a href="[[site_url:/en/pages/about-us-2]]">About Us</a></header>',
@@ -160,7 +160,7 @@ it('renders the secure mobile menu toggle placeholder', function (): void {
     ]);
 
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         siteSettings: null,
         primaryMenu: null,

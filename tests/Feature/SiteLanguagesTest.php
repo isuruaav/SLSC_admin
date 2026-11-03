@@ -26,7 +26,7 @@ use Spatie\Permission\Models\Permission;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
     Permission::findOrCreate('settings.manage', 'web');
     Permission::findOrCreate('theme-layouts.manage', 'web');
     Permission::findOrCreate('pages.view', 'web');
@@ -72,7 +72,7 @@ it('enables Tamil from settings across public pages news previews and header foo
     Livewire::test(ThemeLayoutIndex::class)->assertSee('தமிழ்')
         ->call('selectLocale', 'ta')->assertHasNoErrors()->assertSet('locale', 'ta');
 
-    $preview = app(NavigationEditorService::class)->render('<header>[[language_switcher]]</header>', '', 'en', 'school-of-signals');
+    $preview = app(NavigationEditorService::class)->render('<header>[[language_switcher]]</header>', '', 'en', 'slsc');
     expect($preview['html'])->toContain('data-lang="ta"');
 });
 
@@ -83,7 +83,7 @@ it('hides disabled languages from switchers and SEO while retaining all content'
     $englishNews = News::factory()->published()->create(['locale' => 'en', 'slug' => 'english-news']);
     $tamilNews = News::factory()->published()->create(['locale' => 'ta', 'translation_group' => $englishNews->translation_group, 'slug' => 'tamil-news']);
     $layout = ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals', 'region' => 'footer', 'locale' => 'ta',
+        'theme_slug' => 'slsc', 'region' => 'footer', 'locale' => 'ta',
         'draft_html' => '<footer>Tamil draft</footer>', 'published_html' => '<footer>Tamil footer</footer>',
         'status' => 'published', 'published_at' => now(),
     ]);

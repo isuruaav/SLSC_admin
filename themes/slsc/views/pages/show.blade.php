@@ -50,6 +50,30 @@
 @endpush
 
 @section('content')
+    @php
+        $contactPattern = '~<(div|p)\b[^>]*>\s*\[\[contact_page\]\]\s*</\1>~i';
+
+        if (preg_match($contactPattern, $safeContent) === 1) {
+            $contactWidget = view('theme-slsc::partials.cms-contact')->render();
+
+            $contactRendered = false;
+
+            $safeContent =
+                preg_replace_callback(
+                    $contactPattern,
+                    static function (array $matches) use ($contactWidget, &$contactRendered): string {
+                        if ($contactRendered) {
+                            return '';
+                        }
+
+                        $contactRendered = true;
+
+                        return $contactWidget;
+                    },
+                    $safeContent,
+                ) ?? $safeContent;
+        }
+    @endphp
     <article class="theme-page">
         @if ($page->show_title || $page->excerpt)
             <header class="section-space section-muted" style="padding-top: 3rem; padding-bottom: 3rem;">
@@ -66,13 +90,19 @@
         @endif
 
         @if ($safeContent !== '')
-            <section id="cms-page-{{ $page->getKey() }}" class="section-space">
-                <div class="container">
-                    <div class="awcms-content" style="line-height: 1.8; color: var(--color-text, #1e293b);">
-                        {!! $safeContent !!}
+            @if ($page->getRawOriginal('editor_mode') === \App\Enums\PageEditorMode::Visual->value)
+                <section id="cms-page-{{ $page->getKey() }}" class="section-space">
+                    <div class="container">
+                        <div class="awcms-content" style="line-height: 1.8; color: var(--color-text, #1e293b);">
+                            {!! $safeContent !!}
+                        </div>
                     </div>
+                </section>
+            @else
+                <div id="cms-page-{{ $page->getKey() }}" class="page-html-content">
+                    {!! $safeContent !!}
                 </div>
-            </section>
+            @endif
         @endif
 
         @if ($pageBlocks !== [])

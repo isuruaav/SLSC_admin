@@ -14,7 +14,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     Permission::findOrCreate('theme-layouts.manage', 'web');
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
     $this->editor = User::factory()->create();
     $this->editor->givePermissionTo('theme-layouts.manage');
     $this->actingAs($this->editor);
@@ -55,7 +55,7 @@ it('offers localized safe footer starters and published pages without altering l
     Page::factory()->published()->create(['locale' => 'si', 'title' => 'Sinhala page', 'slug' => 'sinhala-page']);
     Page::factory()->published()->create(['locale' => 'en', 'title' => 'English page']);
     Page::factory()->create(['locale' => 'si', 'title' => 'Draft page']);
-    $config = app(FooterEditorService::class)->configuration('si', 'school-of-signals');
+    $config = app(FooterEditorService::class)->configuration('si', 'slsc');
 
     expect($config['defaultHtml'])->toContain('<footer', '[[site_logo]]', '[[contact_details]]', '[[social_links]]', '[[copyright_year]]', '[[site_url:/si/courses]]', __('public.quick_links', [], 'si'))
         ->and($config['pages'])->toBe([['label' => 'Sinhala page', 'href' => '[[site_url:/si/pages/sinhala-page]]']])

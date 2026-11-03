@@ -24,7 +24,7 @@ return [
     | are selected by their safe manifest slug, for example school-of-signals.
     |
     */
-    'active_theme' => env('AWCMS_ACTIVE_THEME'),
+    'active_theme' => env('AWCMS_ACTIVE_THEME', 'slsc'),
 
     /*
     |--------------------------------------------------------------------------

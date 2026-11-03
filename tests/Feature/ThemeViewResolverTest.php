@@ -3,7 +3,7 @@
 use App\Services\ThemeViewResolver;
 
 it('resolves installed active theme views', function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 
     $resolver = app(ThemeViewResolver::class);
 
@@ -18,7 +18,7 @@ it('returns null when no active theme is configured', function (): void {
 });
 
 it('rejects missing and unsafe theme views', function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 
     $resolver = app(ThemeViewResolver::class);
 

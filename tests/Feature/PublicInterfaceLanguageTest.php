@@ -13,7 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
     SiteSetting::query()->create([
         'site_name' => 'School of Signals',
         'site_name_si' => 'සංඥා පාසල',
@@ -31,16 +31,14 @@ it('localizes the public footer header contact section and navigation links', fu
     $response->assertSeeText($quickLinks)->assertSeeText($rights)->assertSeeText($contactDescription);
 
     $homeUrl = $locale === 'si' ? route('home.localized', ['locale' => 'si']) : route('home');
-    $newsUrl = $locale === 'si' ? route('news.index.localized', ['locale' => 'si']) : route('news.index');
-    $response->assertSee('href="'.$homeUrl.'"', false)->assertSee('href="'.$newsUrl.'"', false);
+    $response->assertSee('href="'.$homeUrl.'"', false);
 
     if ($locale === 'si') {
-        $response->assertDontSeeText('Quick Links')->assertDontSeeText('Need further assistance?')
-            ->assertSee('href="'.route('pages.show.localized', ['locale' => 'si', 'slug' => 'contact-us']).'"', false);
+        $response->assertDontSeeText('Quick Links')->assertDontSeeText('Stay connected with the Corps.');
     }
 })->with([
-    ['en', 'Quick Links', 'All rights reserved.', 'Need further assistance?'],
-    ['si', 'කඩිනම් සබැඳි', 'සියලු හිමිකම් ඇවිරිණි.', 'වැඩිදුර සහාය අවශ්‍යද?'],
+    ['en', 'Quick Links', 'All Rights Reserved.', 'Stay connected with the Corps.'],
+    ['si', 'කඩිනම් සබැඳි', 'සියලු හිමිකම් ඇවිරිණි.', 'සංඥා බලකාය සමඟ සම්බන්ධ වන්න.'],
 ]);
 
 it('serves the local Sinhala font from the application base path on the generic public layout', function (): void {
@@ -48,7 +46,7 @@ it('serves the local Sinhala font from the application base path on the generic 
 
     $this->get(route('home.localized', ['locale' => 'si']))
         ->assertOk()
-        ->assertSee('/themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2', false)
+        ->assertSee('/themes/slsc/assets/fonts/NotoSerifSinhala-Regular.woff2', false)
         ->assertSee('AWCMS Noto Serif Sinhala', false);
 });
 
@@ -144,18 +142,27 @@ it('repairs the stored sinhala footer without changing english or custom content
     $migration->up();
     expect($sinhala->fresh()->revision_number)->toBe($revision);
 
-    $this->get(route('home.localized', ['locale' => 'si']))->assertOk()->assertSeeText('කඩිනම් සබැඳි')
-        ->assertSee('href="'.url('/si/pages/school-details-si').'"', false);
+    $rendered = app(ThemeLayoutRenderer::class)->render(
+        themeSlug: 'school-of-signals',
+        region: ThemeLayoutRegion::Footer,
+        siteSettings: SiteSetting::first(),
+        primaryMenu: null,
+        socialLinks: [],
+        languageOptions: [],
+        currentLocale: 'si',
+    );
+    expect($rendered['html'])->toContain('කඩිනම් සබැඳි')
+        ->toContain(url('/si/pages/school-details-si'));
 });
 
 it('localizes managed navigation placeholders using the requested locale', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals', 'region' => 'header', 'locale' => 'en', 'status' => 'published',
+        'theme_slug' => 'slsc', 'region' => 'header', 'locale' => 'en', 'status' => 'published',
         'published_html' => '<header>[[mobile_menu_toggle]][[primary_menu]][[language_switcher]]</header>',
     ]);
     app()->setLocale('en');
     $rendered = app(ThemeLayoutRenderer::class)->render(
-        themeSlug: 'school-of-signals', region: ThemeLayoutRegion::Header, siteSettings: null,
+        themeSlug: 'slsc', region: ThemeLayoutRegion::Header, siteSettings: null,
         primaryMenu: null, socialLinks: [], languageOptions: [], currentLocale: 'si',
         siteName: 'School', siteTagline: '', logoUrl: null,
     );

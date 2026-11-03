@@ -22,7 +22,7 @@ function publicTestPublication(array $attributes = []): Publication
 
 beforeEach(function (): void {
     Storage::fake('local');
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 });
 
 it('shows five newest publications per page with first-page covers linking directly to PDFs', function (): void {

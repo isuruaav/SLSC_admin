@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 
     SiteSetting::query()->create([
         'site_name' => 'Sri Lanka School of Signals',
@@ -25,13 +25,13 @@ it('keeps the original theme header and footer without published layouts', funct
     $this->get(route('home'))
         ->assertOk()
         ->assertSee('class="topbar"', false)
-        ->assertSee('class="header"', false)
+        ->assertSee('class="site-header"', false)
         ->assertSee('class="footer"', false);
 });
 
 it('ignores draft layouts on the public website', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
         'draft_html' => '<header>Unpublished Managed Header</header>',
@@ -40,7 +40,7 @@ it('ignores draft layouts on the public website', function (): void {
     ]);
 
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Footer->value,
         'locale' => ThemeLayoutLocale::English->value,
         'draft_html' => '<footer>Unpublished Managed Footer</footer>',
@@ -58,7 +58,7 @@ it('ignores draft layouts on the public website', function (): void {
 
 it('renders published managed header footer and sanitized css', function (): void {
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<header class="managed-school-header">Managed English Header [[site_name]]</header>',
@@ -69,7 +69,7 @@ it('renders published managed header footer and sanitized css', function (): voi
     ]);
 
     ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Footer->value,
         'locale' => ThemeLayoutLocale::English->value,
         'published_html' => '<footer class="managed-school-footer">Managed English Footer [[copyright_year]]</footer>',

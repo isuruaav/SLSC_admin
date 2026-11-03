@@ -22,7 +22,7 @@ it('saves a sanitized localized draft with a revision and audit entry', function
     $actor->givePermissionTo('theme-layouts.manage');
 
     $layout = app(ThemeLayoutService::class)->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         locale: ThemeLayoutLocale::English,
         actor: $actor,
@@ -51,7 +51,7 @@ it('stores each header language independently', function (): void {
     $service = app(ThemeLayoutService::class);
 
     $english = $service->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         locale: ThemeLayoutLocale::English,
         actor: $actor,
@@ -60,7 +60,7 @@ it('stores each header language independently', function (): void {
     );
 
     $sinhala = $service->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         locale: ThemeLayoutLocale::Sinhala,
         actor: $actor,
@@ -69,7 +69,7 @@ it('stores each header language independently', function (): void {
     );
 
     $tamil = $service->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         locale: ThemeLayoutLocale::Tamil,
         actor: $actor,
@@ -89,7 +89,7 @@ it('stores each header language independently', function (): void {
         ->and($tamil->draft_html)->toContain('தமிழ்')
         ->and(
             ThemeLayout::query()
-                ->where('theme_slug', 'school-of-signals')
+                ->where('theme_slug', 'slsc')
                 ->where('region', ThemeLayoutRegion::Header->value)
                 ->count(),
         )->toBe(3);
@@ -102,7 +102,7 @@ it('publishes the current localized draft without changing it during later draft
     $service = app(ThemeLayoutService::class);
 
     $layout = $service->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Footer,
         locale: ThemeLayoutLocale::English,
         actor: $actor,
@@ -122,7 +122,7 @@ it('publishes the current localized draft without changing it during later draft
         ->and($published->revisions()->count())->toBe(2);
 
     $updatedDraft = $service->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Footer,
         locale: ThemeLayoutLocale::English,
         actor: $actor,
@@ -140,7 +140,7 @@ it('rejects users without the dedicated permission', function (): void {
     $actor = User::factory()->create();
 
     app(ThemeLayoutService::class)->saveDraft(
-        themeSlug: 'school-of-signals',
+        themeSlug: 'slsc',
         region: ThemeLayoutRegion::Header,
         locale: ThemeLayoutLocale::English,
         actor: $actor,

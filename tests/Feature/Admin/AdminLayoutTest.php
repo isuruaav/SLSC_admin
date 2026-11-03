@@ -25,7 +25,7 @@ test('super administrator sees the secure admin layout', function (): void {
         ->assertSee('fa-house', false)
         ->assertSee('fa-graduation-cap', false)
         ->assertSee('View public website')
-        ->assertSee('/themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2', false)
+        ->assertSee('/themes/slsc/assets/fonts/NotoSerifSinhala-Regular.woff2', false)
         ->assertSee('AWCMS Noto Serif Sinhala', false)
         ->assertSee('Find a section…')
         ->assertSee('Skip to main content')

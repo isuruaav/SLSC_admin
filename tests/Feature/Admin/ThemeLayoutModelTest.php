@@ -9,7 +9,7 @@ uses(RefreshDatabase::class);
 
 it('stores a theme specific draft layout with enum casts', function (): void {
     $layout = ThemeLayout::query()->create([
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'draft_html' => '<header>[[primary_menu]]</header>',
         'draft_css' => '.site-header { display: flex; }',

@@ -74,15 +74,15 @@
                 <link rel="alternate" hreflang="{{ $languageLink['code'] }}" href="{{ $languageLink['url'] }}">
             @endif
         @endforeach
-    @endif
 
-    {{-- Open Graph --}}
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="{{ $publicSiteName }}">
-    <meta property="og:title" content="@yield('title', $publicSiteName)">
-    <meta property="og:description" content="@yield('meta_description', $publicDescription)">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ $logoUrl }}">
+        {{-- Open Graph --}}
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ $publicSiteName }}">
+        <meta property="og:title" content="@yield('title', $publicSiteName)">
+        <meta property="og:description" content="@yield('meta_description', $publicDescription)">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:image" content="{{ $logoUrl }}">
+    @endif
 
     <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
     <link rel="preload" as="image" href="{{ $themeAssetBase }}/images/programs-sample.jpg" fetchpriority="high">
@@ -161,7 +161,7 @@
                         @if (($languageLink['available'] ?? false) && is_string($languageLink['url'] ?? null))
                             <a href="{{ $languageLink['url'] }}" class="lang-btn {{ $currentLocale === $languageLink['code'] ? 'active' : '' }}"
                                 data-lang="{{ $languageLink['code'] }}" data-language-option lang="{{ $languageLink['code'] }}" hreflang="{{ $languageLink['code'] }}"
-                                @if ($currentLocale === $languageLink['code']) aria-current="page" @endif>{{ $languageLink['code'] === 'si' ? 'සිංහල' : 'English' }}</a>
+                                @if ($currentLocale === $languageLink['code']) aria-current="page" @endif>{{ $languageLink['label'] ?? ($languageLink['code'] === 'si' ? 'සිංහල' : ($languageLink['code'] === 'ta' ? 'தமிழ்' : 'English')) }}</a>
                         @endif
                     @endforeach
                 </nav>
@@ -223,6 +223,12 @@
             <div>
                 <h2 data-i18n="footerResources">{{ __('theme-slsc::interface.footerResources') }}</h2>
                 <div class="footer-links">
+                    <a href="{{ route('courses.index') }}">
+                        <span>Courses</span>
+                    </a>
+                    <a href="{{ $currentLocale === 'si' ? route('history.past-sgt-major.localized') : route('history.past-sgt-major') }}">
+                        <span>{{ $currentLocale === 'si' ? 'හිටපු රෙජිමේන්තු සැරයන් මේජර්වරු' : 'Past Regimental Sergeant Majors' }}</span>
+                    </a>
                     <a href="https://www.army.lk/" target="_blank" rel="noopener noreferrer">
                         <span data-i18n="armyPortal">{{ __('theme-slsc::interface.armyPortal') }}</span>
                         <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-external"></use></svg>
@@ -241,6 +247,19 @@
                     </a>
                 </div>
             </div>
+            @if (!empty($cleanSocialLinks) && (is_countable($cleanSocialLinks) ? count($cleanSocialLinks) > 0 : true))
+            <div>
+                <h2>{{ __('public.follow_us') ?: 'Follow Us' }}</h2>
+                <div class="footer-socials">
+                    @foreach ($cleanSocialLinks as $socialLink)
+                        <a href="{{ $socialLink->url }}" target="_blank" rel="noopener noreferrer"
+                            aria-label="{{ $socialLink->platform }}">
+                            <i class="{{ $socialLink->iconClass() }}" aria-hidden="true"></i>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
         <div class="footer-bottom">
             <div class="container footer-bottom-inner">

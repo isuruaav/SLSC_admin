@@ -19,7 +19,7 @@ beforeEach(function (): void {
     Permission::findOrCreate('admin.access', 'web');
     Permission::findOrCreate('theme-layouts.manage', 'web');
 
-    config()->set('awcms.active_theme', 'school-of-signals');
+    config()->set('awcms.active_theme', 'slsc');
 });
 
 function themeLayoutAdminUser(bool $mayManageLayouts = true): User
@@ -44,7 +44,7 @@ it('allows an authorized administrator to open the multilingual editor', functio
         ->get(route('admin.theme-layouts.index'))
         ->assertOk()
         ->assertSee('Header &amp; Footer', false)
-        ->assertSee('school-of-signals')
+        ->assertSee('slsc')
         ->assertSee('English')
         ->assertSee('සිංහල')
         ->assertDontSee('தமிழ்');
@@ -60,7 +60,7 @@ it('keeps language editor content independent when switching tabs', function ():
     $this->actingAs(themeLayoutAdminUser());
 
     Livewire::test(ThemeLayoutIndex::class)
-        ->assertSet('themeSlug', 'school-of-signals')
+        ->assertSet('themeSlug', 'slsc')
         ->assertSet('region', ThemeLayoutRegion::Header->value)
         ->assertSet('locale', ThemeLayoutLocale::English->value)
         ->set(
@@ -95,19 +95,19 @@ it('keeps language editor content independent when switching tabs', function ():
 
     expect(
         ThemeLayout::query()
-            ->where('theme_slug', 'school-of-signals')
+            ->where('theme_slug', 'slsc')
             ->where('region', ThemeLayoutRegion::Header->value)
             ->count(),
     )->toBe(2);
 
     $this->assertDatabaseHas('theme_layouts', [
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
     ]);
 
     $this->assertDatabaseHas('theme_layouts', [
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::Sinhala->value,
     ]);
@@ -134,7 +134,7 @@ it('saves and publishes only the selected language layout', function (): void {
         ->assertHasNoErrors();
 
     $layout = ThemeLayout::query()
-        ->where('theme_slug', 'school-of-signals')
+        ->where('theme_slug', 'slsc')
         ->where('region', ThemeLayoutRegion::Header->value)
         ->where('locale', ThemeLayoutLocale::Tamil->value)
         ->firstOrFail();
@@ -148,7 +148,7 @@ it('saves and publishes only the selected language layout', function (): void {
         ->and($layout->revision_number)->toBe(2);
 
     $this->assertDatabaseMissing('theme_layouts', [
-        'theme_slug' => 'school-of-signals',
+        'theme_slug' => 'slsc',
         'region' => ThemeLayoutRegion::Header->value,
         'locale' => ThemeLayoutLocale::English->value,
     ]);

@@ -48,7 +48,7 @@ test('public news renders attached images after the body in a four column deskto
             'News Gallery Image 5',
         ]);
 
-    $themeCss = file_get_contents(base_path('themes/school-of-signals/assets/css/theme.css'));
+    $themeCss = file_get_contents(base_path('themes/slsc/assets/css/news.css'));
 
     expect($themeCss)->toContain(
         '.sos-article-gallery {',

@@ -10,11 +10,11 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     config()->set(
         'awcms.active_theme',
-        'school-of-signals',
+        'slsc',
     );
 
     config()->set(
-        'awcms.theme_locales.school-of-signals',
+        'awcms.theme_locales.slsc',
         [
             PageLocale::English->value,
             PageLocale::Sinhala->value,
@@ -59,7 +59,7 @@ it('renders working hero page links when the website is installed in a subdirect
     'saved Sinhala URL' => ['si', '/si/page/siaboutus', '/si/pages/siaboutus'],
     'canonical English URL' => ['en', '/en/pages/aboutus', '/en/pages/aboutus'],
     'prefixed local URL' => ['en', '/sch_of_slsc/public/en/pages/aboutus', '/en/pages/aboutus'],
-])->with(['school-of-signals', null]);
+])->with(['slsc', null]);
 
 it('keeps external hero button destinations unchanged', function (): void {
     HeroSlide::query()->create([

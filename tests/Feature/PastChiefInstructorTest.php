@@ -7,8 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    config()->set('awcms.active_theme', 'school-of-signals');
-    config()->set('awcms.theme_locales.school-of-signals', ['en', 'si']);
+    config()->set('awcms.active_theme', 'slsc');
+    config()->set('awcms.theme_locales.slsc', ['en', 'si']);
 });
 
 it('renders past chief instructors in both public languages', function (): void {
