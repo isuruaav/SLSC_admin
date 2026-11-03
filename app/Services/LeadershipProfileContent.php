@@ -91,8 +91,8 @@ final class LeadershipProfileContent
                 $themeCssPath = base_path("themes/{$activeTheme}/assets/css/theme.css");
             }
         }
-        if (! $themeCssPath && is_file(base_path('themes/school-of-signals/assets/css/theme.css'))) {
-            $themeCssPath = base_path('themes/school-of-signals/assets/css/theme.css');
+        if (! $themeCssPath && is_file(base_path('themes/slsc/assets/css/base.css'))) {
+            $themeCssPath = base_path('themes/slsc/assets/css/base.css');
         }
         $themeCss = is_file($themeCssPath ?? '') ? (file_get_contents($themeCssPath) ?: '') : '';
         preg_match('/:root\s*\{[^}]*\}/s', $themeCss, $root);

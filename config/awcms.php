@@ -21,7 +21,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Keep this null to use the default AWCMS public views. Installed themes
-    | are selected by their safe manifest slug, for example school-of-signals.
+    | are selected by their safe manifest slug, for example slsc.
     |
     */
     'active_theme' => env('AWCMS_ACTIVE_THEME', 'slsc'),
@@ -37,7 +37,6 @@ return [
     |
     */
     'theme_locales' => [
-        'school-of-signals' => ['en', 'si'],
         'slsc' => ['en', 'si'],
     ],
 ];

@@ -206,6 +206,6 @@ final class PublicSchoolLeadershipController
             return 'theme-slsc';
         }
 
-        return 'theme-school-of-signals';
+        return 'theme-slsc';
     }
 }

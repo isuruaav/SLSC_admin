@@ -3,7 +3,7 @@
     $themeLayout = $activeTheme ? "theme-{$activeTheme}::layout" : null;
     $previewLayout = ($themeLayout && view()->exists($themeLayout))
         ? $themeLayout
-        : (view()->exists('theme-school-of-signals::layout') ? 'theme-school-of-signals::layout' : 'layouts.public');
+        : (view()->exists('theme-slsc::layout') ? 'theme-slsc::layout' : 'layouts.public');
 @endphp
 @extends($previewLayout)
 

@@ -1,11 +1,11 @@
 @php
     $title = __('errors.'.$messageKey.'.title', [], $errorLocale);
     $message = __('errors.'.$messageKey.'.message', [], $errorLocale);
-    $schoolTheme = in_array(config('awcms.active_theme'), ['slsc', 'school-of-signals'], true);
+    $schoolTheme = config('awcms.active_theme') === 'slsc';
     $siteName = $schoolTheme ? __('public.school_name', [], $errorLocale) : config('app.name', 'AWCMS');
     $logoRelative = is_file(public_path('themes/slsc/assets/images/logo.png'))
         ? 'themes/slsc/assets/images/logo.png'
-        : (is_file(public_path('themes/school-of-signals/assets/images/logo.png')) ? 'themes/school-of-signals/assets/images/logo.png' : null);
+        : (is_file(public_path('themes/slsc/assets/images/logo/signals-logo.png')) ? 'themes/slsc/assets/images/logo/signals-logo.png' : null);
     $showLogo = (bool) $logoRelative;
 @endphp
 <!DOCTYPE html>
