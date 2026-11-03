@@ -15,7 +15,7 @@
 
     <div class="sos-commandant-copy">
         <div class="sos-commandant-identity">
-            <img class="sos-commandant-mark" src="{{ asset('themes/school-of-signals/assets/images/logo.png') }}"
+            <img class="sos-commandant-mark" src="{{ asset('themes/slsc/assets/images/logo.png') }}"
                 alt="" width="72" height="88" loading="lazy">
             <div>
                 <p class="sos-commandant-kicker">{{ __('theme-slsc::home.leadership.school') }}</p>

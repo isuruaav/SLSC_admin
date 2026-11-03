@@ -198,8 +198,14 @@ final class PublicSchoolLeadershipController
     {
         $theme = config('awcms.active_theme');
 
-        return ($theme && view()->exists("theme-{$theme}::school-leadership"))
-            ? "theme-{$theme}"
-            : 'theme-school-of-signals';
+        if ($theme && view()->exists("theme-{$theme}::school-leadership")) {
+            return "theme-{$theme}";
+        }
+
+        if (view()->exists('theme-slsc::school-leadership')) {
+            return 'theme-slsc';
+        }
+
+        return 'theme-school-of-signals';
     }
 }

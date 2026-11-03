@@ -74,7 +74,7 @@
 
                                     @if ($profileUrl = $sergeantMajor->profileUrlForLocale($currentLocale))
                                         <a class="read-more-btn school-leader-profile-link" href="{{ $profileUrl }}">
-                                            <span>{{ __('theme-school-of-signals::home.leadership.read_more') }}</span>
+                                            <span>{{ __('theme-slsc::home.leadership.read_more') ?: __('theme-school-of-signals::home.leadership.read_more') }}</span>
                                             <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                                         </a>
                                     @endif

@@ -7,7 +7,7 @@
     <base href="{{ url('/') }}/">
     <link rel="stylesheet" href="{{ asset('themes/'.$themeSlug.'/assets/css/theme.css') }}">
     <link rel="stylesheet" href="{{ asset('themes/'.$themeSlug.'/assets/css/navbar.css') }}?v={{ is_file(base_path('themes/'.$themeSlug.'/assets/css/navbar.css')) ? filemtime(base_path('themes/'.$themeSlug.'/assets/css/navbar.css')) : 1 }}">
-    <link rel="stylesheet" href="{{ asset('themes/school-of-signals/assets/fonts/fontawesome-7/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('themes/slsc/assets/fonts/fontawesome-7/css/all.min.css') }}">
     <style>
         {!! $css !!}
         /* Preview behavior only. Public menu scrolling is unchanged. */

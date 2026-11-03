@@ -1,12 +1,9 @@
 @php
-    $previewLayout = 'layouts.public';
-
-    if (
-        config('awcms.active_theme') === 'school-of-signals'
-        && view()->exists('theme-school-of-signals::layout')
-    ) {
-        $previewLayout = 'theme-school-of-signals::layout';
-    }
+    $activeTheme = config('awcms.active_theme');
+    $themeLayout = $activeTheme ? "theme-{$activeTheme}::layout" : null;
+    $previewLayout = ($themeLayout && view()->exists($themeLayout))
+        ? $themeLayout
+        : (view()->exists('theme-school-of-signals::layout') ? 'theme-school-of-signals::layout' : 'layouts.public');
 @endphp
 
 @extends($previewLayout)

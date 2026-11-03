@@ -24,7 +24,7 @@
         {{ $title }} | {{ config('awcms.name', 'AWCMS') }}
     </title>
 
-    <link rel="stylesheet" href="{{ asset('themes/school-of-signals/assets/fonts/fontawesome-7/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('themes/slsc/assets/fonts/fontawesome-7/css/all.min.css') }}">
 
     @vite([
         'resources/css/app.css',
@@ -33,8 +33,8 @@
 
     @livewireStyles
     <style>
-        @font-face{font-family:"AWCMS Exo 2";src:url("{{ asset('themes/school-of-signals/assets/fonts/Exo2-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0000-0D7F,U+0E00-10FFFF}
-        @font-face{font-family:"AWCMS Noto Serif Sinhala";src:url("{{ asset('themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0D80-0DFF,U+200C-200D}
+        @font-face{font-family:"AWCMS Exo 2";src:url("{{ asset('themes/slsc/assets/fonts/Exo2-Regular.woff2') }}") format("woff2"), url("{{ asset('themes/school-of-signals/assets/fonts/Exo2-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0000-0D7F,U+0E00-10FFFF}
+        @font-face{font-family:"AWCMS Noto Serif Sinhala";src:url("{{ asset('themes/slsc/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2"), url("{{ asset('themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0D80-0DFF,U+200C-200D}
         .admin-sidebar{background:linear-gradient(180deg,#101f33 0%,#0d192a 100%);color:#fff}
         .admin-brand{display:flex;height:76px;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);padding:0 20px}
         .admin-brand-mark{display:grid;width:39px;height:39px;flex:none;place-items:center;border:1px solid rgba(129,211,166,.24);border-radius:12px;background:linear-gradient(145deg,#1b8155,#176746);color:#e5fff0;box-shadow:0 5px 16px #0a100d55}

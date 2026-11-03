@@ -81,11 +81,20 @@ final class LeadershipProfileContent
         $safeHtml = $this->htmlSanitizer->sanitize($html);
         $safeCss = $this->layoutSanitizer->sanitizeCss($css);
         $activeTheme = config('awcms.active_theme');
-        $themeCssPath = $activeTheme ? base_path("themes/{$activeTheme}/assets/css/style.css") : null;
-        if (! $themeCssPath || ! is_file($themeCssPath)) {
+        $themeCssPath = null;
+        if ($activeTheme) {
+            if (is_file(base_path("themes/{$activeTheme}/assets/css/base.css"))) {
+                $themeCssPath = base_path("themes/{$activeTheme}/assets/css/base.css");
+            } elseif (is_file(base_path("themes/{$activeTheme}/assets/css/style.css"))) {
+                $themeCssPath = base_path("themes/{$activeTheme}/assets/css/style.css");
+            } elseif (is_file(base_path("themes/{$activeTheme}/assets/css/theme.css"))) {
+                $themeCssPath = base_path("themes/{$activeTheme}/assets/css/theme.css");
+            }
+        }
+        if (! $themeCssPath && is_file(base_path('themes/school-of-signals/assets/css/theme.css'))) {
             $themeCssPath = base_path('themes/school-of-signals/assets/css/theme.css');
         }
-        $themeCss = is_file($themeCssPath) ? (file_get_contents($themeCssPath) ?: '') : '';
+        $themeCss = is_file($themeCssPath ?? '') ? (file_get_contents($themeCssPath) ?: '') : '';
         preg_match('/:root\s*\{[^}]*\}/s', $themeCss, $root);
         $palette = $root[0] ?? '';
         $styles = str_replace('<', '\\3c ', $compiledCss."\n".$palette."\n".$safeCss);

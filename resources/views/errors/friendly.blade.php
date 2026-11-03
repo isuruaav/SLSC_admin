@@ -1,9 +1,12 @@
 @php
     $title = __('errors.'.$messageKey.'.title', [], $errorLocale);
     $message = __('errors.'.$messageKey.'.message', [], $errorLocale);
-    $schoolTheme = config('awcms.active_theme') === 'school-of-signals';
+    $schoolTheme = in_array(config('awcms.active_theme'), ['slsc', 'school-of-signals'], true);
     $siteName = $schoolTheme ? __('public.school_name', [], $errorLocale) : config('app.name', 'AWCMS');
-    $showLogo = $schoolTheme && is_file(public_path('themes/school-of-signals/assets/images/logo.png'));
+    $logoRelative = is_file(public_path('themes/slsc/assets/images/logo.png'))
+        ? 'themes/slsc/assets/images/logo.png'
+        : (is_file(public_path('themes/school-of-signals/assets/images/logo.png')) ? 'themes/school-of-signals/assets/images/logo.png' : null);
+    $showLogo = (bool) $logoRelative;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $errorLocale }}">
@@ -14,8 +17,8 @@
     <meta name="theme-color" content="#101f33">
     <title>{{ __('errors.page_title', ['code' => $status, 'title' => $title], $errorLocale) }} | {{ $siteName }}</title>
     <style>
-        @font-face { font-family: "Error Exo"; src: url("{{ asset('themes/school-of-signals/assets/fonts/Exo2-Regular.woff2') }}") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; unicode-range: U+0000-0D7F,U+0E00-10FFFF; }
-        @font-face { font-family: "Error Sinhala"; src: url("{{ asset('themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; unicode-range: U+0D80-0DFF,U+200C-200D; }
+        @font-face { font-family: "Error Exo"; src: url("{{ asset('themes/slsc/assets/fonts/Exo2-Regular.woff2') }}") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; unicode-range: U+0000-0D7F,U+0E00-10FFFF; }
+        @font-face { font-family: "Error Sinhala"; src: url("{{ asset('themes/slsc/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; unicode-range: U+0D80-0DFF,U+200C-200D; }
         :root { color-scheme: light; font-family: "Error Exo", "Error Sinhala", "Nirmala UI", system-ui, sans-serif; color: #172c43; background: #f4f7f9; }
         * { box-sizing: border-box; }
         body { margin: 0; min-height: 100svh; background: radial-gradient(ellipse at 0 100%, #e0eee9 0, transparent 48%), radial-gradient(ellipse at 100% 0, #e7eef7 0, transparent 45%), #f4f7f9; }
@@ -68,7 +71,7 @@
             <a class="brand" href="{{ $homeUrl }}">
                 <span class="brand-mark" aria-hidden="true">
                     @if ($showLogo)
-                        <img src="{{ asset('themes/school-of-signals/assets/images/logo.png') }}" alt="" width="36" height="38">
+                        <img src="{{ asset($logoRelative) }}" alt="" width="36" height="38">
                     @else
                         <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 4 6v5c0 5 4 8 8 10 4-2 8-5 8-10V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg>
                     @endif

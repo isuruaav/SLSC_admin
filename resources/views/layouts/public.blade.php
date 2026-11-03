@@ -28,8 +28,8 @@
     @if($faviconUrl)<link rel="icon" href="{{ $faviconUrl }}">@endif
     @yield('meta')
     <style>
-        @font-face{font-family:"AWCMS Exo 2";src:url("{{ asset('themes/school-of-signals/assets/fonts/Exo2-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0000-0D7F,U+0E00-10FFFF}
-        @font-face{font-family:"AWCMS Noto Serif Sinhala";src:url("{{ asset('themes/school-of-signals/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0D80-0DFF,U+200C-200D}
+        @font-face{font-family:"AWCMS Exo 2";src:url("{{ asset('themes/slsc/assets/fonts/Exo2-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0000-0D7F,U+0E00-10FFFF}
+        @font-face{font-family:"AWCMS Noto Serif Sinhala";src:url("{{ asset('themes/slsc/assets/fonts/NotoSerifSinhala-Regular.woff2') }}") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0D80-0DFF,U+200C-200D}
         :root{--awcms-font-family:"AWCMS Exo 2","AWCMS Noto Serif Sinhala",sans-serif;--site-primary:{{ $primaryColour }};--site-accent:{{ $accentColour }};}
         html[data-theme-family="training-school"] body{background:#f8fafc;}
         html[data-theme-family="sfhq"] header{border-bottom-color:#d4d4d8;}

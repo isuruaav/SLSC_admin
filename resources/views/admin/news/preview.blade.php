@@ -1,4 +1,11 @@
-@extends('theme-school-of-signals::layout')
+@php
+    $activeTheme = config('awcms.active_theme');
+    $themeLayout = $activeTheme ? "theme-{$activeTheme}::layout" : null;
+    $previewLayout = ($themeLayout && view()->exists($themeLayout))
+        ? $themeLayout
+        : (view()->exists('theme-school-of-signals::layout') ? 'theme-school-of-signals::layout' : 'layouts.public');
+@endphp
+@extends($previewLayout)
 
 @section('title', $pageTitle)
 @section('meta_description', $metaDescription)

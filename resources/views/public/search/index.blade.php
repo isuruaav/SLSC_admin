@@ -1,4 +1,11 @@
-@extends('theme-school-of-signals::layout')
+@php
+    $activeTheme = config('awcms.active_theme');
+    $themeLayout = $activeTheme ? "theme-{$activeTheme}::layout" : null;
+    $searchLayout = ($themeLayout && view()->exists($themeLayout))
+        ? $themeLayout
+        : (view()->exists('theme-school-of-signals::layout') ? 'theme-school-of-signals::layout' : 'layouts.public');
+@endphp
+@extends($searchLayout)
 
 @php
     $isSinhala = $currentLocale === 'si';
