@@ -1,4 +1,4 @@
-@extends(config('awcms.active_theme') === 'school-of-signals' ? 'theme-school-of-signals::layout' : 'layouts.public')
+@extends(($activeTheme = config('awcms.active_theme')) && view()->exists("theme-{$activeTheme}::layout") ? "theme-{$activeTheme}::layout" : 'layouts.public')
 @section('title', __('public.contact').' | '.($settings->localized('site_name') ?: config('app.name')))
 @section('description', __('public.contact_page.description'))
 @section('meta_description', __('public.contact_page.description'))

@@ -1,4 +1,0 @@
-# Upload the ZIP into /var/www/html/sch_of_slsc/, then open Terminal there.
-unzip sch_of_slsc-server-update-2026-10-23.zip -d update-20261023
-php update-20261023/install.php "$PWD" --check
-php update-20261023/install.php "$PWD"

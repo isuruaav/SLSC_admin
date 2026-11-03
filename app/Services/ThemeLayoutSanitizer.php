@@ -18,6 +18,9 @@ final class ThemeLayoutSanitizer
         'social_links',
         'contact_details',
         'copyright_year',
+        'search_button',
+        'search_bar',
+        'search_advanced',
     ];
 
     private const MAX_HTML_LENGTH = 100_000;

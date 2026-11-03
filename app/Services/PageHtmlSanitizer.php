@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use HTMLPurifier;
+use HTMLPurifier_AttrDef_Enum;
 use HTMLPurifier_AttrDef_Text;
 use HTMLPurifier_Config;
 use RuntimeException;
@@ -85,14 +86,14 @@ final class PageHtmlSanitizer
         $this->htmlPurifier = $this->makePurifier(
             cachePath: $cachePath,
             definitionId: 'awcms-page-tailwind-html',
-            definitionRev: 7,
+            definitionRev: 8,
             allowVisualStyles: false,
         );
 
         $this->visualPurifier = $this->makePurifier(
             cachePath: $cachePath,
             definitionId: 'awcms-page-visual-html',
-            definitionRev: 4,
+            definitionRev: 5,
             allowVisualStyles: true,
         );
     }
@@ -144,6 +145,7 @@ final class PageHtmlSanitizer
             '*.class',
             '*.id',
             '*.title',
+            'i.aria-hidden',
             'a.href',
             'a.title',
             'img.src',
@@ -250,6 +252,7 @@ final class PageHtmlSanitizer
         $definition = $config->maybeGetRawHTMLDefinition();
 
         if ($definition !== null) {
+            $definition->addAttribute('i', 'aria-hidden', new HTMLPurifier_AttrDef_Enum(['true', 'false']));
             $html5BlockElements = [
                 'section',
                 'main',

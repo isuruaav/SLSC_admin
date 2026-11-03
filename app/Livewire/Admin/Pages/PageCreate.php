@@ -95,7 +95,7 @@ final class PageCreate extends Component
             : null;
 
         abort_unless(
-            $targetLocale instanceof PageLocale,
+            $targetLocale instanceof PageLocale && app(\App\Services\SiteLanguageService::class)->enabled($targetLocale->value),
             404,
         );
 
@@ -516,7 +516,7 @@ final class PageCreate extends Component
             'locale' => [
                 'required',
                 'string',
-                'in:en,si,ta',
+                'in:'.implode(',', app(\App\Services\SiteLanguageService::class)->codes()),
             ],
 
             'slug' => [
@@ -615,7 +615,7 @@ final class PageCreate extends Component
 
     public function render(): View
     {
-        $locales = PageLocale::cases();
+        $locales = app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases());
 
         return view(
             'livewire.admin.pages.page-create',

@@ -2,6 +2,9 @@ import './page-content-editor.js';
 import './copy-path.js';
 import './admin-confirmations.js';
 import './publication-pdf-upload.js';
+import './navigation-editor.js';
+import './footer-editor.js';
+import './news-image-upload.js';
 import Trix from 'trix';
 
 import Sortable from 'sortablejs';

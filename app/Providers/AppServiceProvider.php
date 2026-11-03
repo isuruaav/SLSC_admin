@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\LivewireUpdateController;
 use App\Models\Menu;
 use App\Models\SiteSetting;
 use App\Models\SocialLink;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ContentSanitizer;
+use App\Services\LivewireOutputEncoding;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -16,11 +18,13 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View as ViewInstance;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,9 +44,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureLivewireOutput();
         $this->configureAuthorization();
         $this->configureAuthenticationEvents();
         $this->configurePublicViewData();
+    }
+
+    protected function configureLivewireOutput(): void
+    {
+        Livewire::setUpdateRoute(static fn ($handle, $path) => Route::post($path, LivewireUpdateController::class));
+        Livewire::listen('response', static fn () => static fn (array $payload): array => app(LivewireOutputEncoding::class)->repair($payload));
     }
 
     /**

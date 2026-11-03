@@ -1,15 +1,15 @@
 # sch_of_slsc architecture reference
 
-Open [index.html](index.html) for the offline searchable report (Sinhala explanations, English code symbols).
+The [Sinhala developer guide](GUIDE.si.md) and report generators in `tools/` are kept in Git. Generated HTML, Markdown reports, CSV/JSON inventories, diagrams and ZIP archives are local outputs excluded by `.gitignore`.
 
-- [Complete Markdown report](ARCHITECTURE-REPORT.si.md)
-- [All files metadata](all-files.csv)
-- [Detected dependencies with source lines](dependencies.csv)
-- [Registered routes](routes.csv)
-- [Nested directory inventory](folders.csv)
-- [Request flow diagram](request-flow.svg)
-- [Validation results and limits](validation.json)
+To regenerate the offline searchable report, run these commands from the project root after installing the development dependencies and configuring the local application:
 
-Snapshot: 2026-10-22, Asia/Colombo. Local working tree only; hosting not inspected. Secrets and live data contents excluded. The HTML embeds its own data and Sinhala font and does not request external resources. Use browser Print / Save as PDF on the selected tab when needed.
+```bash
+php -d xdebug.mode=off docs/architecture/tools/extract_php.php
+php -d xdebug.mode=off docs/architecture/tools/inspect_runtime.php
+php -d xdebug.mode=off artisan route:list --json -vv > docs/architecture/routes-runtime.json
+python docs/architecture/tools/build_data.py
+python docs/architecture/tools/build_report.py
+```
 
-Regeneration instructions are in section 12 of GUIDE.si.md. Keep the full developer project for regeneration. Node/PHP library internals and private/generated file contents are represented by metadata inventory and package manifests, not a complete executable runtime graph.
+Then open the generated `docs/architecture/index.html` locally. Section 12 of the guide explains the requirements and limitations. Reports describe the local working tree; secrets and live application data are excluded.

@@ -30,7 +30,7 @@
                             </p>
 
                             <p class="mt-1 text-xs leading-5 text-zinc-500">
-                                English, Sinhala and Tamil content is entered manually. AWCMS does not auto-translate page wording.
+                                Content for each enabled language is entered manually. AWCMS does not auto-translate page wording.
                             </p>
                         </div>
 

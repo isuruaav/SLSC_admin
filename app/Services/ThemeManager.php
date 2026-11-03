@@ -101,11 +101,11 @@ final class ThemeManager
 
         $manifestPath = $directory.DIRECTORY_SEPARATOR.'theme.json';
 
-        if (! is_file($manifestPath) || ! is_readable($manifestPath)) {
+        if (! is_file($manifestPath)) {
             return null;
         }
 
-        $contents = file_get_contents($manifestPath);
+        $contents = @file_get_contents($manifestPath);
 
         if (! is_string($contents)) {
             return null;

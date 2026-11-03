@@ -1,2 +1,10 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /login
+Disallow: /logout
+Disallow: /password/
+Disallow: /settings/
+Allow: /
+
+Sitemap: http://10.7.113.118/sch_of_slsc/public/sitemap.xml
+Sitemap: /sitemap.xml

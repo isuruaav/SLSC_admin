@@ -8,6 +8,7 @@ use App\Models\HeroSlide;
 use App\Models\News;
 use App\Models\SchoolLeader;
 use App\Models\SiteSetting;
+use App\Models\SpecialProgram;
 use App\Services\ThemeManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -105,6 +106,66 @@ final class PublicHomeController
                     ->get()
                 : collect();
 
+        /*
+         |--------------------------------------------------------------------------
+         | Homepage News Split: Photo Story (Left) + News Features (Right x 3)
+         |--------------------------------------------------------------------------
+         */
+        $photoStory = News::query()
+            ->published()
+            ->where('locale', $locale)
+            ->photoStories()
+            ->with([
+                'category',
+                'featuredImage.variants',
+            ])
+            ->orderByDesc('is_featured')
+            ->latest('published_at')
+            ->first();
+
+        if (! $photoStory) {
+            $photoStory = News::query()
+                ->published()
+                ->where('locale', $locale)
+                ->with([
+                    'category',
+                    'featuredImage.variants',
+                ])
+                ->orderByDesc('is_featured')
+                ->latest('published_at')
+                ->first();
+        }
+
+        $newsFeatures = News::query()
+            ->published()
+            ->where('locale', $locale)
+            ->newsFeatures()
+            ->when($photoStory, fn ($q) => $q->where('id', '!=', $photoStory->id))
+            ->with([
+                'category',
+                'featuredImage.variants',
+            ])
+            ->orderByDesc('is_featured')
+            ->latest('published_at')
+            ->limit(3)
+            ->get();
+
+        if ($newsFeatures->count() < 3) {
+            $excludedIds = array_filter([$photoStory?->id, ...$newsFeatures->pluck('id')->all()]);
+            $fillers = News::query()
+                ->published()
+                ->where('locale', $locale)
+                ->whereNotIn('id', $excludedIds)
+                ->with([
+                    'category',
+                    'featuredImage.variants',
+                ])
+                ->latest('published_at')
+                ->limit(3 - $newsFeatures->count())
+                ->get();
+            $newsFeatures = $newsFeatures->concat($fillers);
+        }
+
         $data = [
             'settings' => $settings,
 
@@ -112,9 +173,13 @@ final class PublicHomeController
 
             'schoolLeaders' => $schoolLeaders,
 
+            'photoStory' => $photoStory,
+
+            'newsFeatures' => $newsFeatures,
+
             /*
              |--------------------------------------------------------------------------
-             | Latest News
+             | Latest News (Kept for fallback and backward compatibility)
              |--------------------------------------------------------------------------
              */
             'latestNews' => News::query()
@@ -161,6 +226,19 @@ final class PublicHomeController
                 )
                 ->limit(5)
                 ->get(),
+
+            /*
+             |--------------------------------------------------------------------------
+             | Special Programs Directory
+             |--------------------------------------------------------------------------
+             */
+            'specialPrograms' => Schema::hasTable('special_programs')
+                ? SpecialProgram::query()
+                    ->active()
+                    ->ordered()
+                    ->with(['image.variants'])
+                    ->get()
+                : collect(),
 
             'languageVersions' => $this->languageVersions(),
         ];
@@ -243,71 +321,7 @@ final class PublicHomeController
      */
     private function supportedLocales(): array
     {
-        $activeTheme = config(
-            'awcms.active_theme',
-        );
-
-        if (
-            ! is_string($activeTheme)
-            || trim($activeTheme) === ''
-        ) {
-            return [
-                'en',
-                'si',
-                'ta',
-            ];
-        }
-
-        $activeTheme = trim(
-            $activeTheme,
-        );
-
-        $configuredLocales = config(
-            'awcms.theme_locales.'.$activeTheme,
-            [
-                'en',
-                'si',
-                'ta',
-            ],
-        );
-
-        if (! is_array($configuredLocales)) {
-            return [
-                'en',
-                'si',
-                'ta',
-            ];
-        }
-
-        $supportedLocales = [];
-
-        foreach ($configuredLocales as $locale) {
-            if (
-                is_string($locale)
-                && in_array(
-                    $locale,
-                    [
-                        'en',
-                        'si',
-                        'ta',
-                    ],
-                    true,
-                )
-                && ! in_array(
-                    $locale,
-                    $supportedLocales,
-                    true,
-                )
-            ) {
-                $supportedLocales[] = $locale;
-            }
-        }
-
-        return $supportedLocales !== []
-            ? $supportedLocales
-            : [
-                'en',
-            ];
+        return app(\App\Services\SiteLanguageService::class)->codes();
     }
 
     private function themeHomePath(): ?string

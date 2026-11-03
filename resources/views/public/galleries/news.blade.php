@@ -1,6 +1,7 @@
 @php
-    $galleryLayout = config('awcms.active_theme') === 'school-of-signals'
-        ? 'theme-school-of-signals::layout' : 'layouts.public';
+    $activeTheme = config('awcms.active_theme');
+    $galleryLayout = $activeTheme && view()->exists("theme-{$activeTheme}::layout")
+        ? "theme-{$activeTheme}::layout" : 'layouts.public';
     $feed = app(\App\Services\PublicGalleryFeed::class);
     $isSinhala = $news->getRawOriginal('locale') === 'si';
     $newsLocale = $news->locale instanceof \BackedEnum ? $news->locale->value : (string) $news->locale;

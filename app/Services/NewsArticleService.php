@@ -38,6 +38,7 @@ final class NewsArticleService
         ?string $translationGroup = null,
         NewsEditorMode $editorMode = NewsEditorMode::Visual,
         bool $showInGallery = false,
+        ?string $newsType = null,
     ): News {
         Gate::forUser(
             $actor,
@@ -116,10 +117,13 @@ final class NewsArticleService
                 $locale,
                 $safeTranslationGroup,
                 $editorMode,
+                $newsType,
             ): News {
                 $news = News::query()
                     ->create([
                         'category_id' => (int) $category->getKey(),
+
+                        'news_type' => $category->newsType(),
 
                         'locale' => $locale->value,
 
@@ -253,6 +257,7 @@ final class NewsArticleService
         ?string $seoDescription = null,
         ?NewsEditorMode $editorMode = null,
         ?bool $showInGallery = null,
+        ?string $newsType = null,
     ): News {
         Gate::forUser(
             $actor,
@@ -395,6 +400,7 @@ final class NewsArticleService
                 $safeSeoTitle,
                 $safeSeoDescription,
                 $safeEditorMode,
+                $newsType,
             ): News {
                 /*
                  * Preserve bounded old values for audit
@@ -462,6 +468,8 @@ final class NewsArticleService
                  */
                 $news->forceFill([
                     'category_id' => (int) $category->getKey(),
+
+                    'news_type' => $category->newsType(),
 
                     'title' => $safeTitle,
 

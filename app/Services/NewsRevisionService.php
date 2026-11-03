@@ -325,6 +325,8 @@ final class NewsRevisionService
                         ? (bool) $lockedNews->getAttribute('show_in_gallery')
                         : (bool) $lockedRevision->getAttribute('show_in_gallery'),
 
+                    'news_type' => $lockedRevision->getAttribute('news_type') ?? ($lockedNews->getAttribute('news_type') ?? 'news_feature'),
+
                     'is_featured' => (bool) $lockedRevision->getAttribute(
                         'is_featured',
                     ),
@@ -506,6 +508,8 @@ final class NewsRevisionService
             'is_featured' => (bool) $news->getAttribute(
                 'is_featured',
             ),
+
+            'news_type' => $news->getAttribute('news_type') ?? 'news_feature',
 
             'status' => $status->value,
 

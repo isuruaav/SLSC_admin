@@ -1,6 +1,6 @@
 @extends(
-    config('awcms.active_theme') === 'school-of-signals'
-        ? 'theme-school-of-signals::layout'
+    ($activeTheme = config('awcms.active_theme')) && view()->exists("theme-{$activeTheme}::layout")
+        ? "theme-{$activeTheme}::layout"
         : 'layouts.public'
 )
 

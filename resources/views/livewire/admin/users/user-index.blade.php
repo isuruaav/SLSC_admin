@@ -381,6 +381,18 @@
                                         @endif
                                     @endcan
 
+                                    @can('users.delete')
+                                        @if ($canManage && auth()->id() !== $user->id)
+                                            <x-admin.icon-action label="Delete user" icon="trash" tone="danger"
+                                                type="button"
+                                                wire:click="deleteUser({{ $user->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="deleteUser"
+                                                wire:confirm="Delete {{ $user->name }}'s account? Their login access and active sessions will be removed. Existing website content will be kept. This cannot be undone."
+                                            />
+                                        @endif
+                                    @endcan
+
                                     @can('users.update')
                                         @if (
                                             $canManage

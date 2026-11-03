@@ -47,6 +47,12 @@
         </div>
     @endif
 
+    @error('delete')
+        <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+            {{ $message }}
+        </div>
+    @enderror
+
     <div class="min-w-0">
         <section class="min-w-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div class="border-b border-zinc-200 bg-zinc-50 px-5 py-4">
@@ -231,7 +237,7 @@
 
                             @if ($canUpdate)
                                 <th class="px-4 py-3 text-right">
-                                    Action
+                                    Actions
                                 </th>
                             @endif
                         </tr>
@@ -306,10 +312,19 @@
 
                                 @if ($canUpdate)
                                     <td class="px-4 py-4 text-right align-top">
-                                        <x-admin.icon-action label="Edit" icon="pencil-square" tone="info"
-                                            type="button"
-                                            wire:click="edit({{ $position->id }})"
-                                        />
+                                        <div class="flex justify-end gap-2">
+                                            <x-admin.icon-action label="Edit" icon="pencil-square" tone="info"
+                                                type="button"
+                                                wire:click="edit({{ $position->id }})"
+                                            />
+                                            <x-admin.icon-action label="Delete appointment type" icon="trash" tone="danger"
+                                                type="button"
+                                                wire:click="delete({{ $position->id }})"
+                                                wire:confirm="Delete the appointment type {{ $position->name_en }}? This cannot be undone."
+                                                wire:loading.attr="disabled"
+                                                wire:target="delete({{ $position->id }})"
+                                            />
+                                        </div>
                                     </td>
                                 @endif
                             </tr>
@@ -393,26 +408,6 @@
                                 </ul>
                             </div>
                         @endif
-                        @if ($editingId !== null)
-                            @php
-                                $editingPosition = $positions
-                                    ->getCollection()
-                                    ->firstWhere('id', $editingId);
-                            @endphp
-
-                            @if ($editingPosition)
-                                <div class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                                    <p class="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                                        System key
-                                    </p>
-
-                                    <p class="mt-1 break-all font-mono text-xs font-bold text-zinc-700">
-                                        {{ $editingPosition->key }}
-                                    </p>
-                                </div>
-                            @endif
-                        @endif
-
                         <div>
                             <label
                                 for="position-name-en"
@@ -424,7 +419,7 @@
 
                             <input
                                 id="position-name-en"
-                                wire:model="nameEn"
+                                wire:model.live.debounce.300ms="nameEn"
                                 type="text"
                                 maxlength="180"
                                 class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm"
@@ -435,6 +430,27 @@
                                 <p class="mt-1 text-xs font-semibold text-red-600">
                                     {{ $message }}
                                 </p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="position-system-key" class="mb-1.5 block text-sm font-bold text-zinc-800">
+                                System key <span class="text-red-600">*</span>
+                            </label>
+                            <input id="position-system-key" wire:model.live.debounce.300ms="systemKey"
+                                type="text" maxlength="50" autocapitalize="none" spellcheck="false"
+                                aria-describedby="position-system-key-help{{ $errors->has('systemKey') ? ' position-system-key-error' : '' }}"
+                                @if ($errors->has('systemKey')) aria-invalid="true" @endif
+                                class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 font-mono text-sm"
+                                placeholder="e.g. training_officer">
+                            <p id="position-system-key-help" class="mt-1.5 text-xs leading-relaxed text-zinc-500">
+                                Generated from the English name for new types. You can edit it using lowercase letters, numbers and underscores (maximum 50 characters).
+                                @if ($editingId !== null)
+                                    Built-in appointment keys also control their homepage placement and older appointment links.
+                                @endif
+                            </p>
+                            @error('systemKey')
+                                <p id="position-system-key-error" class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 

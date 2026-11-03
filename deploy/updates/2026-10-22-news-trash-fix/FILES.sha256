@@ -1,5 +1,0 @@
-9137004f424131e9fb06da8370d54dccd67a39cbe310d7d7a203a638b28d137f  app/Livewire/Admin/News/NewsIndex.php
-437e26ad09b34a5b63e128a6016bff4f0ba06070d1c264d000707ddf5213533f  app/Services/NewsDeletionService.php
-c4355db80d428759af4eceaf2f7ff357d96b0a06c761b33fa603c154b57623c1  resources/views/admin/news/preview.blade.php
-d2ff7bc84b7616f19506c777d9b3d1167d04e7817511f1eff0f86cbd4fc68ce3  resources/views/livewire/admin/news/news-index.blade.php
-40632b87d501bcdff9b16188e7a9b176b3d2c72e6012e57f172af3a0017b05c6  routes/web.php

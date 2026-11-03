@@ -8,18 +8,7 @@
 @endif
 
 @php
-    $configuredThemeLocales = config('awcms.theme_locales.school-of-signals', ['en', 'si', 'ta']);
-
-    $supportedThemeLocales = is_array($configuredThemeLocales)
-        ? array_values(
-            array_filter(
-                $configuredThemeLocales,
-                static fn(mixed $locale): bool => is_string($locale) && in_array($locale, ['en', 'si', 'ta'], true),
-            ),
-        )
-        : ['en', 'si', 'ta'];
-
-    $supportedThemeLocales = $supportedThemeLocales !== [] ? $supportedThemeLocales : ['en'];
+    $supportedThemeLocales = app(\App\Services\SiteLanguageService::class)->codes();
 
     $themeLanguageVersions = array_values(
         array_filter(

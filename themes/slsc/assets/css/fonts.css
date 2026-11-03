@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,100..900;1,100..900&family=Maname&display=swap');
+
+:root {
+    --font-family-base: 'Exo', Inter, "Segoe UI", Arial, sans-serif;
+    --font-family-si: 'Maname', "Noto Sans Sinhala", "Iskoola Pota", "Segoe UI", sans-serif;
+}
+
+@font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/inter-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Sans Sinhala';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/noto-sinhala.woff2') format('woff2');
+    unicode-range: U+0D80-0DFF, U+200C-200D, U+25CC;
+}

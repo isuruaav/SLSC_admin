@@ -2,7 +2,7 @@
     <div>
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Site Management</p>
         <h1 class="mt-1 text-2xl font-black text-zinc-950">Site Settings</h1>
-        <p class="mt-1 text-sm text-zinc-500">Manage English and Sinhala site details, theme family, social links and maintenance mode.</p>
+        <p class="mt-1 text-sm text-zinc-500">Manage site languages, English and Sinhala site details, theme family, social links and maintenance mode.</p>
     </div>
 
     @if (session('status'))
@@ -22,6 +22,29 @@
     @endif
 
     <form wire:submit="save" class="mt-6 space-y-6">
+        <section class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+            <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+                <h2 class="font-bold text-zinc-900">Site Languages</h2>
+                <p class="mt-1 text-sm text-zinc-500">Select the languages to use on your website, then save settings. You can enable Tamil whenever you are ready.</p>
+            </div>
+            <fieldset class="p-6">
+                <legend class="sr-only">Enabled website languages</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    @foreach ($availableLanguages as $language)
+                        <label for="site-language-{{ $language->value }}" class="flex items-start gap-3 rounded-xl border border-zinc-200 p-4">
+                            <input id="site-language-{{ $language->value }}" type="checkbox" wire:model="enabledLocales" value="{{ $language->value }}" @disabled($language->value === 'en') class="mt-1 rounded border-zinc-300 text-emerald-700">
+                            <span><span class="block text-sm font-bold text-zinc-900">{{ $language->nativeLabel() }}</span><span class="mt-1 block text-xs text-zinc-500">{{ $language->label() }} · {{ strtoupper($language->value) }}</span>
+                                @if ($language->value === 'en')<span class="mt-2 block text-xs text-emerald-700">Required fallback language</span>@endif
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="mt-4 text-xs leading-6 text-zinc-500">Unchecked languages are hidden from visitors and language selectors. Existing translations and layouts are kept, ready to use when enabled again. English remains available as the fallback.</p>
+                @error('enabledLocales')<p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>@enderror
+                @error('enabledLocales.*')<p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>@enderror
+            </fieldset>
+        </section>
+
         <section class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
                 <h2 class="font-bold text-zinc-900">Identity & Theme</h2>

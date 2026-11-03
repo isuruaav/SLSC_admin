@@ -47,7 +47,7 @@ it('allows an authorized administrator to open the multilingual editor', functio
         ->assertSee('school-of-signals')
         ->assertSee('English')
         ->assertSee('සිංහල')
-        ->assertSee('தமிழ்');
+        ->assertDontSee('தமிழ்');
 });
 
 it('forbids administrators without the dedicated layout permission', function (): void {
@@ -115,6 +115,7 @@ it('keeps language editor content independent when switching tabs', function ():
 
 it('saves and publishes only the selected language layout', function (): void {
     $this->actingAs(themeLayoutAdminUser());
+    \App\Models\SiteSetting::current()->update(['enabled_locales' => ['en', 'si', 'ta']]);
 
     Livewire::test(ThemeLayoutIndex::class)
         ->call('selectLocale', ThemeLayoutLocale::Tamil->value)

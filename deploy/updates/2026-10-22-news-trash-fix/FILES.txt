@@ -1,5 +1,0 @@
-app/Livewire/Admin/News/NewsIndex.php
-app/Services/NewsDeletionService.php
-resources/views/admin/news/preview.blade.php
-resources/views/livewire/admin/news/news-index.blade.php
-routes/web.php

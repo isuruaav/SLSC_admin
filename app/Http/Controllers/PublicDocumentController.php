@@ -201,7 +201,7 @@ final class PublicDocumentController extends Controller
         $headers = [
             'Content-Type' => $mime,
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => 'public, max-age=3600, stale-while-revalidate=86400',
         ];
 
         if ($download || $extension !== 'pdf') {

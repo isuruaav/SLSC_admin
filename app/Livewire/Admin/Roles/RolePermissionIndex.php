@@ -4,6 +4,9 @@ namespace App\Livewire\Admin\Roles;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DefaultRoleService;
+use App\Support\PermissionCatalog;
+use App\Support\RolePresets;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,12 +29,17 @@ final class RolePermissionIndex extends Component
 
     public string $newRoleName = '';
 
+    public string $newRoleTemplate = 'Content Editor';
+
+    public string $permissionTemplate = 'Content Editor';
+
     public function mount(): void
     {
         Gate::authorize('roles.manage');
 
         $role = Role::query()
             ->where('guard_name', 'web')
+            ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END', ['Content Editor'])
             ->orderBy('name')
             ->first();
 
@@ -40,6 +48,7 @@ final class RolePermissionIndex extends Component
             : null;
 
         $this->loadSelectedPermissions();
+        $this->dispatch('role-editor-reset');
     }
 
     public function selectRole(int $roleId): void
@@ -53,6 +62,7 @@ final class RolePermissionIndex extends Component
         $this->selectedRoleId = $roleId;
         $this->resetValidation();
         $this->loadSelectedPermissions();
+        $this->dispatch('role-editor-reset');
     }
 
     public function createRole(): void
@@ -67,40 +77,102 @@ final class RolePermissionIndex extends Component
                 'max:100',
                 Rule::unique(Role::class, 'name')->where('guard_name', 'web'),
             ],
+            'newRoleTemplate' => ['required', 'string', Rule::in(['blank', ...$this->templateNames()])],
         ]);
 
         if (in_array(mb_strtolower($this->newRoleName), [
             'super administrator',
             'site administrator',
+            'super admin',
+            'site admin',
         ], true)) {
             throw ValidationException::withMessages([
                 'newRoleName' => 'This name is reserved for a system administrator role.',
             ]);
         }
 
-        $role = DB::transaction(function () use ($actor): Role {
+        $permissions = $this->templatePermissions($this->newRoleTemplate);
+        $role = DB::transaction(function () use ($actor, $permissions): Role {
             $role = Role::query()->create([
                 'name' => $this->newRoleName,
                 'guard_name' => 'web',
             ]);
+            $role->syncPermissions($permissions);
 
             app(AuditLogger::class)->log(
                 event: 'roles.created',
                 description: 'A role was created.',
                 actor: $actor,
                 subject: $role,
-                newValues: ['name' => $role->name],
+                newValues: ['name' => $role->name, 'template' => $this->newRoleTemplate, 'permissions' => $permissions],
             );
 
             return $role;
         });
 
         $this->selectedRoleId = (int) $role->getKey();
-        $this->selectedPermissions = [];
+        $this->loadSelectedPermissions();
         $this->newRoleName = '';
         $this->resetValidation();
+        $this->dispatch('role-editor-reset');
 
-        session()->flash('status', 'Role created successfully. Assign its permissions before assigning users.');
+        session()->flash('status', 'Role created successfully. Review its access below, then assign it to users.');
+    }
+
+    public function installRecommendedRoles(): void
+    {
+        $actor = $this->authorizeRoleChanges();
+        $created = app(DefaultRoleService::class)->install(actor: $actor);
+        if ($this->selectedRoleId === null) {
+            $this->selectedRoleId = (int) Role::findByName('Content Editor', 'web')->getKey();
+        }
+        $this->loadSelectedPermissions();
+        $this->dispatch('role-editor-reset');
+        session()->flash('status', $created === []
+            ? 'All recommended roles are already available. Existing permissions were kept.'
+            : 'Recommended roles added. Existing permissions and user assignments were kept.');
+    }
+
+    public function applyTemplate(): void
+    {
+        $this->assertEditableRole();
+        $this->validate(['permissionTemplate' => ['required', 'string', Rule::in($this->templateNames())]]);
+        $this->selectedPermissions = $this->templatePermissions($this->permissionTemplate);
+        $this->resetValidation();
+        $this->dispatch('role-editor-changed');
+    }
+
+    public function discardChanges(): void
+    {
+        Gate::authorize('roles.manage');
+        $this->loadSelectedPermissions();
+        $this->resetValidation();
+        $this->dispatch('role-editor-reset');
+    }
+
+    public function togglePermission(string $name): void
+    {
+        $this->assertEditableRole();
+        $available = $this->allPermissionNames();
+        abort_unless(in_array($name, $available, true), 422);
+        $this->selectedPermissions = in_array($name, $this->selectedPermissions, true)
+            ? PermissionCatalog::withoutDependants($this->selectedPermissions, [$name], $available)
+            : PermissionCatalog::withDependencies([...$this->selectedPermissions, $name], $available);
+        $this->resetValidation();
+        $this->dispatch('role-editor-changed');
+    }
+
+    public function togglePermissionGroup(string $group): void
+    {
+        $this->assertEditableRole();
+        $available = $this->allPermissionNames();
+        $groupPermissions = array_values(array_filter($available, static fn (string $name): bool => PermissionCatalog::group($name) === $group));
+        abort_if($groupPermissions === [], 422);
+        $this->selectedPermissions = array_diff($groupPermissions, $this->selectedPermissions) === []
+            ? PermissionCatalog::withoutDependants($this->selectedPermissions, $groupPermissions, $available)
+            : PermissionCatalog::withDependencies([...$this->selectedPermissions, ...$groupPermissions], $available);
+        $this->resetValidation();
+        $this->dispatch('role-editor-changed');
     }
 
     public function savePermissions(): void
@@ -158,6 +230,7 @@ final class RolePermissionIndex extends Component
         }
 
         $this->loadSelectedPermissions();
+        $this->dispatch('role-editor-reset');
         session()->flash('status', 'Role permissions updated successfully.');
     }
 
@@ -170,20 +243,14 @@ final class RolePermissionIndex extends Component
             ->orderBy('name')
             ->get();
 
-        $grouped = $permissions->groupBy(
-            static function (Permission $permission): string {
-                $prefix = explode('.', $permission->name, 2)[0];
-
-                return ucwords(str_replace(['-', '_'], ' ', $prefix));
-            },
-        );
+        $grouped = $permissions->groupBy(static fn (Permission $permission): string => PermissionCatalog::group($permission->name));
+        $roles = Role::query()->where('guard_name', 'web')->withCount(['users', 'permissions'])->orderBy('name')->get()
+            ->sortBy(static fn (Role $role): int => RolePresets::order($role->name));
 
         return view('livewire.admin.roles.role-permission-index', [
-            'roles' => Role::query()
-                ->where('guard_name', 'web')
-                ->withCount('users')
-                ->orderBy('name')
-                ->get(),
+            'roles' => $roles,
+            'missingRecommendedRoles' => array_values(array_diff(array_keys(RolePresets::all()), $roles->pluck('name')->all())),
+            'templates' => array_intersect_key(RolePresets::all(), array_flip($this->templateNames())),
             'groupedPermissions' => $grouped,
             'canManageRoles' => $this->actor()->hasRole('Super Administrator'),
             'selectedRole' => $this->selectedRoleId === null
@@ -204,6 +271,7 @@ final class RolePermissionIndex extends Component
         $this->selectedPermissions = $role->name === 'Super Administrator'
             ? $this->allPermissionNames()
             : $this->rolePermissionNames($role);
+        $this->permissionTemplate = in_array($role->name, $this->templateNames(), true) ? $role->name : 'Content Editor';
     }
 
     private function selectedRole(): Role
@@ -250,27 +318,39 @@ final class RolePermissionIndex extends Component
     {
         if ($permissions !== [] && ! in_array('admin.access', $permissions, true)) {
             throw ValidationException::withMessages([
-                'selectedPermissions' => 'Select admin.access to allow this role to enter the administration panel.',
+                'selectedPermissions' => 'Enable Open the admin workspace before granting other access.',
             ]);
         }
 
-        $modules = [
-            'users', 'pages', 'news', 'galleries', 'documents', 'media',
-            'hero-slides', 'school-leaders', 'past-commandants', 'past-chief-instructors',
-        ];
-
+        $available = $this->allPermissionNames();
         foreach ($permissions as $permission) {
-            $module = explode('.', $permission, 2)[0];
-
-            if (
-                in_array($module, $modules, true)
-                && $permission !== $module.'.view'
-                && ! in_array($module.'.view', $permissions, true)
-            ) {
-                throw ValidationException::withMessages([
-                    'selectedPermissions' => 'Select '.$module.'.view before granting '.$permission.'.',
-                ]);
+            foreach (PermissionCatalog::dependencies($permission, $available) as $dependency) {
+                if (! in_array($dependency, $permissions, true)) {
+                    throw ValidationException::withMessages([
+                        'selectedPermissions' => 'Enable '.PermissionCatalog::groupLabel(PermissionCatalog::group($dependency)).' — '.PermissionCatalog::label($dependency).' before granting '.PermissionCatalog::label($permission).'.',
+                    ]);
+                }
             }
+        }
+    }
+
+    /** @return list<string> */
+    private function templateNames(): array
+    {
+        return array_values(array_diff(array_keys(RolePresets::all()), ['Super Administrator']));
+    }
+
+    /** @return list<string> */
+    private function templatePermissions(string $name): array
+    {
+        return PermissionCatalog::withDependencies(RolePresets::all()[$name]['permissions'] ?? [], $this->allPermissionNames());
+    }
+
+    private function assertEditableRole(): void
+    {
+        $this->authorizeRoleChanges();
+        if ($this->selectedRole()->name === 'Super Administrator') {
+            throw ValidationException::withMessages(['role' => 'The Super Administrator role always has full access and cannot be changed here.']);
         }
     }
 

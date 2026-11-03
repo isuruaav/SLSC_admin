@@ -306,7 +306,7 @@ final class PageIndex extends Component
             ->paginate($this->perPage);
 
         $statuses = PageStatus::cases();
-        $locales = PageLocale::cases();
+        $locales = app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases());
 
         return view(
             'livewire.admin.pages.page-index',

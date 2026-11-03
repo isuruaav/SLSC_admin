@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\NewsLocale;
 use App\Enums\NewsStatus;
 use App\Models\News;
 use App\Models\User;
@@ -378,6 +379,50 @@ final class NewsWorkflowService
             },
             3,
         );
+    }
+
+    /**
+     * Return the versions opened by the shared English/Sinhala editor to Draft.
+     * Other languages and non-published workflow states remain unchanged.
+     */
+    public function unpublishForEditing(News $news, User $actor): int
+    {
+        Gate::forUser($actor)->authorize('news.publish');
+
+        if (! $news->exists || $news->trashed()) {
+            throw ValidationException::withMessages([
+                'news' => 'The selected news article is unavailable.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($news, $actor): int {
+            $news = News::query()->findOrFail($news->getKey());
+            $translationGroup = $news->getAttribute('translation_group');
+            $versionsQuery = News::query();
+
+            if (
+                in_array($news->getRawOriginal('locale'), [NewsLocale::English->value, NewsLocale::Sinhala->value], true)
+                && is_string($translationGroup)
+                && trim($translationGroup) !== ''
+            ) {
+                $versionsQuery->where('translation_group', $translationGroup)
+                    ->whereIn('locale', [NewsLocale::English->value, NewsLocale::Sinhala->value]);
+            } else {
+                $versionsQuery->whereKey($news->getKey());
+            }
+
+            $versions = $versionsQuery->orderBy('id')->lockForUpdate()->get();
+            $unpublished = 0;
+
+            foreach ($versions as $version) {
+                if ($this->status($version) === NewsStatus::Published) {
+                    $this->unpublish($version, $actor);
+                    $unpublished++;
+                }
+            }
+
+            return $unpublished;
+        }, 3);
     }
 
     public function unpublish(

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/theme.json",
+  "name": "Sri Lanka Signal Corps (SLSC) Portal",
+  "slug": "slsc-portal",
+  "version": "2.0.0",
+  "cms": "AWCMS",
+  "author": "Sri Lanka Signal Corps Directorate of Information Technology",
+  "description": "High-performance, accessible, and responsive military portal template designed for the Sri Lanka Army and Signal Corps. Fully bilingual (English & Sinhala), zero external CDN dependencies, and ready for CMS integration.",
+  "license": "Proprietary / Sri Lanka Army",
+  "template_engine": "Native PHP Component Architecture",
+  "supported_languages": [
+    { "code": "en", "name": "English", "default": true },
+    { "code": "si", "name": "සිංහල" }
+  ],
+  "widget_zones": [
+    { "id": "topbar", "name": "Top Utility Bar", "description": "Army official link and security status" },
+    { "id": "header_nav", "name": "Primary Navigation", "description": "Main navigation links and language switcher" },
+    { "id": "hero_slider", "name": "Hero Slider Zone", "description": "High-impact tactical story carousel" },
+    { "id": "news_ticker", "name": "Live News Ticker", "description": "Real-time scrolling headline dispatches" },
+    { "id": "anniversary_banner", "name": "Anniversary Highlight", "description": "83rd regimental anniversary feature" },
+    { "id": "leadership", "name": "Leadership / Commandant", "description": "Colonel Commandant profile & portrait" },
+    { "id": "newsroom", "name": "News & Events Grid", "description": "Dynamic filterable news items" },
+    { "id": "special_programs", "name": "Special Programs Grid", "description": "Interactive 15 official programs" },
+    { "id": "publications", "name": "Digital Publications", "description": "The Signaller 3D journal feature" },
+    { "id": "recruitment", "name": "Join Us / Registration", "description": "Online application & recruitment teaser" },
+    { "id": "contact_directory", "name": "Command Directory & Maps", "description": "Panagoda headquarters & official portals" },
+    { "id": "footer", "name": "Footer Zone", "description": "Quick links, resources, copyright & back-to-top" }
+  ],
+  "assets": {
+    "css": "assets/css/style.css",
+    "js": "assets/js/script.js",
+    "icons": "includes/icons.php",
+    "logo": "assets/images/logo/signals-logo.png"
+  }
+}
+

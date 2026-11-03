@@ -1,6 +1,7 @@
 @php
+    $activeTheme = config('awcms.active_theme');
     $publicLayout =
-        config('awcms.active_theme') === 'school-of-signals' ? 'theme-school-of-signals::layout' : 'layouts.public';
+        $activeTheme && view()->exists("theme-{$activeTheme}::layout") ? "theme-{$activeTheme}::layout" : 'layouts.public';
 @endphp
 
 @extends($publicLayout)
@@ -37,6 +38,20 @@
 @section('description', $news->seo_description ?: ($news->summary ?: $news->title))
 @section('meta_description', $news->seo_description ?: ($news->summary ?: $news->title))
 @section('canonical', $publicNewsUrl)
+
+@section('og_tags')
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ $news->seo_title ?: $news->title }}">
+    <meta property="og:description" content="{{ $news->seo_description ?: ($news->summary ?: $news->title) }}">
+    <meta property="og:url" content="{{ $publicNewsUrl }}">
+    @if ($featuredImageUrl)
+        <meta property="og:image" content="{{ $featuredImageUrl }}">
+        <meta name="twitter:image" content="{{ $featuredImageUrl }}">
+    @endif
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $news->seo_title ?: $news->title }}">
+    <meta name="twitter:description" content="{{ $news->seo_description ?: ($news->summary ?: $news->title) }}">
+@endsection
 
 @section('meta')
     <meta property="og:type" content="article">

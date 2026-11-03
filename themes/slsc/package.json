@@ -1,0 +1,12 @@
+{
+  "name": "slsc-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check assets/js/script.js"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.0"
+  }
+}

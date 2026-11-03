@@ -256,7 +256,7 @@ final class MediaIndex extends Component
             $query = $this->selectedUsageMediaQuery();
 
             $media = $query
-                ->with('uploader')
+                ->with(['uploader', 'variants'])
                 ->latest('id')
                 ->paginate(20);
         } elseif ($this->libraryMode === 'usage') {
@@ -269,7 +269,7 @@ final class MediaIndex extends Component
             }
 
             $media = $query
-                ->with('uploader')
+                ->with(['uploader', 'variants'])
                 ->latest('id')
                 ->paginate(20);
         }

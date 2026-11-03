@@ -1,0 +1,27 @@
+{
+    "name": "Sri Lanka Signal Corps",
+    "slug": "slsc",
+    "version": "2.0.0",
+    "author": "Sri Lanka Signal Corps IT Directorate",
+    "description": "High-performance, accessible, and responsive military portal theme for Sri Lanka Signal Corps.",
+    "supports": [
+        "home",
+        "pages",
+        "news",
+        "galleries",
+        "documents",
+        "contact",
+        "menus",
+        "hero-slides",
+        "multilingual"
+    ],
+    "views": {
+        "layout": "layout",
+        "home": "home"
+    },
+    "assets": {
+        "css": "assets/css/style.css",
+        "js": "assets/js/script.js"
+    }
+}
+

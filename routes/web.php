@@ -17,9 +17,12 @@ use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\PublicPublicationController;
 use App\Http\Controllers\PublicRedirectController;
 use App\Http\Controllers\PublicSchoolLeadershipController;
+use App\Http\Controllers\PublicSearchController;
+use App\Http\Controllers\PublicSitemapController;
 use App\Livewire\Admin\Documents\DocumentUploads;
 use App\Livewire\Admin\Courses\CourseIndex;
 use App\Livewire\Admin\HeroSlides\HeroSlideIndex;
+use App\Livewire\Admin\SpecialPrograms\SpecialProgramIndex;
 use App\Livewire\Admin\Publications\PublicationUploads;
 use App\Livewire\Admin\SchoolLeaders\SchoolLeaderIndex;
 use App\Livewire\Admin\SchoolLeaders\SchoolLeaderProfiles;
@@ -302,6 +305,24 @@ Route::get(
 
 /*
 |--------------------------------------------------------------------------
+| Public Search
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/sitemap.xml', [PublicSitemapController::class, 'index'])->name('sitemap');
+
+Route::get('/search', [PublicSearchController::class, 'index'])->name('search');
+Route::get('/search/suggest', [PublicSearchController::class, 'suggest'])->name('search.suggest');
+
+Route::get('/{locale}/search', [PublicSearchController::class, 'index'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('search.localized');
+Route::get('/{locale}/search/suggest', [PublicSearchController::class, 'suggest'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('search.suggest.localized');
+
+/*
+|--------------------------------------------------------------------------
 | Public Contact
 |--------------------------------------------------------------------------
 */
@@ -455,6 +476,9 @@ Route::middleware([
                 ->name(
                     'users.index',
                 );
+
+            Route::livewire('/account/password', \App\Livewire\Admin\Users\ChangePassword::class)
+                ->name('account.password');
 
             Route::livewire(
                 '/users/create',
@@ -852,6 +876,19 @@ Route::middleware([
             )
                 ->middleware('can:hero-slides.view')
                 ->name('hero-slides.index');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Special Programs
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/special-programs',
+                SpecialProgramIndex::class,
+            )
+                ->middleware('can:settings.manage')
+                ->name('special-programs.index');
 
             /*
             |--------------------------------------------------------------------------

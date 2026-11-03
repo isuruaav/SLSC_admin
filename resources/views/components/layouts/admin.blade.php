@@ -202,6 +202,10 @@
                         </div>
                     </div>
 
+                    <a href="{{ route('admin.account.password') }}" wire:navigate title="Change your password" aria-label="Change your password" class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800">
+                        <i class="fa-solid fa-key" aria-hidden="true"></i><span class="hidden sm:inline">Password</span>
+                    </a>
+
                     <form
                         method="POST"
                         action="{{ route('logout') }}"

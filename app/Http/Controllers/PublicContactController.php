@@ -49,7 +49,7 @@ final class PublicContactController
             'ip_address' => $request->ip(),
         ]);
 
-        return back()->with('status', 'Your message has been received.');
+        return back()->with('status', __('public.contact_page.received'));
     }
 
     private function setLocale(Request $request): string

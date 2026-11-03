@@ -1,5 +1,0 @@
-app/Models/HeroSlide.php
-public/themes/school-of-signals/assets/css/theme.css
-resources/views/public/home.blade.php
-themes/school-of-signals/assets/css/theme.css
-themes/school-of-signals/views/home.blade.php

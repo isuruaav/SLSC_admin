@@ -34,7 +34,7 @@ final class PublicMediaFileController extends Controller
         return Storage::disk($disk)->response($path, $filename, [
             'Content-Type' => $media->getAttribute('mime_type') ?: 'application/octet-stream',
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => 'public, max-age=86400, stale-while-revalidate=604800',
         ], 'inline');
     }
 }

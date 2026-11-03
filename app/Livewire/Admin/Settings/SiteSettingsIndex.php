@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Admin\Settings;
 
+use App\Enums\ThemeLayoutLocale;
 use App\Models\MediaAsset;
 use App\Models\SiteSetting;
 use App\Models\SocialLink;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\SiteLanguageService;
 use App\Services\SiteSettingService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +18,9 @@ use Livewire\Component;
 
 final class SiteSettingsIndex extends Component
 {
+    /** @var list<string> */
+    public array $enabledLocales = ['en', 'si'];
+
     public string $siteName = '';
 
     public string $siteNameSi = '';
@@ -90,6 +95,8 @@ final class SiteSettingsIndex extends Component
         Gate::authorize('settings.manage');
 
         $this->validate([
+            'enabledLocales' => ['required', 'array', 'min:1', 'max:3'],
+            'enabledLocales.*' => ['required', 'string', 'distinct', 'in:en,si,ta'],
             'siteNameSi' => ['nullable', 'string', 'max:180'],
             'siteName' => ['required', 'string', 'max:180'],
             'siteTaglineSi' => ['nullable', 'string', 'max:255'],
@@ -119,6 +126,12 @@ final class SiteSettingsIndex extends Component
             'maintenanceMessage' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        if (! in_array('en', $this->enabledLocales, true)) {
+            throw ValidationException::withMessages([
+                'enabledLocales' => 'Keep English enabled as the fallback language.',
+            ]);
+        }
+
         $this->assertPublicImage($this->logoMediaId, 'logoMediaId');
         $this->assertPublicImage($this->faviconMediaId, 'faviconMediaId');
         $this->assertPublicImage($this->commanderImageMediaId, 'commanderImageMediaId');
@@ -132,6 +145,7 @@ final class SiteSettingsIndex extends Component
             settings: SiteSetting::current(),
             actor: $this->actor(),
             values: [
+                'enabled_locales' => app(SiteLanguageService::class)->normalize($this->enabledLocales),
                 'site_name' => trim($this->siteName),
                 'site_name_si' => $this->nullable($this->siteNameSi),
                 'site_tagline' => $this->nullable($this->siteTagline),
@@ -252,6 +266,7 @@ final class SiteSettingsIndex extends Component
                     ->orderBy('id')
                     ->get(),
                 'socialPlatforms' => array_keys(SocialLink::PLATFORM_ICONS),
+                'availableLanguages' => ThemeLayoutLocale::cases(),
             ],
         )->layout(
             'components.layouts.admin',
@@ -263,6 +278,7 @@ final class SiteSettingsIndex extends Component
 
     private function loadSettings(SiteSetting $settings): void
     {
+        $this->enabledLocales = app(SiteLanguageService::class)->codes($settings);
         $this->siteName = $settings->site_name;
         $this->siteNameSi = $settings->site_name_si ?? '';
         $this->siteTagline = $settings->site_tagline ?? '';

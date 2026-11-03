@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "prebuild": "php scripts/sync-slsc-translations.php",
         "build": "vite build",
         "dev": "vite"
     },

@@ -82,6 +82,8 @@
     font-weight: 400;
     font-style: normal;
     font-display: swap;
+    /* Balance Sinhala glyphs with the surrounding Latin UI text. */
+    size-adjust: 90%;
     unicode-range: U+0D80-0DFF, U+200C-200D;
 }
 
@@ -3102,12 +3104,17 @@ img.image-fallback {
   }
 
   .topbar .container {
-    justify-content: center;
-    text-align: center;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .topbar-right .motto {
+    display: none;
   }
 
   .topbar-right {
-    display: none;
+    display: inline-flex;
+    align-items: center;
   }
 
   .brand {
@@ -6619,4 +6626,53 @@ img.image-fallback {
     .sos-commandant-button:hover .sos-commandant-button-icon {
         transform: none;
     }
+}
+
+/* Compact Sinhala headings on desktop and mobile, with room for vowel marks. */
+html:lang(si) :is(
+    .hero h1,
+    .sub-hero h1,
+    .hero-frame h1,
+    .hero-frame .hero-slide-title,
+    .about-text h2,
+    .cta h2
+) {
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.5;
+    letter-spacing: normal;
+}
+
+html:lang(si) :is(
+    .title-lg,
+    .simple-gallery-hero h1,
+    .simple-gallery-head h2,
+    .school-news-index-header h1,
+    .sos-article-title,
+    .sos-history-hero h1
+) {
+    font-size: clamp(24px, 3vw, 36px);
+    line-height: 1.55;
+    letter-spacing: normal;
+}
+
+html:lang(si) .sos-commandant-copy :is(h1, h2) {
+    font-size: clamp(24px, 2.6vw, 34px);
+    line-height: 1.55;
+    letter-spacing: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+html:lang(si) .sos-commandant-role {
+    font-size: clamp(16px, 1.7vw, 20px);
+    line-height: 1.6;
+    letter-spacing: normal;
+}
+
+html:lang(si) :is(
+    .sos-commandant-kicker,
+    .sos-commandant-rank,
+    .sos-commandant-button
+) {
+    letter-spacing: normal;
 }

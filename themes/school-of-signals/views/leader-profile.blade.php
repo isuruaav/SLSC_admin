@@ -3,6 +3,25 @@
 @section('title', $pageTitle)
 @section('meta_description', $metaDescription)
 
+@php
+    $leaderOgMedia = app(\App\Services\MediaUrlService::class);
+    $leaderOgImage = $leader->image ? $leaderOgMedia->mediumOrOriginal($leader->image) : null;
+@endphp
+
+@section('og_tags')
+    <meta property="og:type" content="profile">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $metaDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    @if ($leaderOgImage)
+        <meta property="og:image" content="{{ $leaderOgImage }}">
+        <meta name="twitter:image" content="{{ $leaderOgImage }}">
+    @endif
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $metaDescription }}">
+@endsection
+
 @section('content')
     @php
         $leaderImage = $leader->image ? app(\App\Services\MediaUrlService::class)->mediumOrOriginal($leader->image) : null;

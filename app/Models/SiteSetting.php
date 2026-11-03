@@ -43,6 +43,7 @@ final class SiteSetting extends Model
     /** @var list<string> */
     protected $fillable = [
         'site_name',
+        'enabled_locales',
         'site_name_si',
         'site_tagline',
         'site_tagline_si',
@@ -94,6 +95,7 @@ final class SiteSetting extends Model
     protected function casts(): array
     {
         return [
+            'enabled_locales' => 'array',
             'logo_media_id' => 'integer',
             'favicon_media_id' => 'integer',
             'commander_image_media_id' => 'integer',

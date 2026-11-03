@@ -1,6 +1,0 @@
-{
-  "path": "themes/school-of-signals/views/home.blade.php",
-  "lf_sha256": "a6d2ca6012ae91b67ac580e78ff0e6eb29b68a87107beee35d2c8afde10e3e46",
-  "source": "User-supplied complete unified server-to-release diff",
-  "review": "Contact/email/map behavior is unchanged; homepage differences are formatting and the new Courses URL helper/link. The server already uses the current aboutus slug."
-}

@@ -87,37 +87,12 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label
-                        for="role"
-                        class="mb-2 block text-sm font-medium text-zinc-700"
-                    >
-                        Primary role
-                    </label>
-
-                    <select
-                        id="role"
-                        wire:model="role"
-                        class="w-full rounded-xl border border-zinc-300
-                               bg-white px-4 py-2.5 text-sm outline-none
-                               focus:border-emerald-500
-                               focus:ring-4 focus:ring-emerald-500/10"
-                    >
-                        <option value="">Select a role</option>
-
-                        @foreach ($roles as $roleName)
-                            <option value="{{ $roleName }}">
-                                {{ $roleName }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    @error('role')
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-                </div>
+                <x-admin.users.role-picker
+                    :roles="$roles"
+                    :value="$role"
+                    id="role"
+                    :disabled="false"
+                />
 
                 <div>
                     <span class="mb-2 block text-sm font-medium text-zinc-700">

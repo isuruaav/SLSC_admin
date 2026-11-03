@@ -19,9 +19,7 @@
                 'locale' => $currentNewsLocale,
             ]);
 
-    $allowedLocales = config('awcms.theme_locales.school-of-signals', ['en', 'si']);
-
-    $allowedLocales = is_array($allowedLocales) ? $allowedLocales : ['en', 'si'];
+    $allowedLocales = app(\App\Services\SiteLanguageService::class)->codes();
 
     $description = $news->seo_description ?: ($news->summary ?: $news->title);
 
@@ -49,13 +47,26 @@
 @section('canonical', $articleUrl($news))
 
 @section('meta')
+    @foreach ($languageVersions as $languageVersion)
+        @if (($languageVersion['available'] ?? false) && in_array($languageVersion['code'] ?? '', $allowedLocales, true) && is_string($languageVersion['url'] ?? null))
+            <link rel="alternate" hreflang="{{ $languageVersion['code'] }}" href="{{ $languageVersion['url'] }}">
+        @endif
+    @endforeach
+
+@endsection
+
+@section('og_tags')
     <meta property="og:type" content="article">
     <meta property="og:title" content="{{ $news->seo_title ?: $news->title }}">
     <meta property="og:description" content="{{ $description }}">
     <meta property="og:url" content="{{ $articleUrl($news) }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $news->seo_title ?: $news->title }}">
+    <meta name="twitter:description" content="{{ $description }}">
 
     @if ($featuredImageUrl)
         <meta property="og:image" content="{{ $featuredImageUrl }}">
+        <meta name="twitter:image" content="{{ $featuredImageUrl }}">
     @endif
 @endsection
 

@@ -30,31 +30,31 @@ final class PublicPublicationController extends Controller
     {
         abort_unless($publication->isPublic(), 404);
 
-        return $this->file($publication, false);
+        return $this->file($publication, false, true);
     }
 
     public function cover(Publication $publication): StreamedResponse
     {
         abort_unless($publication->isPublic(), 404);
 
-        return $this->file($publication, true);
+        return $this->file($publication, true, true);
     }
 
     public function previewPdf(Publication $publication): StreamedResponse
     {
         Gate::authorize('documents.view');
 
-        return $this->file($publication, false);
+        return $this->file($publication, false, false);
     }
 
     public function previewCover(Publication $publication): StreamedResponse
     {
         Gate::authorize('documents.view');
 
-        return $this->file($publication, true);
+        return $this->file($publication, true, false);
     }
 
-    private function file(Publication $publication, bool $cover): StreamedResponse
+    private function file(Publication $publication, bool $cover, bool $isPublic = false): StreamedResponse
     {
         $path = (string) ($cover ? $publication->cover_path : $publication->pdf_path);
         abort_unless(str_starts_with($path, 'publications/') && ! str_contains($path, '..') && ! str_contains($path, '\\'), 404);
@@ -62,10 +62,14 @@ final class PublicPublicationController extends Controller
         abort_unless($disk->exists($path), 404);
         $name = (Str::slug((string) $publication->title) ?: 'publication').($cover ? '.jpg' : '.pdf');
 
+        $cacheControl = $isPublic
+            ? ($cover ? 'public, max-age=86400, stale-while-revalidate=604800' : 'public, max-age=3600')
+            : 'private, no-store';
+
         return $disk->response($path, $name, [
             'Content-Type' => $cover ? 'image/jpeg' : 'application/pdf',
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => $cacheControl,
         ], 'inline');
     }
 }

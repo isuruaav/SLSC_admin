@@ -32,15 +32,19 @@ final class ThemeLayoutRenderer
     public function render(
         string $themeSlug,
         ThemeLayoutRegion $region,
-        ?SiteSetting $siteSettings,
-        ?Menu $primaryMenu,
-        iterable $socialLinks,
-        array $languageOptions,
-        string $currentLocale,
-        string $siteName,
-        string $siteTagline,
-        ?string $logoUrl,
+        mixed $siteSettings = null,
+        mixed $primaryMenu = null,
+        iterable $socialLinks = [],
+        array $languageOptions = [],
+        string $currentLocale = 'en',
+        string $siteName = '',
+        string $siteTagline = '',
+        ?string $logoUrl = null,
     ): ?array {
+        $siteSettings = $siteSettings instanceof SiteSetting ? $siteSettings : null;
+        $primaryMenu = $primaryMenu instanceof Menu ? $primaryMenu : null;
+        $socialLinks = is_iterable($socialLinks) && ! ($socialLinks instanceof \__PHP_Incomplete_Class) ? $socialLinks : [];
+
         if (
             preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $themeSlug) !== 1
             || ! Schema::hasTable('theme_layouts')
@@ -75,17 +79,57 @@ final class ThemeLayoutRenderer
         }
 
         try {
-            $html = $this->sanitizer->sanitizeHtml($layout->published_html);
-            $css = $this->sanitizer->sanitizeCss($layout->published_css);
+            $rendered = $this->renderSource(
+                themeSlug: $themeSlug,
+                html: $layout->published_html,
+                css: $layout->published_css ?? '',
+                siteSettings: $siteSettings,
+                primaryMenu: $primaryMenu,
+                socialLinks: $socialLinks,
+                languageOptions: $languageOptions,
+                currentLocale: $requestedLocale->value,
+                siteName: $siteName,
+                siteTagline: $siteTagline,
+                logoUrl: $logoUrl,
+            );
+
+            return $rendered['html'] !== '' ? $rendered : null;
         } catch (ValidationException) {
             return null;
         }
+    }
+
+    /**
+     * Render editor previews through the same sanitization and placeholders as published layouts.
+     *
+     * @param  iterable<SocialLink>  $socialLinks
+     * @param  array<int|string, mixed>  $languageOptions
+     * @return array{html: string, css: string}
+     */
+    public function renderSource(
+        string $themeSlug,
+        string $html,
+        string $css,
+        mixed $siteSettings = null,
+        mixed $primaryMenu = null,
+        iterable $socialLinks = [],
+        array $languageOptions = [],
+        string $currentLocale = 'en',
+        string $siteName = '',
+        string $siteTagline = '',
+        ?string $logoUrl = null,
+    ): array {
+        $siteSettings = $siteSettings instanceof SiteSetting ? $siteSettings : null;
+        $primaryMenu = $primaryMenu instanceof Menu ? $primaryMenu : null;
+        $socialLinks = is_iterable($socialLinks) && ! ($socialLinks instanceof \__PHP_Incomplete_Class) ? $socialLinks : [];
+        $html = $this->sanitizer->sanitizeHtml($html);
+        $css = $this->sanitizer->sanitizeCss($css);
 
         if ($html === '') {
-            return null;
+            return ['html' => '', 'css' => $css];
         }
 
-        $locale = $requestedLocale->value;
+        $locale = ThemeLayoutLocale::fromApplicationLocale($currentLocale)->value;
         $siteName = $siteSettings?->localized('site_name', $locale) ?? $siteName;
         $siteTagline = $siteSettings?->localized('site_tagline', $locale) ?? $siteTagline;
 
@@ -111,6 +155,9 @@ final class ThemeLayoutRenderer
             '[[social_links]]' => $this->socialLinks($socialLinks, $locale),
             '[[contact_details]]' => $this->contactDetails($siteSettings, $locale),
             '[[copyright_year]]' => (string) now()->year,
+            '[[search_advanced]]' => $this->searchAdvanced($locale),
+            '[[search_button]]' => $this->searchAdvanced($locale),
+            '[[search_bar]]' => $this->searchBar($locale),
         ];
         $renderedHtml = str_ireplace(
             array_keys($replacements),
@@ -119,17 +166,21 @@ final class ThemeLayoutRenderer
         );
 
         return [
-            'html' => $this->replaceSiteUrlPlaceholders($renderedHtml),
+            'html' => $this->replaceSiteUrlPlaceholders($renderedHtml, $locale),
             'css' => $css,
         ];
     }
 
-    private function replaceSiteUrlPlaceholders(string $html): string
+    private function replaceSiteUrlPlaceholders(string $html, string $locale): string
     {
         $renderedHtml = preg_replace_callback(
             '/\[\[site_url:(\/[A-Za-z0-9._~\/%\-]*)\]\]/i',
-            function (array $matches): string {
+            function (array $matches) use ($locale): string {
                 $path = $matches[1];
+
+                if ($locale === 'si' && in_array(rtrim($path, '/') ?: '/', ['/', '/news', '/galleries', '/publications', '/courses', '/documents', '/contact', '/search', '/school-leadership'], true)) {
+                    $path = '/si'.($path === '/' ? '' : $path);
+                }
 
                 return $this->escape(url($path));
             },
@@ -458,30 +509,7 @@ final class ThemeLayoutRenderer
      */
     private function themeLocaleCodes(string $themeSlug): array
     {
-        $configuredLocales = config(
-            'awcms.theme_locales.'.$themeSlug,
-            ['en', 'si', 'ta'],
-        );
-
-        if (! is_array($configuredLocales)) {
-            return ['en', 'si', 'ta'];
-        }
-
-        $supportedLocales = [];
-
-        foreach ($configuredLocales as $locale) {
-            if (
-                is_string($locale)
-                && in_array($locale, ['en', 'si', 'ta'], true)
-                && ! in_array($locale, $supportedLocales, true)
-            ) {
-                $supportedLocales[] = $locale;
-            }
-        }
-
-        return $supportedLocales !== []
-            ? $supportedLocales
-            : ['en'];
+        return app(SiteLanguageService::class)->codes(themeSlug: $themeSlug);
     }
 
     /**
@@ -579,6 +607,31 @@ final class ThemeLayoutRenderer
             .'">'
             .$this->escape(trim($phone))
             .'</a>';
+    }
+
+    private function searchAdvanced(string $locale): string
+    {
+        return $this->searchButton($locale);
+    }
+
+    private function searchButton(string $locale): string
+    {
+        $label = $locale === 'si' ? 'සොයන්න' : 'Search';
+
+        return '<button type="button" class="search-toggle-btn managed-school-search-btn" aria-label="' . $this->escape($label) . '" title="' . $this->escape($label) . '" data-open-search-modal>'
+            . '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>'
+            . '</button>';
+    }
+
+    private function searchBar(string $locale): string
+    {
+        $placeholder = $locale === 'si' ? 'වෙබ් අඩවිය තුළ සොයන්න...' : 'Search the website...';
+        $label = $locale === 'si' ? 'සොයන්න' : 'Search';
+
+        return '<div class="mobile-search-bar managed-school-search-bar" role="button" tabindex="0" data-open-search-modal aria-label="' . $this->escape($label) . '">'
+            . '<input type="text" placeholder="' . $this->escape($placeholder) . '" aria-label="' . $this->escape($label) . '" readonly style="cursor: pointer;">'
+            . '<button type="button" aria-label="' . $this->escape($label) . '"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>'
+            . '</div>';
     }
 
     private function safeHref(string $url): string

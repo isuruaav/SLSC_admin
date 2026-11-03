@@ -49,6 +49,8 @@ final class NewsCreate extends Component
 
     public string $categoryId = '';
 
+    public string $newsType = 'news_feature';
+
     public string $featuredImageId = '';
 
     public bool $isFeatured = false;
@@ -95,6 +97,13 @@ final class NewsCreate extends Component
 
             $this->translationGroup = Str::uuid()->toString();
 
+            $defaultCat = NewsCategory::query()->active()->where('slug', 'news-feature')->first()
+                ?? NewsCategory::query()->active()->ordered()->first();
+            if ($defaultCat) {
+                $this->categoryId = (string) $defaultCat->id;
+                $this->newsType = $defaultCat->newsType();
+            }
+
             return;
 
         }
@@ -109,7 +118,7 @@ final class NewsCreate extends Component
 
         abort_unless(
 
-            $targetLocale instanceof NewsLocale,
+            $targetLocale instanceof NewsLocale && app(\App\Services\SiteLanguageService::class)->enabled($targetLocale->value),
 
             404,
 
@@ -194,9 +203,31 @@ final class NewsCreate extends Component
         if ($news->category_id !== null) {
 
             $this->categoryId = (string) $news->category_id;
+            $this->updatedCategoryId($this->categoryId);
 
         }
 
+    }
+
+    public function updatedNewsType(string $value): void
+    {
+        if ($value === 'photo_story') {
+            $cat = NewsCategory::query()->where('slug', 'photo-story')->first();
+            if ($cat) {
+                $this->categoryId = (string) $cat->id;
+            }
+        } elseif ($value === 'news_feature') {
+            $cat = NewsCategory::query()->where('slug', 'news-feature')->first()
+                ?? NewsCategory::query()->where('id', 1)->first();
+            if ($cat) {
+                $this->categoryId = (string) $cat->id;
+            }
+        }
+    }
+
+    public function updatedCategoryId(string $value): void
+    {
+        $this->newsType = NewsCategory::query()->find((int) $value)?->newsType() ?? 'news_feature';
     }
 
     public function updatedTitle(): void
@@ -284,6 +315,7 @@ final class NewsCreate extends Component
                 locale: NewsLocale::from($this->locale),
                 translationGroup: $this->translationGroup,
                 editorMode: $editorMode,
+                newsType: $this->newsType,
             );
 
             foreach ($uploadedGalleryMedia as $media) {
@@ -364,9 +396,11 @@ final class NewsCreate extends Component
 
         session()->flash(
             'status',
-            $newsPair[1] instanceof News
+            $englishNews->published_at?->isFuture()
+                ? 'Publication is scheduled for '.$englishNews->published_at->format('d M Y H:i').' ('.config('app.timezone').').'
+                : ($newsPair[1] instanceof News
                 ? 'English and Sinhala news articles were published successfully.'
-                : 'English news article was published successfully.',
+                : 'English news article was published successfully.'),
         );
 
         $this->redirectRoute(
@@ -507,6 +541,16 @@ final class NewsCreate extends Component
 
             ],
 
+            'newsType' => [
+
+                'required',
+
+                'string',
+
+                'in:photo_story,news_feature',
+
+            ],
+
             'categoryId' => [
 
                 'required',
@@ -551,11 +595,7 @@ final class NewsCreate extends Component
 
                 'required',
 
-                Rule::enum(
-
-                    NewsLocale::class,
-
-                ),
+                Rule::in(app(\App\Services\SiteLanguageService::class)->codes()),
 
             ],
 
@@ -682,7 +722,7 @@ final class NewsCreate extends Component
 
                     ->get(),
 
-                'locales' => NewsLocale::cases(),
+                'locales' => app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
 
             ],
 
@@ -734,6 +774,8 @@ final class NewsCreate extends Component
             );
 
         $this->categoryId = trim($this->categoryId);
+
+        $this->updatedCategoryId($this->categoryId);
 
         $this->featuredImageId = trim($this->featuredImageId);
 
@@ -1050,6 +1092,7 @@ final class NewsCreate extends Component
                         locale: NewsLocale::Sinhala,
                         translationGroup: $this->translationGroup,
                         editorMode: $editorMode,
+                        newsType: $this->newsType,
                     );
                 }
 

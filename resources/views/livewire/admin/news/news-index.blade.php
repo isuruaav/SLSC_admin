@@ -1,10 +1,10 @@
-<div class="space-y-6">
+<div class="admin-news space-y-6">
     <!-- Header Section -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-zinc-900">News Articles</h1>
             <p class="mt-1 text-sm text-zinc-500">
-                Manage manual English, Sinhala, and Tamil news articles effortlessly.
+                Manage news articles and translations for your enabled site languages.
             </p>
         </div>
 
@@ -52,8 +52,8 @@
 
     <!-- Filters Section -->
     <section class="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-            <div class="sm:col-span-2 lg:col-span-2">
+        <div class="news-filters">
+            <div class="news-filters__search">
                 <label for="news-search" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Search</label>
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -90,6 +90,16 @@
             </div>
 
             <div>
+                <label for="news-type" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Article Type</label>
+                <select id="news-type" wire:model.live="newsType"
+                    class="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10">
+                    <option value="all">All types</option>
+                    <option value="photo_story">Photo Story</option>
+                    <option value="news_feature">News Feature</option>
+                </select>
+            </div>
+
+            <div>
                 <label for="news-status" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Status</label>
                 <select id="news-status" wire:model.live="status"
                     class="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3.5 py-2 text-sm text-zinc-800 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10">
@@ -110,7 +120,7 @@
             </div>
         </div>
 
-        <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3.5">
+        <div class="news-filter-footer mt-4 border-t border-zinc-100 pt-3.5">
             <button type="button" wire:click="resetFilters"
                 class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors">
                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -189,8 +199,11 @@
                             </span>
                         </div>
                         <div>
-                            <span class="text-zinc-400 block text-[10px] uppercase font-semibold">Category</span>
+                            <span class="text-zinc-400 block text-[10px] uppercase font-semibold">Category / Type</span>
                             <span class="mt-0.5 font-medium text-zinc-700 block truncate">{{ $article->category?->name ?? 'Uncategorised' }}</span>
+                            <span class="mt-0.5 inline-block text-[10px] font-bold {{ $article->isPhotoStory() ? 'text-purple-700' : 'text-emerald-700' }}">
+                                {{ $article->typeLabel() }}
+                            </span>
                         </div>
                         <div>
                             <span class="text-zinc-400 block text-[10px] uppercase font-semibold">Author</span>
@@ -215,14 +228,10 @@
                                     wire:confirm="Restore this news article from Trash?"
                                     wire:loading.attr="disabled"
                                     wire:target="restoreArticle({{ $article->id }})"
-                                    wire:loading.attr="disabled"
-                                    wire:target="restoreArticle({{ $article->id }})"
                                 />
                                 <x-admin.icon-action label="Delete Permanently" icon="trash" tone="danger"
                                     type="button" wire:click="forceDeleteArticle({{ $article->id }})"
                                     wire:confirm="Permanently delete this news article and its revision history? This action cannot be undone."
-                                    wire:loading.attr="disabled"
-                                    wire:target="forceDeleteArticle({{ $article->id }})"
                                     wire:loading.attr="disabled"
                                     wire:target="forceDeleteArticle({{ $article->id }})"
                                 />
@@ -237,7 +246,7 @@
                                 @can('news.publish')
                                     <x-admin.icon-action label="Unpublish" icon="eye-slash" tone="warning"
                                         type="button" wire:click="unpublishArticle({{ $article->id }})"
-                                        wire:confirm="Unpublish this news article and return it to Draft?"
+                                        wire:confirm="{{ in_array($article->locale, [\App\Enums\NewsLocale::English, \App\Enums\NewsLocale::Sinhala], true) ? 'Unpublish this article and its linked English/Sinhala versions and return them to Draft?' : 'Unpublish this news article and return it to Draft?' }}"
                                         wire:loading.attr="disabled"
                                         wire:target="unpublishArticle({{ $article->id }})"
                                     />
@@ -425,7 +434,7 @@
                                 </p> --}}
                             </td>
 
-                            <!-- Category -->
+                            <!-- Category & Type -->
                             <td class="whitespace-nowrap px-4 py-4 align-top">
                                 @if ($article->category)
                                     <span class="inline-flex rounded-md bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
@@ -434,6 +443,17 @@
                                 @else
                                     <span class="text-xs text-zinc-400 italic">Uncategorised</span>
                                 @endif
+                                <div class="mt-1.5">
+                                    @if ($article->isPhotoStory())
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200/60 px-2 py-0.5 text-[10px] font-bold text-purple-700">
+                                            <i class="fa-solid fa-camera-retro"></i> Photo Story
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                            <i class="fa-solid fa-newspaper"></i> News Feature
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             <!-- Status -->
@@ -502,7 +522,7 @@
                                             @can('news.publish')
                                                 <x-admin.icon-action label="Unpublish" icon="eye-slash" tone="warning"
                                                     type="button" wire:click="unpublishArticle({{ $article->id }})"
-                                                    wire:confirm="Unpublish this news article and return it to Draft?"
+                                                    wire:confirm="{{ in_array($article->locale, [\App\Enums\NewsLocale::English, \App\Enums\NewsLocale::Sinhala], true) ? 'Unpublish this article and its linked English/Sinhala versions and return them to Draft?' : 'Unpublish this news article and return it to Draft?' }}"
                                                     wire:loading.attr="disabled"
                                                     wire:target="unpublishArticle({{ $article->id }})"
                                                 />

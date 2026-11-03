@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Users;
 
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\UserDeletionService;
 use App\Support\UserManagementRules;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -140,6 +141,19 @@ final class UserIndex extends Component
         session()->flash('status', $target->is_active
             ? "{$target->name}'s account was activated."
             : "{$target->name}'s account was disabled.");
+    }
+
+    public function deleteUser(int $userId): void
+    {
+        Gate::authorize('users.view');
+        Gate::authorize('users.delete');
+        $actor = Auth::user();
+        abort_unless($actor instanceof User, 403);
+
+        $target = app(UserDeletionService::class)->delete($actor, $userId);
+        $this->resetValidation();
+        $this->resetPage();
+        session()->flash('status', "{$target->name}'s account was deleted. Existing website content was retained.");
     }
 
     public function render(): View

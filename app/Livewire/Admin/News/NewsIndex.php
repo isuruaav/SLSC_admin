@@ -43,6 +43,9 @@ final class NewsIndex extends Component
     #[Url(except: 'all')]
     public string $category = 'all';
 
+    #[Url(as: 'type', except: 'all')]
+    public string $newsType = 'all';
+
     #[Url(except: 'all')]
     public string $locale = 'all';
 
@@ -80,6 +83,12 @@ final class NewsIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedNewsType(): void
+    {
+        $this->normaliseNewsType();
+        $this->resetPage();
+    }
+
     public function updatedLocale(): void
     {
         $this->normaliseLocale();
@@ -103,6 +112,7 @@ final class NewsIndex extends Component
         $this->search = '';
         $this->status = 'all';
         $this->category = 'all';
+        $this->newsType = 'all';
         $this->locale = 'all';
         $this->recordState = 'active';
         $this->sortField = 'updated_at';
@@ -148,16 +158,20 @@ final class NewsIndex extends Component
 
     public function unpublishArticle(int $newsId): void
     {
+        Gate::authorize('news.view');
+
         $news = News::query()->findOrFail($newsId);
 
-        app(NewsWorkflowService::class)->unpublish(
+        $unpublished = app(NewsWorkflowService::class)->unpublishForEditing(
             $news,
             $this->actor(),
         );
 
         session()->flash(
             'status',
-            "{$news->title} was unpublished and returned to Draft.",
+            $unpublished > 1
+                ? "{$unpublished} language versions were unpublished and returned to Draft."
+                : "{$news->title} was unpublished and returned to Draft.",
         );
     }
 
@@ -246,6 +260,12 @@ final class NewsIndex extends Component
             $query->where('locale', $this->locale);
         }
 
+        if ($this->newsType === 'photo_story') {
+            $query->photoStories();
+        } elseif ($this->newsType === 'news_feature') {
+            $query->newsFeatures();
+        }
+
         if ($this->category !== 'all') {
             $query->where('category_id', (int) $this->category);
         }
@@ -269,7 +289,7 @@ final class NewsIndex extends Component
                     NewsStatus::Draft,
                     NewsStatus::Published,
                 ],
-                'locales' => NewsLocale::cases(),
+                'locales' => app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
                 'canManageCategories' => Gate::allows('news.categories.manage'),
             ],
         )->layout(
@@ -286,9 +306,17 @@ final class NewsIndex extends Component
         $this->sortDirection = $this->normalisedSortDirection();
         $this->normaliseStatus();
         $this->normaliseCategory();
+        $this->normaliseNewsType();
         $this->normaliseLocale();
         $this->normaliseRecordState();
         $this->normalisePerPage();
+    }
+
+    private function normaliseNewsType(): void
+    {
+        if (! in_array($this->newsType, ['all', 'photo_story', 'news_feature'], true)) {
+            $this->newsType = 'all';
+        }
     }
 
     private function normaliseStatus(): void

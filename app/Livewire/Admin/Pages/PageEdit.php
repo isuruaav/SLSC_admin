@@ -882,7 +882,7 @@ final class PageEdit extends Component
     public function render(): View
     {
         $page = $this->page();
-        $locales = PageLocale::cases();
+        $locales = app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases(), $this->locale);
 
         $translations = Page::withTrashed()
             ->where(

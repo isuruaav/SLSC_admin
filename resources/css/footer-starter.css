@@ -1,0 +1,36 @@
+/* Footer editor base */
+.aw-footer { background: #070d2c; color: #c6d3e5; font-size: 14px; line-height: 1.8; }
+.aw-footer, .aw-footer * { box-sizing: border-box; }
+.aw-footer-shell { width: min(1200px, calc(100% - 40px)); margin: 0 auto; padding: 48px 0 0; }
+.aw-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 32px; align-items: start; }
+.aw-footer-grid > * { min-width: 0; }
+.aw-footer h2 { margin: 0 0 18px; color: #ffffff; font-size: 17px; font-weight: 800; }
+.aw-footer p { margin: 0 0 12px; }
+.aw-footer a { color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.aw-footer a:hover { color: #8ffbc3; }
+.aw-footer-logo img { width: 60px; height: 60px; object-fit: contain; margin-bottom: 16px; }
+.aw-footer-links { display: grid; gap: 10px; }
+.aw-footer-link { display: flex; align-items: center; gap: 10px; width: fit-content; }
+.aw-footer-link > i { color: #8ffbc3; width: 18px; text-align: center; }
+.aw-footer .cms-contact-details { display: grid; gap: 10px; }
+.aw-footer .cms-social-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.aw-footer .cms-social-link { display: inline-flex; gap: 8px; align-items: center; padding: 7px 10px; border: 1px solid #37435e; border-radius: 8px; }
+.aw-footer-bottom { margin-top: 36px; padding: 20px 0; border-top: 1px solid #37435e; text-align: center; font-size: 12px; }
+.aw-footer a:focus-visible { outline: 2px solid #8ffbc3; outline-offset: 4px; }
+
+/* Responsive footer for Tablet (<= 900px) */
+@media (max-width: 900px) {
+    .aw-footer-shell { width: calc(100% - 32px); padding-top: 36px; }
+    .aw-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 28px; }
+}
+
+/* Responsive footer for Mobile (<= 768px) */
+@media (max-width: 768px) {
+    .aw-footer-shell { width: calc(100% - 24px); padding-top: 28px; }
+    .aw-footer-grid { grid-template-columns: 1fr !important; gap: 24px; }
+    .aw-footer-bottom { margin-top: 24px; padding: 16px 0; text-align: center; }
+    .aw-footer h2 { font-size: 16px; margin-bottom: 12px; }
+    .aw-footer-logo img { width: 50px; height: 50px; margin-bottom: 10px; }
+    .aw-footer .cms-social-links { gap: 8px; }
+}
+/* End footer editor base */

@@ -70,19 +70,27 @@
                                        border border-zinc-200 bg-zinc-100
                                        sm:w-44">
                                 @if ($slide->image)
-                                    <div class="space-y-1 px-4 text-center">
-                                        <svg class="mx-auto size-7 text-emerald-700" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <rect x="3" y="4" width="18" height="16" rx="2" />
-                                            <circle cx="8.5" cy="9" r="1.5" />
-                                            <path d="m4 17 5-5 4 4 2-2 5 5" />
-                                        </svg>
-                                        <p
-                                            class="line-clamp-2 text-xs
-                                                   font-semibold text-zinc-600">
-                                            {{ $slide->image->title ?: $slide->image->original_name }}
-                                        </p>
-                                    </div>
+                                    @php
+                                        $slideThumb = app(\App\Services\MediaUrlService::class)->thumbnailOrOriginal($slide->image);
+                                    @endphp
+                                    @if ($slideThumb)
+                                        <img src="{{ $slideThumb }}" alt="{{ $slide->image->title ?: $slide->image->original_name }}"
+                                            class="h-full w-full object-cover">
+                                    @else
+                                        <div class="space-y-1 px-4 text-center">
+                                            <svg class="mx-auto size-7 text-emerald-700" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                <rect x="3" y="4" width="18" height="16" rx="2" />
+                                                <circle cx="8.5" cy="9" r="1.5" />
+                                                <path d="m4 17 5-5 4 4 2-2 5 5" />
+                                            </svg>
+                                            <p
+                                                class="line-clamp-2 text-xs
+                                                       font-semibold text-zinc-600">
+                                                {{ $slide->image->title ?: $slide->image->original_name }}
+                                            </p>
+                                        </div>
+                                    @endif
                                 @else
                                     <div class="text-center text-zinc-400">
                                         <svg class="mx-auto size-7" viewBox="0 0 24 24" fill="none"
@@ -222,11 +230,21 @@
                                         class="rounded-xl border-2 border-dashed border-emerald-300
                            bg-emerald-50/50 p-4">
                                         <label for="new-hero-image" class="block cursor-pointer text-center">
+                                            @php
+                                                $existingMedia = $imageMediaId ? \App\Models\MediaAsset::find($imageMediaId) : null;
+                                                $existingPreviewUrl = $existingMedia ? app(\App\Services\MediaUrlService::class)->mediumOrOriginal($existingMedia) : null;
+                                            @endphp
                                             @if ($newImage instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile)
                                                 <img src="{{ $newImage->temporaryUrl() }}" alt="New slider image preview"
                                                     class="mx-auto h-44 w-full rounded-lg object-cover">
                                                 <span class="mt-3 block text-sm font-bold text-emerald-800">
                                                     Change selected image
+                                                </span>
+                                            @elseif ($existingPreviewUrl)
+                                                <img src="{{ $existingPreviewUrl }}" alt="Current slider image preview"
+                                                    class="mx-auto h-44 w-full rounded-lg object-cover">
+                                                <span class="mt-3 block text-sm font-bold text-emerald-800">
+                                                    Click to replace current image
                                                 </span>
                                             @else
                                                 <span

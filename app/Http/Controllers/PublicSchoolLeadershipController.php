@@ -46,7 +46,7 @@ final class PublicSchoolLeadershipController
                 : collect();
 
         return view(
-            'theme-school-of-signals::school-leadership',
+            $this->themeNamespace().'::school-leadership',
             [
                 'leaders' => $leaders,
                 'currentLocale' => $locale,
@@ -83,13 +83,13 @@ final class PublicSchoolLeadershipController
                 ->get()
             : collect();
 
-        return view('theme-school-of-signals::school-leadership', [
+        return view($this->themeNamespace().'::school-leadership', [
             'leaders' => $leaders,
             'isHistory' => true,
             'currentLocale' => $locale,
             'languageVersions' => $this->languageVersions('school-leadership.history'),
-            'pageTitle' => __('theme-school-of-signals::home.leadership.past_leadership'),
-            'metaDescription' => __('theme-school-of-signals::home.leadership.past_description'),
+            'pageTitle' => __($this->themeNamespace().'::home.leadership.past_leadership'),
+            'metaDescription' => __($this->themeNamespace().'::home.leadership.past_description'),
         ]);
     }
 
@@ -142,7 +142,7 @@ final class PublicSchoolLeadershipController
         abort_unless($leader->hasPublicProfile(), 404);
         $isCommandant = $leader->position->key === SchoolLeader::ROLE_COMMANDANT;
 
-        return view($isCommandant ? 'theme-school-of-signals::commandant' : 'theme-school-of-signals::leader-profile', [
+        return view($isCommandant ? $this->themeNamespace().'::commandant' : $this->themeNamespace().'::leader-profile', [
             'commandant' => $leader,
             'leader' => $leader,
             'profileDocument' => app(LeadershipProfileContent::class)->forLeader($leader, $locale),
@@ -161,18 +161,7 @@ final class PublicSchoolLeadershipController
             ? strtolower(trim($routeLocale))
             : 'en';
 
-        $configuredLocales = config(
-            'awcms.theme_locales.school-of-signals',
-            ['en', 'si', 'ta'],
-        );
-
-        $allowedLocales = is_array($configuredLocales)
-            ? array_values(array_filter(
-                $configuredLocales,
-                static fn (mixed $value): bool => is_string($value)
-                    && in_array($value, ['en', 'si', 'ta'], true),
-            ))
-            : ['en', 'si', 'ta'];
+        $allowedLocales = app(\App\Services\SiteLanguageService::class)->codes();
 
         abort_unless(in_array($locale, $allowedLocales, true), 404);
 
@@ -185,18 +174,7 @@ final class PublicSchoolLeadershipController
      */
     private function languageVersions(string $route = 'school-leadership', array $parameters = []): array
     {
-        $configuredLocales = config(
-            'awcms.theme_locales.school-of-signals',
-            ['en', 'si', 'ta'],
-        );
-
-        $locales = is_array($configuredLocales)
-            ? array_values(array_filter(
-                $configuredLocales,
-                static fn (mixed $value): bool => is_string($value)
-                    && in_array($value, ['en', 'si', 'ta'], true),
-            ))
-            : ['en', 'si', 'ta'];
+        $locales = app(\App\Services\SiteLanguageService::class)->codes();
 
         $versions = [];
 
@@ -214,5 +192,14 @@ final class PublicSchoolLeadershipController
         }
 
         return $versions;
+    }
+
+    private function themeNamespace(): string
+    {
+        $theme = config('awcms.active_theme');
+
+        return ($theme && view()->exists("theme-{$theme}::school-leadership"))
+            ? "theme-{$theme}"
+            : 'theme-school-of-signals';
     }
 }

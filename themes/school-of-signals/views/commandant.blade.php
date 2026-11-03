@@ -3,6 +3,25 @@
 @section('title', $pageTitle)
 @section('meta_description', $metaDescription)
 
+@php
+    $commandantOgMedia = app(\App\Services\MediaUrlService::class);
+    $commandantOgImage = $commandant->image ? $commandantOgMedia->mediumOrOriginal($commandant->image) : null;
+@endphp
+
+@section('og_tags')
+    <meta property="og:type" content="profile">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $metaDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    @if ($commandantOgImage)
+        <meta property="og:image" content="{{ $commandantOgImage }}">
+        <meta name="twitter:image" content="{{ $commandantOgImage }}">
+    @endif
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $metaDescription }}">
+@endsection
+
 @section('content')
     <section class="sos-commandant-section sos-commandant-profile">
         <div class="container">

@@ -269,4 +269,37 @@ final class News extends Model
         return $status instanceof NewsStatus
             && $status === NewsStatus::Published;
     }
+
+    /**
+     * @param  Builder<News>  $query
+     * @return Builder<News>
+     */
+    public function scopePhotoStories(Builder $query): Builder
+    {
+        return $query->whereHas('category', fn (Builder $category): Builder => $category->where('slug', 'photo-story'));
+    }
+
+    /**
+     * @param  Builder<News>  $query
+     * @return Builder<News>
+     */
+    public function scopeNewsFeatures(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('category', fn (Builder $category): Builder => $category->where('slug', 'photo-story'));
+    }
+
+    public function isPhotoStory(): bool
+    {
+        return $this->category?->newsType() === 'photo_story';
+    }
+
+    public function isNewsFeature(): bool
+    {
+        return ! $this->isPhotoStory();
+    }
+
+    public function typeLabel(): string
+    {
+        return $this->isPhotoStory() ? 'Photo Story' : 'News Feature';
+    }
 }

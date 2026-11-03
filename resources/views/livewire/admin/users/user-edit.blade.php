@@ -127,37 +127,12 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label
-                        for="edit-role"
-                        class="mb-2 block text-sm font-medium text-zinc-700"
-                    >
-                        Primary role
-                    </label>
-
-                    <select
-                        id="edit-role"
-                        wire:model="role"
-                        class="w-full rounded-xl border border-zinc-300
-                               bg-white px-4 py-2.5 text-sm outline-none
-                               focus:border-emerald-500
-                               focus:ring-4 focus:ring-emerald-500/10"
-                    >
-                        <option value="">Select a role</option>
-
-                        @foreach ($roles as $roleName)
-                            <option value="{{ $roleName }}">
-                                {{ $roleName }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    @error('role')
-                        <p class="mt-2 text-sm text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-                </div>
+                <x-admin.users.role-picker
+                    :roles="$roles"
+                    :value="$role"
+                    id="edit-role"
+                    :disabled="! auth()->user()?->can('users.assign-role')"
+                />
 
                 <div>
                     <span class="mb-2 block text-sm font-medium text-zinc-700">
@@ -219,6 +194,13 @@
             </div>
         </section>
     </form>
+
+    @if (auth()->id() === $target->id)
+        <section class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+            <div><h2 class="font-bold text-emerald-950">Your password</h2><p class="mt-1 text-sm text-emerald-900">Change your own password using your current password.</p></div>
+            <a href="{{ route('admin.account.password') }}" wire:navigate class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">Change My Password</a>
+        </section>
+    @endif
 
     @can('users.reset-password')
         @if (auth()->id() !== $target->id)

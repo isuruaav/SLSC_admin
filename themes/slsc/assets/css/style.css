@@ -1,0 +1,7 @@
+/* Main stylesheet. Shared design and responsive rules are kept separate. */
+@import url('./fonts.css');
+@import url('./base.css');
+@import url('./responsive.css');
+@import url('./registration.css');
+@import url('./navbar.css');
+@import url('./news.css');

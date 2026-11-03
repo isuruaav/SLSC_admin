@@ -64,26 +64,31 @@ document.addEventListener('DOMContentLoaded', function () {
     return Array.prototype.slice.call((parent || document).querySelectorAll(selector));
   }
 
-  function getCurrentPage() {
-    var page = window.location.pathname.split('/').pop() || 'index.php';
-    page = page.split('?')[0].split('#')[0].replace('.php', '').replace('.html', '').toLowerCase();
-    return page || 'index';
-  }
-
   /* ---------- Active navigation ---------- */
   function initActiveNavigation() {
-    var currentPage = getCurrentPage();
+    var currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 
-    qsa('.desktop-nav a, .mobile-menu a').forEach(function (link) {
-      var href = (link.getAttribute('href') || '').split('#')[0];
-      if (!href || href.indexOf('http') === 0) return;
-
-      var linkPage = href.split('/').pop().replace('.php', '').replace('.html', '').toLowerCase() || 'index';
-      if (linkPage === currentPage) {
+    qsa('.desktop-nav a, .mobile-menu a, .aw-navigation a').forEach(function (link) {
+      var href = link.getAttribute('href') || '';
+      if (!href || href.charAt(0) === '#') return;
+      var target;
+      try { target = new URL(href, document.baseURI); } catch (error) { return; }
+      var isCurrent = target.origin === window.location.origin
+        && (target.pathname.replace(/\/+$/, '') || '/') === currentPath;
+      link.classList.toggle('active', isCurrent);
+      if (isCurrent) {
+        link.setAttribute('aria-current', 'page');
         link.classList.add('active');
 
         var parentToggle = link.closest('.drop') ? qs('.drop-toggle', link.closest('.drop')) : null;
         if (parentToggle) parentToggle.classList.add('active');
+        var disclosure = link.closest('details');
+        while (disclosure) {
+          disclosure.open = true;
+          disclosure = disclosure.parentElement.closest('details');
+        }
+      } else {
+        link.removeAttribute('aria-current');
       }
     });
   }
@@ -94,34 +99,38 @@ document.addEventListener('DOMContentLoaded', function () {
     var mobileMenu = qs('#mobileMenu') || qs('[data-mobile-menu]');
     if (!mobileToggle || !mobileMenu) return;
 
-    mobileToggle.setAttribute('aria-expanded', 'false');
-
-    mobileToggle.addEventListener('click', function () {
-      mobileMenu.classList.remove('hidden');
-      var isOpen = mobileMenu.classList.toggle('open');
-
+    function setOpen(isOpen) {
+      mobileMenu.classList.toggle('open', isOpen);
       mobileToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       mobileToggle.setAttribute('aria-label', isOpen ? label('close_menu', 'Close menu') : label('open_menu', 'Open menu'));
-
       var icon = qs('i', mobileToggle);
       if (icon) {
         icon.classList.toggle('fa-bars', !isOpen);
         icon.classList.toggle('fa-xmark', isOpen);
       }
+    }
+
+    setOpen(false);
+    mobileToggle.setAttribute('aria-controls', mobileMenu.id || 'mobileMenu');
+    mobileToggle.addEventListener('click', function () {
+      mobileMenu.classList.remove('hidden');
+      setOpen(!mobileMenu.classList.contains('open'));
     });
 
     qsa('a', mobileMenu).forEach(function (link) {
-      link.addEventListener('click', function () {
-        mobileMenu.classList.remove('open');
-        mobileToggle.setAttribute('aria-expanded', 'false');
-        mobileToggle.setAttribute('aria-label', label('open_menu', 'Open menu'));
-
-        var icon = qs('i', mobileToggle);
-        if (icon) {
-          icon.classList.add('fa-bars');
-          icon.classList.remove('fa-xmark');
-        }
-      });
+      link.addEventListener('click', function () { setOpen(false); });
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && mobileMenu.classList.contains('open')) {
+        setOpen(false);
+        mobileToggle.focus();
+      }
+    });
+    document.addEventListener('click', function (event) {
+      if (!mobileMenu.contains(event.target) && !mobileToggle.contains(event.target)) setOpen(false);
+    });
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 1120) setOpen(false);
     });
   }
 

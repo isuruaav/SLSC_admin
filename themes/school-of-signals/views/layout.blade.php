@@ -11,6 +11,8 @@
     $themeAssetBase = asset('themes/school-of-signals/assets');
     $themeCssPath = public_path('themes/school-of-signals/assets/css/theme.css');
     $themeCssVersion = is_file($themeCssPath) ? filemtime($themeCssPath) : null;
+    $navbarCssPath = public_path('themes/school-of-signals/assets/css/navbar.css');
+    $navbarCssVersion = is_file($navbarCssPath) ? filemtime($navbarCssPath) : null;
     $themeJsPath = public_path('themes/school-of-signals/assets/js/theme.js');
     $themeJsVersion = is_file($themeJsPath) ? filemtime($themeJsPath) : null;
     $mediaUrls = app(\App\Services\MediaUrlService::class);
@@ -18,16 +20,7 @@
         ? $mediaUrls->mediumOrOriginal($siteSettings->logo)
         : $themeAssetBase . '/images/logo.png';
     $faviconUrl = $siteSettings?->favicon ? $mediaUrls->original($siteSettings->favicon) : null;
-    $configuredThemeLocales = config('awcms.theme_locales.school-of-signals', ['en', 'si', 'ta']);
-    $supportedThemeLocales = is_array($configuredThemeLocales)
-        ? array_values(
-            array_filter(
-                $configuredThemeLocales,
-                static fn(mixed $locale): bool => is_string($locale) && in_array($locale, ['en', 'si', 'ta'], true),
-            ),
-        )
-        : ['en', 'si', 'ta'];
-    $supportedThemeLocales = $supportedThemeLocales !== [] ? $supportedThemeLocales : ['en'];
+    $supportedThemeLocales = app(\App\Services\SiteLanguageService::class)->codes();
     $languageOptions =
         isset($languageVersions) && is_array($languageVersions)
             ? array_values(
@@ -43,12 +36,16 @@
     $localeNames = ['en' => 'English', 'si' => 'සිංහල', 'ta' => 'தமிழ்'];
     $themeLayoutRenderer = app(\App\Services\ThemeLayoutRenderer::class);
 
+    $cleanSiteSettings = $siteSettings instanceof \App\Models\SiteSetting ? $siteSettings : null;
+    $cleanPrimaryMenu = $primaryMenu instanceof \App\Models\Menu ? $primaryMenu : null;
+    $cleanSocialLinks = (is_iterable($publicSocialLinks) && ! ($publicSocialLinks instanceof \__PHP_Incomplete_Class)) ? $publicSocialLinks : [];
+
     $managedHeaderLayout = $themeLayoutRenderer->render(
         themeSlug: 'school-of-signals',
         region: \App\Enums\ThemeLayoutRegion::Header,
-        siteSettings: $siteSettings,
-        primaryMenu: $primaryMenu,
-        socialLinks: $publicSocialLinks,
+        siteSettings: $cleanSiteSettings,
+        primaryMenu: $cleanPrimaryMenu,
+        socialLinks: $cleanSocialLinks,
         languageOptions: $languageOptions,
         currentLocale: $currentLocale,
         siteName: $publicSiteName,
@@ -59,9 +56,9 @@
     $managedFooterLayout = $themeLayoutRenderer->render(
         themeSlug: 'school-of-signals',
         region: \App\Enums\ThemeLayoutRegion::Footer,
-        siteSettings: $siteSettings,
-        primaryMenu: $primaryMenu,
-        socialLinks: $publicSocialLinks,
+        siteSettings: $cleanSiteSettings,
+        primaryMenu: $cleanPrimaryMenu,
+        socialLinks: $cleanSocialLinks,
         languageOptions: $languageOptions,
         currentLocale: $currentLocale,
         siteName: $publicSiteName,
@@ -85,6 +82,24 @@
         <link rel="canonical" href="@yield('canonical')">
     @endif
 
+    {{-- Open Graph / Social Media Preview (WhatsApp, Facebook, Twitter) --}}
+    <meta property="og:site_name" content="{{ $publicSiteName }}">
+    <meta property="og:locale" content="{{ $currentLocale === 'si' ? 'si_LK' : 'en_US' }}">
+    @hasSection('og_tags')
+        @yield('og_tags')
+    @else
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="@yield('title', $publicSiteName)">
+        <meta property="og:description" content="@yield('meta_description', $publicDescription)">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:image" content="{{ $logoUrl ?: asset('logo.png') }}">
+
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="@yield('title', $publicSiteName)">
+        <meta name="twitter:description" content="@yield('meta_description', $publicDescription)">
+        <meta name="twitter:image" content="{{ $logoUrl ?: asset('logo.png') }}">
+    @endif
+
     @yield('meta')
 
     {{-- Favicon --}}
@@ -95,7 +110,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <link rel="stylesheet" href="{{ $themeAssetBase }}/css/theme.css{{ $themeCssVersion !== null ? '?v='.$themeCssVersion : '' }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/navbar.css">
+    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/navbar.css{{ $navbarCssVersion !== null ? '?v='.$navbarCssVersion : '' }}">
 
     @if ($managedHeaderLayout !== null && $managedHeaderLayout['css'] !== '')
         <style data-awcms-theme-layout="header">
@@ -127,9 +142,21 @@
                 </div>
                 <div class="topbar-right">
                     <span class="motto">{{ __('public.motto') }}</span>
-                    <a class="portal-small" href="https://lms.army.lk" target="_blank" rel="noopener noreferrer">
-                        <i class="fa-solid fa-laptop-code" aria-hidden="true"></i>{{ __('public.lms_portal') }}
-                    </a>
+                    <div class="managed-school-topbar-languages">
+                        <nav class="cms-language-switcher" aria-label="{{ __('public.language_selection') }}">
+                            @foreach ($languageOptions as $language)
+                                @if (($language['available'] ?? false) && isset($language['url'], $language['code']))
+                                    <a class="cms-language-option {{ $language['code'] === $currentLocale ? 'active' : '' }}"
+                                       href="{{ $language['url'] }}" 
+                                       lang="{{ $language['code'] }}"
+                                       data-language-option 
+                                       data-lang="{{ $language['code'] }}">
+                                        {{ $localeNames[$language['code']] ?? strtoupper($language['code']) }}
+                                    </a>
+                                @endif
+                            @endforeach
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,41 +174,10 @@
                 </a>
 
                 <nav class="desktop-nav" aria-label="{{ __('public.primary_navigation') }}">
-                    @if ($primaryMenu)
-                        @foreach ($primaryMenu->rootItems->where('is_active', true) as $menuItem)
-                            @php($children = $menuItem->children->where('is_active', true))
-                            @if ($children->isNotEmpty())
-                                <div class="drop">
-                                    <a class="drop-toggle" href="{{ $menuItem->resolvedUrl($currentLocale) }}"
-                                        @if ($menuItem->target === '_blank') target="_blank" rel="noopener noreferrer" @endif>
-                                        {{ $menuItem->labelForLocale($currentLocale) }}
-                                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                                    </a>
-                                    <div class="dropdown">
-                                        @foreach ($children as $child)
-                                            <a href="{{ $child->resolvedUrl($currentLocale) }}"
-                                                @if ($child->target === '_blank') target="_blank" rel="noopener noreferrer" @endif>
-                                                {{ $child->labelForLocale($currentLocale) }}
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @else
-                                <a href="{{ $menuItem->resolvedUrl($currentLocale) }}"
-                                    @if ($menuItem->target === '_blank') target="_blank" rel="noopener noreferrer" @endif>
-                                    {{ $menuItem->labelForLocale($currentLocale) }}
-                                </a>
-                            @endif
-                        @endforeach
-                    @else
-                        <a href="{{ $publicHomeUrl }}">{{ __('public.home') }}</a>
-                        <a
-                            href="{{ $publicNewsUrl }}">{{ __('public.news') }}</a>
-                        <a href="{{ \App\Models\Publication::indexUrl($currentLocale) }}">{{ __('public.publications') }}</a>
-                        <a href="{{ \App\Services\GalleryLocale::indexUrl($currentLocale) }}">{{ $currentLocale === 'si' ? 'ඡායාරූප ගැලරිය' : 'Gallery' }}</a>
-                        <a href="{{ \App\Services\CourseLocale::indexUrl($currentLocale) }}">{{ __('public.courses') }}</a>
-                    @endif
-
+                    <a href="{{ $publicHomeUrl }}">{{ __('public.home') }}</a>
+                    <a href="{{ \App\Services\CourseLocale::indexUrl($currentLocale) }}">{{ __('public.courses') }}</a>
+                    <a href="{{ $currentLocale === 'en' ? url('/en/pages/aboutus') : url('/si/pages/siaboutus') }}">{{ $currentLocale === 'si' ? 'අප ගැන' : 'About Us' }}</a>
+                    <a href="{{ \App\Models\Publication::indexUrl($currentLocale) }}">{{ __('public.publications') }}</a>
                     <div class="drop">
                         <a class="drop-toggle"
                             href="{{ $currentLocale === 'en' ? route('history.past-commandants') : route('history.past-commandants.localized') }}">
@@ -189,7 +185,7 @@
                             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                         </a>
                         <div class="dropdown">
-                            <a href="#">
+                            <a href="{{ $currentLocale === 'en' ? url('/en/pages/history-of-school') : url('/si/pages/history-of-school') }}">
                                 {{ $currentLocale === 'si' ? 'පාසලේ ඉතිහාසය' : 'School History' }}
                             </a>
                             <a
@@ -204,14 +200,24 @@
                                 href="{{ $currentLocale === 'en' ? route('history.past-sgt-major') : route('history.past-sgt-major.localized') }}">
                                 {{ $currentLocale === 'si' ? 'හිටපු රෙජිමේන්තු සැරයන් මේජර්වරු' : 'Past Regimental Sergeant Majors' }}
                             </a>
-                            <a href="#">
-                                {{ $currentLocale === 'si' ? 'සුවිශේෂී සන්ධිස්ථාන' : 'Milestones' }}
-                            </a>
                         </div>
                     </div>
+                    <a href="{{ \App\Services\GalleryLocale::indexUrl($currentLocale) }}">{{ $currentLocale === 'si' ? 'ඡායාරූප' : 'Gallery' }}</a>
+                    <a href="{{ $currentLocale === 'en' ? url('/en/pages/contact-us') : url('/si/pages/contact-us') }}">{{ $currentLocale === 'si' ? 'අප අමතන්න' : 'Contact Us' }}</a>
                 </nav>
 
                 <div class="nav-actions">
+                    <a class="managed-school-conduct-link conduct-link" href="{{ url('/document-files/en/code-of-conduct-5/view') }}">
+                        {{ $currentLocale === 'si' ? 'චර්යාධර්ම සංග්‍රහය' : 'Code of Conduct' }}
+                    </a>
+
+                    <a href="{{ $currentLocale === 'en' ? route('search') : route('search.localized', ['locale' => $currentLocale]) }}" 
+                       class="search-toggle-btn" 
+                       aria-label="{{ __('public.search') }}" 
+                       title="{{ __('public.search') }}">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    </a>
+
                     <div class="language-switch" data-language-switch>
                         <button class="language-toggle" type="button" aria-label="{{ __('public.change_language') }}" aria-haspopup="true"
                             aria-expanded="false" data-language-toggle>
@@ -236,7 +242,7 @@
                     </div>
 
                     <a href="https://lms.army.lk" target="_blank" rel="noopener noreferrer"
-                        class="btn btn-green portal-button">
+                        class="btn btn-green portal-button managed-school-portal">
                         <i class="fa-solid fa-laptop-code" aria-hidden="true"></i><span>{{ __('public.lms_portal') }}</span>
                     </a>
 
@@ -249,6 +255,20 @@
 
             <div class="mobile-menu" id="mobileMenu" data-mobile-menu>
                 <div class="container">
+                    <form action="{{ $currentLocale === 'en' ? route('search') : route('search.localized', ['locale' => $currentLocale]) }}" 
+                          method="GET" 
+                          class="mobile-search-bar" 
+                          role="search">
+                        <input type="search" 
+                               name="q" 
+                               placeholder="{{ __('public.search_placeholder') }}" 
+                               aria-label="{{ __('public.search') }}" 
+                               required>
+                        <button type="submit" aria-label="{{ __('public.search') }}">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        </button>
+                    </form>
+
                     @if ($languageOptions !== [])
                         <div class="mobile-language" aria-label="{{ __('public.language_selection') }}">
                             @foreach ($languageOptions as $language)
@@ -265,45 +285,40 @@
                         </div>
                     @endif
 
-                    @if ($primaryMenu)
-                        @foreach ($primaryMenu->rootItems->where('is_active', true) as $menuItem)
-                            <a href="{{ $menuItem->resolvedUrl($currentLocale) }}">
-                                <span>{{ $menuItem->labelForLocale($currentLocale) }}</span>
-                                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                            </a>
-                            @foreach ($menuItem->children->where('is_active', true) as $child)
-                                <a class="mobile-submenu-link" href="{{ $child->resolvedUrl($currentLocale) }}">
-                                    <span>{{ $child->labelForLocale($currentLocale) }}</span>
-                                    <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
-                                </a>
-                            @endforeach
-                        @endforeach
-                    @else
-                        <a href="{{ $publicHomeUrl }}"><span>{{ __('public.home') }}</span><i class="fa-solid fa-arrow-right"></i></a>
-                        <a href="{{ $publicNewsUrl }}"><span>{{ __('public.news') }}</span><i
-                                class="fa-solid fa-arrow-right"></i></a>
-                        <a href="{{ \App\Models\Publication::indexUrl($currentLocale) }}"><span>{{ __('public.publications') }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                        <a href="{{ \App\Services\GalleryLocale::indexUrl($currentLocale) }}"><span>{{ $currentLocale === 'si' ? 'ඡායාරූප ගැලරිය' : 'Gallery' }}</span><i
-                                class="fa-solid fa-arrow-right"></i></a>
-                        <a href="{{ \App\Services\CourseLocale::indexUrl($currentLocale) }}"><span>{{ __('public.courses') }}</span><i
-                                class="fa-solid fa-arrow-right"></i></a>
-                    @endif
+                    <a href="{{ $publicHomeUrl }}"><span>{{ __('public.home') }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{{ \App\Services\CourseLocale::indexUrl($currentLocale) }}"><span>{{ __('public.courses') }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{{ $currentLocale === 'en' ? url('/en/pages/aboutus') : url('/si/pages/siaboutus') }}"><span>{{ $currentLocale === 'si' ? 'අප ගැන' : 'About Us' }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{{ \App\Models\Publication::indexUrl($currentLocale) }}"><span>{{ __('public.publications') }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 
-                    <a
-                        href="{{ $currentLocale === 'en' ? route('history.past-commandants') : route('history.past-commandants.localized') }}">
-                        <span>{{ $currentLocale === 'si' ? 'හිටපු සේනාවිධායකවරු' : 'Past Commandants' }}</span>
-                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                    </a>
-                    <a
-                        href="{{ $currentLocale === 'en' ? route('history.past-chief-instructors') : route('history.past-chief-instructors.localized') }}">
-                        <span>{{ $currentLocale === 'si' ? 'හිටපු ප්‍රධාන උපදේශකවරු' : 'Past Chief Instructors' }}</span>
-                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                    </a>
-                    <a
-                        href="{{ $currentLocale === 'en' ? route('history.past-sgt-major') : route('history.past-sgt-major.localized') }}">
-                        <span>{{ $currentLocale === 'si' ? 'හිටපු රෙජිමේන්තු සැරයන් මේජර්වරු' : 'Past Regimental Sergeant Majors' }}</span>
-                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                    </a>
+                    <details class="sos-mobile-dropdown">
+                        <summary>
+                            <span>{{ $currentLocale === 'si' ? 'ඉතිහාසය' : 'History' }}</span>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </summary>
+                        <div class="sos-mobile-submenu">
+                            <a href="{{ $currentLocale === 'en' ? url('/en/pages/history-of-school') : url('/si/pages/history-of-school') }}">
+                                <span>{{ $currentLocale === 'si' ? 'පාසලේ ඉතිහාසය' : 'School History' }}</span>
+                                <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            </a>
+                            <a href="{{ $currentLocale === 'en' ? route('history.past-commandants') : route('history.past-commandants.localized') }}">
+                                <span>{{ $currentLocale === 'si' ? 'හිටපු සේනාවිධායකවරු' : 'Past Commandants' }}</span>
+                                <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            </a>
+                            <a href="{{ $currentLocale === 'en' ? route('history.past-chief-instructors') : route('history.past-chief-instructors.localized') }}">
+                                <span>{{ $currentLocale === 'si' ? 'හිටපු ප්‍රධාන උපදේශකවරු' : 'Past Chief Instructors' }}</span>
+                                <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            </a>
+                            <a href="{{ $currentLocale === 'en' ? route('history.past-sgt-major') : route('history.past-sgt-major.localized') }}">
+                                <span>{{ $currentLocale === 'si' ? 'හිටපු රෙජිමේන්තු සැරයන් මේජර්වරු' : 'Past Regimental Sergeant Majors' }}</span>
+                                <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </details>
+
+                    <a href="{{ \App\Services\GalleryLocale::indexUrl($currentLocale) }}"><span>{{ $currentLocale === 'si' ? 'ඡායාරූප' : 'Gallery' }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{{ $currentLocale === 'en' ? url('/en/pages/contact-us') : url('/si/pages/contact-us') }}"><span>{{ $currentLocale === 'si' ? 'අප අමතන්න' : 'Contact Us' }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="{{ url('/document-files/en/code-of-conduct-5/view') }}"><span>{{ $currentLocale === 'si' ? 'චර්යාධර්ම සංග්‍රහය' : 'Code of Conduct' }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="https://lms.army.lk" target="_blank" rel="noopener noreferrer"><span>{{ __('public.lms_portal') }}</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
             </div>
         </header>
@@ -364,6 +379,8 @@
     <button class="scroll-top" type="button" aria-label="{{ __('public.scroll_top') }}">
         <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
     </button>
+
+    @include('public.search.modal')
 
     <script src="{{ $themeAssetBase }}/js/theme.js{{ $themeJsVersion !== null ? '?v='.$themeJsVersion : '' }}" defer></script>
     @stack('scripts')

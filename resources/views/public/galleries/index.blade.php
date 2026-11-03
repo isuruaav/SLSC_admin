@@ -1,6 +1,7 @@
 @php
-    $galleryLayout = config('awcms.active_theme') === 'school-of-signals'
-        ? 'theme-school-of-signals::layout' : 'layouts.public';
+    $activeTheme = config('awcms.active_theme');
+    $galleryLayout = $activeTheme && view()->exists("theme-{$activeTheme}::layout")
+        ? "theme-{$activeTheme}::layout" : 'layouts.public';
     $feed = app(\App\Services\PublicGalleryFeed::class);
     $isSinhala = app()->getLocale() === 'si';
     $galleryTitle = $isSinhala ? 'ඡායාරූප ගැලරිය' : 'Photo Gallery';

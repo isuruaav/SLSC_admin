@@ -51,7 +51,8 @@ final class UserManagementRules
             ->where('guard_name', 'web')
             ->with('permissions')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->sortBy(static fn (Role $role): int => RolePresets::order($role->name));
 
         $names = [];
 
@@ -127,6 +128,23 @@ final class UserManagementRules
         if ($actor->is($target)) {
             throw ValidationException::withMessages([
                 'administrator_password' => 'Use your own Security Settings page to change your password.',
+            ]);
+        }
+    }
+
+    public static function ensureDeletionAllowed(User $actor, User $target): void
+    {
+        self::assertTargetManageable($actor, $target);
+
+        if ($actor->is($target)) {
+            throw ValidationException::withMessages([
+                'user' => 'You cannot delete your own account.',
+            ]);
+        }
+
+        if ($target->is_active && $target->hasRole('Super Administrator') && self::activeSuperAdministratorCount() <= 1) {
+            throw ValidationException::withMessages([
+                'user' => 'The last active Super Administrator cannot be deleted.',
             ]);
         }
     }

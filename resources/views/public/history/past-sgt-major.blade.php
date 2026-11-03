@@ -1,4 +1,4 @@
-@extends('theme-school-of-signals::layout')
+@extends(($activeTheme = config('awcms.active_theme')) && view()->exists("theme-{$activeTheme}::layout") ? "theme-{$activeTheme}::layout" : 'layouts.public')
 
 @section('title', $pageTitle)
 @section('meta_description', $metaDescription)

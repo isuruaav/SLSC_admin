@@ -6,6 +6,9 @@ use App\Enums\ThemeLayoutLocale;
 use App\Enums\ThemeLayoutRegion;
 use App\Models\ThemeLayout;
 use App\Models\User;
+use App\Services\FooterEditorService;
+use App\Services\NavigationEditorService;
+use App\Services\SiteLanguageService;
 use App\Services\ThemeLayoutSanitizer;
 use App\Services\ThemeLayoutService;
 use App\Services\ThemeManager;
@@ -59,9 +62,9 @@ final class ThemeLayoutIndex extends Component
 
         $selectedLocale = ThemeLayoutLocale::tryFrom($locale);
 
-        if (! $selectedLocale instanceof ThemeLayoutLocale) {
+        if (! $selectedLocale instanceof ThemeLayoutLocale || ! app(SiteLanguageService::class)->enabled($locale)) {
             throw ValidationException::withMessages([
-                'locale' => 'Select a valid theme layout language.',
+                'locale' => 'Select an enabled site language. Languages can be enabled in Site Settings.',
             ]);
         }
 
@@ -143,6 +146,12 @@ final class ThemeLayoutIndex extends Component
         );
     }
 
+    public function saveAndPublish(): void
+    {
+        $this->saveDraft();
+        $this->publish();
+    }
+
     public function render(): View
     {
         $theme = $this->themeAvailable
@@ -158,8 +167,14 @@ final class ThemeLayoutIndex extends Component
             [
                 'layout' => $layout,
                 'themeName' => $theme !== null ? $theme['name'] : null,
-                'locales' => ThemeLayoutLocale::cases(),
+                'locales' => app(SiteLanguageService::class)->choices(ThemeLayoutLocale::cases()),
                 'placeholders' => ThemeLayoutSanitizer::ALLOWED_PLACEHOLDERS,
+                'navigationConfig' => $this->themeAvailable && $this->region === 'header'
+                    ? app(NavigationEditorService::class)->configuration($this->currentLocale()->value, $this->themeSlug)
+                    : [],
+                'footerConfig' => $this->themeAvailable && $this->region === 'footer'
+                    ? app(FooterEditorService::class)->configuration($this->currentLocale()->value, $this->themeSlug)
+                    : [],
             ],
         )->layout(
             'components.layouts.admin',
@@ -167,6 +182,27 @@ final class ThemeLayoutIndex extends Component
                 'title' => 'Header & Footer',
             ],
         );
+    }
+
+    public function previewNavigation(string $html, string $css): string
+    {
+        return $this->previewLayout($html, $css);
+    }
+
+    public function previewLayout(string $html, string $css): string
+    {
+        Gate::authorize('theme-layouts.manage');
+        $this->ensureThemeAvailable();
+        $this->resetValidation(['layout_html', 'layout_css']);
+
+        $rendered = app(NavigationEditorService::class)->render($html, $css, $this->currentLocale()->value, $this->themeSlug);
+
+        return view('admin.theme-layouts.navigation-preview', [
+            'html' => $rendered['html'],
+            'css' => $rendered['css'],
+            'themeSlug' => $this->themeSlug,
+            'previewLocale' => $this->currentLocale()->value,
+        ])->render();
     }
 
     private function loadRegion(): void

@@ -9,8 +9,8 @@
         </h1>
 
         <p class="mt-1 text-sm text-zinc-500">
-            Manage separate English, Sinhala and Tamil header and footer layouts
-            using sanitized HTML, Tailwind classes, custom CSS and approved CMS placeholders.
+            Manage header and footer layouts for your enabled site languages
+            with visual header and footer builders, HTML / CSS and live preview.
         </p>
     </div>
 
@@ -154,99 +154,20 @@
                 </div>
             </div>
 
-            <form wire:submit="saveDraft" class="space-y-6 p-6">
-                <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-                    <p class="font-bold">
-                        Safe multilingual code editor
-                    </p>
-
-                    <p class="mt-1 leading-6">
-                        Each language and region is saved independently.
-                        PHP, Blade directives, JavaScript, event attributes, forms,
-                        embeds and external CSS imports are blocked.
-                    </p>
-
-                    <p class="mt-2 leading-6">
-                        Navigation items are managed by the configured site theme and existing menu data.
-                        Use
-                        <code class="font-mono">[[primary_menu]]</code>
-                        inside the Header HTML to position the localized menu.
-                    </p>
-                </div>
-
-                @if ($locale !== 'en')
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        If this language does not have a published layout, the public
-                        website will use the published English layout as its safe fallback.
-                    </div>
+            <form wire:submit="saveDraft" @submit.capture="if (!$dispatch('navigation-editor-sync') || !$dispatch('footer-editor-sync')) { $event.preventDefault(); $event.stopImmediatePropagation(); }" class="space-y-6 p-6">
+                @if ($region === 'header')
+                    @include('admin.theme-layouts.navigation-editor')
+                @else
+                    @include('admin.theme-layouts.footer-editor')
                 @endif
-
-                <div>
-                    <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
-                        <div>
-                            <label for="layout-html" class="block text-sm font-bold text-zinc-900">
-                                {{ ucfirst($region) }} HTML
-                            </label>
-
-                            <p class="mt-1 text-xs text-zinc-500">
-                                Maximum 100,000 characters. Content is sanitized again when saved.
-                            </p>
-                        </div>
-
-                        <span class="text-xs font-medium text-zinc-500">
-                            {{ strtoupper($locale) }} · HTML + approved placeholders
-                        </span>
-                    </div>
-
-                    <textarea id="layout-html" wire:model="layoutHtml" rows="24" spellcheck="false" autocapitalize="off"
-                        autocomplete="off"
-                        class="w-full rounded-xl border border-zinc-300 bg-zinc-950 px-4 py-4 font-mono text-[13px] leading-6 text-zinc-100 shadow-inner focus:border-emerald-500 focus:ring-emerald-500"
-                        placeholder="<header>[[site_logo]] [[site_name]] [[primary_menu]]</header>"></textarea>
-
-                    @error('layoutHtml')
-                        <p class="mt-2 text-sm font-semibold text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-                </div>
-
-                <div>
-                    <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
-                        <div>
-                            <label for="layout-css" class="block text-sm font-bold text-zinc-900">
-                                Scoped custom CSS
-                            </label>
-
-                            <p class="mt-1 text-xs text-zinc-500">
-                                Maximum 50,000 characters. Use a theme-specific wrapper
-                                class to avoid affecting admin or page content.
-                            </p>
-                        </div>
-
-                        <span class="text-xs font-medium text-zinc-500">
-                            No &lt;style&gt;, &#64;import or url()
-                        </span>
-                    </div>
-
-                    <textarea id="layout-css" wire:model="layoutCss" rows="14" spellcheck="false" autocapitalize="off"
-                        autocomplete="off"
-                        class="w-full rounded-xl border border-zinc-300 bg-zinc-950 px-4 py-4 font-mono text-[13px] leading-6 text-zinc-100 shadow-inner focus:border-emerald-500 focus:ring-emerald-500"
-                        placeholder=".school-site-header { background: #0f172a; }"></textarea>
-
-                    @error('layoutCss')
-                        <p class="mt-2 text-sm font-semibold text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-                </div>
 
                 <div
                     class="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-6 sm:flex-row sm:items-center sm:justify-end">
-                    <button type="button" wire:click="publish"
-                        wire:confirm="Publish the saved {{ strtoupper($locale) }} {{ $region }} draft?"
+                    <button type="button" @click.capture="if (!$dispatch('navigation-editor-sync') || !$dispatch('footer-editor-sync')) { $event.preventDefault(); $event.stopImmediatePropagation(); }" wire:click="saveAndPublish"
+                        wire:confirm="Save and publish this {{ strtoupper($locale) }} {{ $region }} layout?"
                         wire:loading.attr="disabled"
                         class="rounded-xl border border-emerald-700 px-5 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">
-                        Publish Saved Draft
+                        Save &amp; Publish
                     </button>
 
                     <button type="submit" wire:loading.attr="disabled"

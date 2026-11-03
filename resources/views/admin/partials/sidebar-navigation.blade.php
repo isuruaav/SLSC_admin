@@ -61,6 +61,9 @@
             @can('hero-slides.view')
                 <x-admin.nav-link :href="route('admin.hero-slides.index')" :active="request()->routeIs('admin.hero-slides.*')" icon="fa-regular fa-images" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Hero Slider</x-admin.nav-link>
             @endcan
+            @can('settings.manage')
+                <x-admin.nav-link :href="route('admin.special-programs.index')" :active="request()->routeIs('admin.special-programs.*')" icon="fa-solid fa-shapes" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Special Programs</x-admin.nav-link>
+            @endcan
             @can('school-leaders.view')
                 <x-admin.nav-link :href="route('admin.school-leaders.index')" :active="request()->routeIs('admin.school-leaders.*')" icon="fa-solid fa-user-tie" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">School Leadership</x-admin.nav-link>
                 <x-admin.nav-link :href="route('admin.school-leadership-profiles.index')" :active="request()->routeIs('admin.school-leadership-profiles.*')" icon="fa-regular fa-id-card" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Leadership Profiles</x-admin.nav-link>
@@ -100,6 +103,11 @@
             @endcan
         </div>
     @endif
+
+    <div class="admin-nav-group" x-show="!navSearch.trim() || Array.from($el.querySelectorAll('a')).some(link => link.innerText.toLowerCase().includes(navSearch.trim().toLowerCase()))">
+        <p class="admin-nav-heading">My Account</p>
+        <x-admin.nav-link :href="route('admin.account.password')" :active="request()->routeIs('admin.account.password')" icon="fa-solid fa-key" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Change Password</x-admin.nav-link>
+    </div>
 
     <p
         x-show="navSearch.trim() !== '' && !Array.from($el.closest('nav').querySelectorAll('a')).some(link => link.innerText.toLowerCase().includes(navSearch.trim().toLowerCase()))"

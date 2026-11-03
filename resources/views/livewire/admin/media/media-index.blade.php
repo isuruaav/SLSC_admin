@@ -381,7 +381,7 @@
                         </h2>
 
                         <p class="mt-1 text-xs text-zinc-500">
-                            Media previews are hidden. Click a media title to open its details.
+                            Click an image preview or file title to open its details.
                         </p>
                     @endif
                 </div>
@@ -419,7 +419,7 @@
                         <thead class="bg-zinc-50">
                             <tr>
                                 <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500">
-                                    Title
+                                    Preview
                                 </th>
                                 <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500">
                                     Type
@@ -459,6 +459,10 @@
                                     $assetUrl = $view === 'active'
                                         ? app(\App\Services\MediaUrlService::class)->namedOriginal($asset)
                                         : null;
+
+                                    $previewUrl = $view === 'active' && $asset->isImage()
+                                        ? app(\App\Services\MediaUrlService::class)->thumbnailOrOriginal($asset)
+                                        : null;
                                 @endphp
 
                                 <tr
@@ -467,7 +471,24 @@
                                 >
                                     <td class="px-5 py-4 align-top">
                                         <div class="max-w-sm">
-                                            @if ($view === 'active')
+                                            @if ($previewUrl)
+                                                <a
+                                                    href="{{ route('admin.media.edit', $asset) }}"
+                                                    aria-label="Open details for {{ $displayTitle }}"
+                                                    title="{{ $displayTitle }}"
+                                                    class="inline-block overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                                                >
+                                                    <img
+                                                        src="{{ $previewUrl }}"
+                                                        alt="{{ $asset->alt_text ?: $displayTitle }}"
+                                                        width="80"
+                                                        height="64"
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                        class="h-16 w-20 object-cover"
+                                                    >
+                                                </a>
+                                            @elseif ($view === 'active')
                                                 <a
                                                     href="{{ route('admin.media.edit', $asset) }}"
                                                     class="font-bold text-blue-700 hover:text-blue-900 hover:underline"

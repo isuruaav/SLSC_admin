@@ -172,7 +172,7 @@ final class PublicPageController extends Controller
     : null,
                 ];
             },
-            PageLocale::cases(),
+            app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases()),
         );
 
         return $this->pageView(

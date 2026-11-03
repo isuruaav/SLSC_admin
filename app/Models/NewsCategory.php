@@ -17,6 +17,11 @@ final class NewsCategory extends Model
 
     use SoftDeletes;
 
+    public function newsType(): string
+    {
+        return $this->slug === 'photo-story' ? 'photo_story' : 'news_feature';
+    }
+
     /**
      * @var list<string>
      */

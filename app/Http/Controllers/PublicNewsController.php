@@ -25,24 +25,40 @@ final class PublicNewsController extends Controller
 
         app()->setLocale($locale->value);
 
-        $news = News::query()
+        $currentType = match ($request->query('type')) {
+            'photo-story', 'photo_story' => 'photo-story',
+            'news-feature', 'news_feature' => 'news-feature',
+            default => null,
+        };
+
+        $query = News::query()
             ->with([
                 'category',
                 'featuredImage.variants',
             ])
             ->published()
-            ->where('locale', $locale->value)
+            ->where('locale', $locale->value);
+
+        if ($currentType === 'photo-story') {
+            $query->photoStories();
+        } elseif ($currentType === 'news-feature') {
+            $query->newsFeatures();
+        }
+
+        $news = $query
             ->orderByDesc('is_featured')
             ->orderByDesc('published_at')
-            ->paginate(12);
+            ->paginate(12)
+            ->withQueryString();
 
         return $this->newsView(
             'index',
             [
                 'news' => $news,
                 'locale' => $locale,
-                'locales' => NewsLocale::cases(),
-                'languageVersions' => $this->indexLanguageVersions(),
+                'locales' => app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
+                'languageVersions' => $this->indexLanguageVersions($currentType),
+                'currentType' => $currentType,
             ],
         );
     }
@@ -130,7 +146,7 @@ final class PublicNewsController extends Controller
     : null,
                 ];
             },
-            NewsLocale::cases(),
+            app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
         );
 
         $rawEditorMode = $news->getRawOriginal('editor_mode');
@@ -196,17 +212,17 @@ final class PublicNewsController extends Controller
     /**
      * @return list<array{code: string, available: true, url: string}>
      */
-    private function indexLanguageVersions(): array
+    private function indexLanguageVersions(?string $currentType): array
     {
         return array_map(
             static fn (NewsLocale $locale): array => [
                 'code' => $locale->value,
                 'available' => true,
                 'url' => $locale === NewsLocale::English
-                    ? route('news.index')
-                    : route('news.index.localized', ['locale' => $locale->value]),
+                    ? route('news.index', $currentType === null ? [] : ['type' => $currentType])
+                    : route('news.index.localized', array_filter(['locale' => $locale->value, 'type' => $currentType])),
             ],
-            NewsLocale::cases(),
+            app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
         );
     }
 

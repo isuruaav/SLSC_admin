@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
 @import 'trix/dist/trix.css';
+@import './admin-news.css';
 
 @source '../views';
 @source '../../themes/**/*.blade.php';

@@ -1,0 +1,175 @@
+/* Shared news form controls. Native radio state also works before Livewire starts. */
+.news-type-picker {
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+
+.news-type-picker__legend {
+    padding: 0;
+    color: #27272a;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.news-type-picker__help,
+.news-type-option__description {
+    color: #52525b;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+}
+
+.news-type-picker__help {
+    margin-top: 0.25rem;
+}
+
+.news-type-picker__options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    gap: 0.875rem;
+    margin-top: 0.875rem;
+}
+
+.news-type-option {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    min-width: 0;
+    border: 1px solid #d4d4d8;
+    border-radius: 0.875rem;
+    background: #fff;
+    padding: 1.125rem 2.875rem 1.125rem 1.125rem;
+    cursor: pointer;
+}
+
+.news-type-option:hover {
+    border-color: #6b9f87;
+    background: #fafcfb;
+}
+
+.news-type-option:has(input:checked) {
+    border-color: #047857;
+    background: #f0fdf6;
+    box-shadow: 0 0 0 1px #047857;
+}
+
+.news-type-option:has(input:focus-visible) {
+    outline: 3px solid #34a575;
+    outline-offset: 4px;
+}
+
+.news-type-option input[type='radio'] {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    accent-color: #047857;
+    cursor: pointer;
+}
+
+.news-type-option__icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid #e4e4e7;
+    border-radius: 0.75rem;
+    background: #f4f4f5;
+    color: #52525b;
+}
+
+.news-type-option__icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.news-type-option:has(input:checked) .news-type-option__icon {
+    border-color: #c2e5d5;
+    background: #dcfce7;
+    color: #047857;
+}
+
+.news-type-option__content {
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+    overflow-wrap: anywhere;
+}
+
+.news-type-option__title {
+    color: #18181b;
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.news-type-option__translation {
+    color: #52525b;
+    font-size: 0.75rem;
+    line-height: 1.7;
+}
+
+.news-type-option__description {
+    margin-top: 0.125rem;
+}
+
+.news-type-picker__error {
+    margin-top: 0.75rem;
+    color: #b91c1c;
+    font-size: 0.875rem;
+}
+
+.admin-news {
+    width: 100%;
+    min-width: 0;
+    max-width: 80rem;
+    margin-inline: auto;
+}
+
+.news-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.news-filters > div {
+    min-width: 0;
+}
+
+.news-filter-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+    .news-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .news-filters__search {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (min-width: 1280px) {
+    .news-filters {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1536px) {
+    .news-filters {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .news-filters__search {
+        grid-column: span 2;
+    }
+}

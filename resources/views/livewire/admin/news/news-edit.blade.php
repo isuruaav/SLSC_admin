@@ -1,4 +1,11 @@
-<div class="mx-auto max-w-7xl space-y-6">
+<div class="admin-news mx-auto max-w-7xl space-y-6"
+    x-data="awcmsNewsImageUpload($wire)"
+    x-on:livewire-upload-start="started($event)"
+    x-on:livewire-upload-progress="advanced($event)"
+    x-on:livewire-upload-finish="finished($event)"
+    x-on:livewire-upload-error="if ($event.detail.property === 'galleryUploads') failed()"
+    x-on:livewire-upload-cancel="cancelled($event)"
+    x-on:submit.capture="guardSubmit($event)">
 
 
 
@@ -316,15 +323,42 @@
 
 
 
-                This article is currently <span class="font-semibold">{{ $status->label() }}</span>.
+                @if ($bilingual)
+                    English and Sinhala versions are edited together. Both versions must be Draft before editing.
+                @else
+                    This article is currently <span class="font-semibold">{{ $status->label() }}</span>.
+                @endif
 
 
 
-                Use Unpublish from the News list to return it to Draft before editing.
+                @if ($canUnpublishForEditing)
+                    Unpublish the published versions to return them to Draft before editing.
+                @endif
 
 
 
             </p>
+
+            @if ($bilingual)
+                <ul class="mt-3 space-y-1 text-sm text-amber-900">
+                    @foreach ($lockedVersions as $version)
+                        <li><span class="font-semibold">{{ $version['language'] }}:</span> {{ $version['status'] }}</li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @if ($canUnpublishForEditing)
+                @can('news.publish')
+                    <button type="button" wire:click="unpublishForEditing"
+                        wire:confirm="Unpublish this article and any linked English/Sinhala versions edited together with it? They will return to Draft."
+                        wire:loading.attr="disabled" wire:target="unpublishForEditing"
+                        class="mt-4 inline-flex items-center justify-center rounded-xl bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:cursor-wait disabled:opacity-60">
+                        Unpublish and edit
+                    </button>
+                @else
+                    <p class="mt-3 text-sm text-amber-800">Ask a user with publishing permission to unpublish these versions.</p>
+                @endcan
+            @endif
 
 
 
@@ -357,23 +391,7 @@
 
                     <div class="grid gap-5 p-6 lg:grid-cols-2">
 
-                        <div>
-                            <label for="news-category" class="mb-2 block text-sm font-semibold text-zinc-800">
-                                Category
-                            </label>
-
-                            <select id="news-category" wire:model="categoryId"
-                                class="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                <option value="">Select category</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-
-                            @error('categoryId')
-                                <p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                        <x-admin.news.article-type-picker :value="$categoryId" :categories="$categories" class="lg:col-span-2" />
 
                         <div>
                             <div class="mb-2 flex items-center justify-between gap-3">
@@ -596,47 +614,7 @@
 
 
 
-                    <div>
-
-
-
-                        <label for="news-category"
-
-                            class="mb-2 block text-sm font-semibold text-zinc-800">Category</label>
-
-
-
-                        <select id="news-category" wire:model="categoryId"
-
-                            class="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-
-
-
-                            <option value="">Select category</option>
-
-
-
-                            @foreach ($categories as $category)
-
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-
-                            @endforeach
-
-
-
-                        </select>
-
-
-
-                        @error('categoryId')
-
-                            <p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>
-
-                        @enderror
-
-
-
-                    </div>
+                    <x-admin.news.article-type-picker :value="$categoryId" :categories="$categories" class="lg:col-span-2" />
 
 
 
@@ -1120,7 +1098,7 @@
 
 
 
-                                        $isFeatured =
+                                        $isFeaturedImage =
 
                                             (string) $news->featured_image_id === (string) $newsImage->media_asset_id;
 
@@ -1190,7 +1168,7 @@
 
 
 
-                                            @if ($isFeatured)
+                                            @if ($isFeaturedImage)
 
                                                 <span
 
@@ -1250,7 +1228,7 @@
 
                                                 class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition
 
-                        {{ $isFeatured
+                        {{ $isFeaturedImage
 
                             ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
 
@@ -1258,7 +1236,7 @@
 
                                                 <input type="radio" name="featured-news-image"
 
-                                                    value="{{ $newsImage->id }}" @checked($isFeatured)
+                                                    value="{{ $newsImage->id }}" @checked($isFeaturedImage)
 
                                                     wire:click="selectFeaturedImage({{ $newsImage->id }})"
 
@@ -1268,7 +1246,7 @@
 
                                                 <span>
 
-                                                    {{ $isFeatured ? 'Featured image' : 'Set as featured' }}
+                                                    {{ $isFeaturedImage ? 'Featured image' : 'Set as featured' }}
 
                                                 </span>
 
@@ -1388,6 +1366,9 @@
 
 
                             <input id="news-gallery-uploads" type="file" wire:model="galleryUploads" multiple
+                                x-on:change.capture="validateSelection($event)"
+                                x-bind:disabled="uploading || needsRefresh" data-existing-image-count="{{ $news->images->count() }}"
+                                aria-describedby="news-gallery-upload-help news-gallery-upload-error" x-bind:aria-invalid="!!error"
 
                                 accept="image/jpeg,image/png,image/webp"
 
@@ -1399,7 +1380,7 @@
 
 
 
-                            <p class="mt-2 text-xs leading-5 text-zinc-500">
+                            <p id="news-gallery-upload-help" class="mt-2 text-xs leading-5 text-zinc-500">
                                 Maximum 30 images per article. Maximum 1 MB per image and 30 MB total.
                                 JPG, JPEG, PNG and WEBP only. File names must use lowercase letters only.
                                 Uploaded files are stored through the existing secure Media Library pipeline.
@@ -1411,17 +1392,7 @@
 
 
 
-                            <div wire:loading wire:target="galleryUploads"
-
-                                class="mt-3 text-sm font-semibold text-blue-700">
-
-
-
-                                Preparing selected images...
-
-
-
-                            </div>
+                            <x-forms.news-image-upload-status :editing="true" />
 
 
 
@@ -1542,8 +1513,8 @@
 
 
                             <button type="button" wire:click="uploadGalleryImages" wire:loading.attr="disabled"
-
-                                wire:target="uploadGalleryImages"
+                                wire:target="galleryUploads,uploadGalleryImages"
+                                x-bind:disabled="uploading || readyCount === 0" @disabled($galleryUploads === [])
 
                                 class="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
 
@@ -1593,169 +1564,7 @@
 
 
 
-            <section class="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-
-
-
-                <div class="border-b border-zinc-200 px-6 py-5">
-
-
-
-                    <h2 class="font-bold text-zinc-950">Publication options</h2>
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <div class="grid gap-5 p-6">
-
-
-
-                    <div>
-
-
-
-                        <label for="published-at" class="mb-2 block text-sm font-semibold text-zinc-800">Publication
-
-
-
-                            date/time</label>
-
-
-
-                        <input id="published-at" type="datetime-local" wire:model="publishedAt"
-
-                            class="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-
-
-
-                        <p class="mt-2 text-xs text-zinc-500">Blank uses the current time when Publish is clicked.
-
-
-
-                            Future dates schedule public visibility.</p>
-
-
-
-                        @error('publishedAt')
-
-                            <p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>
-
-                        @enderror
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <label
-
-                        class="lg:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-
-
-
-                        <input type="checkbox" wire:model="isFeatured"
-
-                            class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500">
-
-
-
-                        <span>
-
-
-
-                            <span class="block text-sm font-semibold text-zinc-900">Featured news article</span>
-
-
-
-                            <span class="mt-1 block text-xs leading-5 text-zinc-500">Featured articles may be
-
-
-
-                                prioritised in public news listings.</span>
-
-
-
-                        </span>
-
-
-
-                    </label>
-
-
-
-                    <label
-
-                        class="lg:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-
-
-
-                        <input type="checkbox" wire:model="showInGallery"
-
-                            class="mt-1 h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500">
-
-
-
-                        <span>
-
-
-
-                            <span class="block text-sm font-semibold text-zinc-900">Show these images in Gallery</span>
-
-
-
-                            <span class="mt-1 block text-xs leading-5 text-zinc-600">Display this article's uploaded
-
-                                images as a
-
-
-
-                                gallery album using its news title. Only published articles and public images appear.
-
-                                Unticking
-
-
-
-                                keeps the images in News.</span>
-
-
-
-                        </span>
-
-
-
-                    </label>
-
-
-
-                    @error('showInGallery')
-
-                        <p class="text-sm text-red-600">{{ $message }}</p>
-
-                    @enderror
-
-
-
-
-
-
-
-                </div>
-
-
-
-            </section>
+            <x-admin.news.publication-options :published-at="$publishedAt" :featured="$isFeatured" :gallery="$showInGallery" />
 
 
 
@@ -1779,9 +1588,10 @@
 
 
 
-                <button type="submit" wire:loading.attr="disabled" wire:target="save"
+                <button type="submit" wire:loading.attr="disabled" wire:target="save,saveAndPublish,galleryUploads,uploadGalleryImages"
+                    x-bind:disabled="uploading"
 
-                    class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
+                    class="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60">
 
 
 
@@ -1796,6 +1606,16 @@
 
 
                 </button>
+
+                @can('news.publish')
+                    <button type="button" wire:click="saveAndPublish" wire:confirm="Save these changes and publish this article and its linked language version?"
+                        wire:loading.attr="disabled" wire:target="save,saveAndPublish,galleryUploads,uploadGalleryImages"
+                        x-bind:disabled="uploading"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
+                        <span wire:loading.remove wire:target="saveAndPublish">Save &amp; Publish</span>
+                        <span wire:loading wire:target="saveAndPublish">Publishing...</span>
+                    </button>
+                @endcan
 
 
 

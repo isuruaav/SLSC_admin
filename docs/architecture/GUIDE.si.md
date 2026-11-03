@@ -57,7 +57,7 @@ Browser / HTTP request
 | `storage/app/private/` | Private files සඳහා configured local disk root. Public media සමඟ හුවමාරු නොකරන්න. |
 | `storage/framework/`, `storage/logs/` | Compiled views, caches, test artifacts, sessions සහ logs. Data/uploads සමඟ එකට delete නොකරන්න. |
 | `scripts/` | `compile-leadership-profile.mjs` runtime dependency එකකි. `build-*-deployment.py` files deployment packaging tools වේ. Folder එකම අනවශ්‍යයි කියලා ඉවත් කරන්න බැහැ. |
-| `deploy/` | Apache instructions සහ dated incremental deployment packages. Installer/payload copies application source එකට වෙනම වේ. |
+| `docs/apache/` | Apache instructions සහ web server configuration snippets (`sch-of-slsc.conf`). |
 | `tests/` | Pest feature/unit checks. Local `Tests\\TestCase` එක RefreshDatabase භාවිතා කරයි. Production site එකේ සාමාන්‍ය request runtime එකට tests අවශ්‍ය නැහැ. |
 | `vendor/` | Composer PHP dependencies. `composer.json` + `composer.lock` මත install වේ. Runtime සඳහා අවශ්‍යයි. |
 | `node_modules/` | Node dependencies. මේ project එකේ leadership profile save/preview compiler එකටද අවශ්‍යයි. Server platform එකට ගැළපෙන ලෙස install කරන්න. |

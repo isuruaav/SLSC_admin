@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,6 +28,11 @@ final class SchoolLeadershipPositionIndex extends Component
     public bool $showEditor = false;
 
     public string $nameEn = '';
+
+    public string $systemKey = '';
+
+    #[Locked]
+    public bool $systemKeyManuallyEdited = false;
 
     public string $nameSi = '';
 
@@ -77,6 +83,8 @@ final class SchoolLeadershipPositionIndex extends Component
 
         $this->editingId = $position->id;
         $this->nameEn = $position->name_en;
+        $this->systemKey = $position->key;
+        $this->systemKeyManuallyEdited = true;
         $this->nameSi = $position->name_si;
         $this->rankGroup = (string) $position->getRawOriginal(
             'rank_group',
@@ -96,6 +104,20 @@ final class SchoolLeadershipPositionIndex extends Component
 
         $this->showEditor = false;
         $this->resetForm();
+    }
+
+    public function updatedNameEn(): void
+    {
+        if ($this->editingId === null && ! $this->systemKeyManuallyEdited) {
+            $this->systemKey = trim($this->nameEn) === ''
+                ? ''
+                : $this->generateUniqueKey($this->nameEn);
+        }
+    }
+
+    public function updatedSystemKey(): void
+    {
+        $this->systemKeyManuallyEdited = true;
     }
 
     public function updatedSearch(): void
@@ -209,9 +231,22 @@ final class SchoolLeadershipPositionIndex extends Component
 
     public function save(): void
     {
+        Gate::authorize('school-leaders.view');
         Gate::authorize('school-leaders.update');
 
+        $this->systemKey = trim($this->systemKey);
+        if ($this->editingId === null && $this->systemKey === '') {
+            $this->systemKey = $this->generateUniqueKey($this->nameEn);
+        }
+
         $validated = $this->validate([
+            'systemKey' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/\A[a-z0-9]+(?:_[a-z0-9]+)*\z/',
+                Rule::unique('school_leadership_positions', 'key')->ignore($this->editingId),
+            ],
             'nameEn' => [
                 'required',
                 'string',
@@ -239,26 +274,32 @@ final class SchoolLeadershipPositionIndex extends Component
             'isActive' => [
                 'boolean',
             ],
+        ], [
+            'systemKey.regex' => 'Use lowercase letters, numbers and single underscores between words.',
+            'systemKey.unique' => 'This system key is already used by another appointment type.',
+        ], [
+            'systemKey' => 'system key',
         ]);
 
         $actor = $this->actor();
         $creating = $this->editingId === null;
 
-        $position = DB::transaction(function () use (
+        DB::transaction(function () use (
             $validated,
+            $actor,
+            $creating,
         ): SchoolLeadershipPosition {
             $position = $this->editingId === null
                 ? new SchoolLeadershipPosition
                 : SchoolLeadershipPosition::query()
+                    ->lockForUpdate()
                     ->findOrFail($this->editingId);
 
-            if (! $position->exists) {
-                $position->key = $this->generateUniqueKey(
-                    $validated['nameEn'],
-                );
-            }
+            $oldValues = $position->exists ? $position->getAttributes() : [];
+            $keyChanged = $position->exists && $position->key !== $validated['systemKey'];
 
             $position->fill([
+                'key' => $validated['systemKey'],
                 'name_en' => trim($validated['nameEn']),
                 'name_si' => trim($validated['nameSi']),
                 'rank_group' => $validated['rankGroup'],
@@ -269,19 +310,25 @@ final class SchoolLeadershipPositionIndex extends Component
 
             $position->save();
 
+            if ($keyChanged) {
+                $position->leaders()->update(['role_key' => $position->key]);
+            }
+
+            app(AuditLogger::class)->log(
+                event: $creating
+                    ? 'settings.school-leadership-position-created'
+                    : 'settings.school-leadership-position-updated',
+                description: $creating
+                    ? 'A School Leadership appointment type was created.'
+                    : 'A School Leadership appointment type was updated.',
+                actor: $actor,
+                subject: $position,
+                oldValues: $oldValues,
+                newValues: $position->getAttributes(),
+            );
+
             return $position;
         });
-
-        app(AuditLogger::class)->log(
-            event: $creating
-                ? 'settings.school-leadership-position-created'
-                : 'settings.school-leadership-position-updated',
-            description: $creating
-                ? 'A School Leadership appointment type was created.'
-                : 'A School Leadership appointment type was updated.',
-            actor: $actor,
-            subject: $position,
-        );
 
         session()->flash(
             'status',
@@ -291,6 +338,43 @@ final class SchoolLeadershipPositionIndex extends Component
         );
 
         $this->closeEditor();
+    }
+
+    public function delete(int $id): void
+    {
+        Gate::authorize('school-leaders.view');
+        Gate::authorize('school-leaders.update');
+
+        $this->resetValidation('delete');
+        $actor = $this->actor();
+
+        DB::transaction(function () use ($id, $actor): void {
+            $position = SchoolLeadershipPosition::query()->lockForUpdate()->findOrFail($id);
+
+            if ($position->leaders()->exists()) {
+                throw ValidationException::withMessages([
+                    'delete' => 'This appointment type has assigned leaders. Reassign or delete those leadership appointments before deleting the type.',
+                ]);
+            }
+
+            $oldValues = $position->getAttributes();
+            $position->delete();
+
+            app(AuditLogger::class)->log(
+                event: 'settings.school-leadership-position-deleted',
+                description: 'A School Leadership appointment type was deleted.',
+                actor: $actor,
+                subject: $position,
+                oldValues: $oldValues,
+            );
+        });
+
+        if ($this->editingId === $id) {
+            $this->closeEditor();
+        }
+
+        $this->resetPage();
+        session()->flash('status', 'Appointment type deleted successfully.');
     }
 
     public function render(): View
@@ -439,6 +523,8 @@ final class SchoolLeadershipPositionIndex extends Component
     {
         $this->editingId = null;
         $this->nameEn = '';
+        $this->systemKey = '';
+        $this->systemKeyManuallyEdited = false;
         $this->nameSi = '';
         $this->rankGroup = '';
         $this->sortOrder = 100;
@@ -450,11 +536,7 @@ final class SchoolLeadershipPositionIndex extends Component
 
     private function generateUniqueKey(string $name): string
     {
-        $base = str_replace(
-            '-',
-            '_',
-            Str::slug($name),
-        );
+        $base = rtrim(Str::substr(Str::slug($name, '_'), 0, 50), '_');
 
         if ($base === '') {
             $base = 'position';
@@ -468,7 +550,8 @@ final class SchoolLeadershipPositionIndex extends Component
                 ->where('key', $key)
                 ->exists()
         ) {
-            $key = $base.'_'.$number;
+            $suffix = '_'.$number;
+            $key = rtrim(Str::substr($base, 0, 50 - strlen($suffix)), '_').$suffix;
             $number++;
         }
 

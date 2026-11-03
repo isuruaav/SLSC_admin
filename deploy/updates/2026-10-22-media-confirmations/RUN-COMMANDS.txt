@@ -1,3 +1,0 @@
-# Linux server: run in the existing Laravel project root containing artisan, .env and vendor/.
-unzip -o sch_of_slsc-media-confirmations-2026-10-22.zip -d update-media-confirmations-20261022
-bash update-media-confirmations-20261022/deploy.sh "$PWD"

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\MediaUploadService;
 use App\Services\NewsArticleService;
 use App\Services\NewsImageService;
+use App\Services\NewsWorkflowService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\View\View;
@@ -61,6 +62,8 @@ final class NewsEdit extends Component
     public bool $bilingual = false;
 
     public string $categoryId = '';
+
+    public string $newsType = 'news_feature';
 
     public string $featuredImageId = '';
 
@@ -173,6 +176,27 @@ final class NewsEdit extends Component
 
     }
 
+    public function updatedNewsType(string $value): void
+    {
+        if ($value === 'photo_story') {
+            $cat = NewsCategory::query()->where('slug', 'photo-story')->first();
+            if ($cat) {
+                $this->categoryId = (string) $cat->id;
+            }
+        } elseif ($value === 'news_feature') {
+            $cat = NewsCategory::query()->where('slug', 'news-feature')->first()
+                ?? NewsCategory::query()->where('id', 1)->first();
+            if ($cat) {
+                $this->categoryId = (string) $cat->id;
+            }
+        }
+    }
+
+    public function updatedCategoryId(string $value): void
+    {
+        $this->newsType = NewsCategory::query()->find((int) $value)?->newsType() ?? 'news_feature';
+    }
+
     public function updatedTitle(): void
     {
 
@@ -202,6 +226,46 @@ final class NewsEdit extends Component
 
         $this->slug = Str::slug($this->title);
 
+    }
+
+    public function unpublishForEditing(): void
+    {
+        Gate::authorize('news.update');
+
+        app(NewsWorkflowService::class)->unpublishForEditing($this->news(), $this->actor());
+
+        $this->loadNews($this->news());
+        if ($this->bilingual) {
+            $this->loadSinhalaNews($this->sinhalaNews());
+        }
+
+        $this->resetValidation();
+        session()->flash('status', 'Published versions were unpublished and returned to Draft.');
+    }
+
+    public function saveAndPublish(): void
+    {
+        Gate::authorize('news.update');
+        Gate::authorize('news.publish');
+
+        DB::transaction(function (): void {
+            $this->save();
+            $workflow = app(NewsWorkflowService::class);
+            $workflow->publishImmediately($this->news(), $this->actor());
+            if ($this->bilingual) {
+                $workflow->publishImmediately($this->sinhalaNews(), $this->actor());
+            }
+        }, 3);
+
+        $news = $this->news();
+        $this->loadNews($news);
+        if ($this->bilingual) {
+            $this->loadSinhalaNews($this->sinhalaNews());
+        }
+
+        session()->flash('status', $news->published_at?->isFuture()
+            ? 'Changes saved. Publication is scheduled for '.$news->published_at->format('d M Y H:i').' ('.config('app.timezone').').'
+            : 'Changes saved and published successfully.');
     }
 
     public function save(): void
@@ -304,6 +368,8 @@ final class NewsEdit extends Component
 
                         showInGallery: $this->showInGallery,
 
+                        newsType: $this->newsType,
+
                     );
 
                     $sinhala = $service->update(
@@ -333,6 +399,8 @@ final class NewsEdit extends Component
                         seoDescription: $this->nullable($this->sinhalaSeoDescription),
 
                         showInGallery: $this->showInGallery,
+
+                        newsType: $this->newsType,
 
                     );
 
@@ -387,6 +455,8 @@ final class NewsEdit extends Component
             seoDescription: $this->nullable($this->seoDescription),
 
             showInGallery: $this->showInGallery,
+
+            newsType: $this->newsType,
 
         );
 
@@ -1174,6 +1244,8 @@ final class NewsEdit extends Component
 
             'content' => ['required', 'string', 'max:250000'],
 
+            'newsType' => ['required', 'string', 'in:photo_story,news_feature'],
+
             'categoryId' => ['required', 'integer', 'exists:news_categories,id'],
 
             'featuredImageId' => ['nullable', 'integer', 'exists:media_assets,id'],
@@ -1401,6 +1473,12 @@ final class NewsEdit extends Component
 
         $blockingStatus = $status;
 
+        $lockedVersions = [];
+        $canUnpublishForEditing = $status === NewsStatus::Published;
+        if ($status !== NewsStatus::Draft) {
+            $lockedVersions[] = ['language' => $news->locale->nativeLabel(), 'status' => $status?->label() ?? 'Unknown'];
+        }
+
         $sinhalaNews = null;
 
         if ($this->bilingual) {
@@ -1413,11 +1491,15 @@ final class NewsEdit extends Component
 
             $sinhalaStatus = $this->statusOf($sinhalaNews);
 
+            $canUnpublishForEditing = $canUnpublishForEditing || $sinhalaStatus === NewsStatus::Published;
+
             if ($sinhalaStatus !== NewsStatus::Draft) {
 
                 $editable = false;
 
                 $blockingStatus = $sinhalaStatus;
+
+                $lockedVersions[] = ['language' => $sinhalaNews->locale->nativeLabel(), 'status' => $sinhalaStatus?->label() ?? 'Unknown'];
 
             }
 
@@ -1453,11 +1535,15 @@ final class NewsEdit extends Component
 
                     ->get(),
 
-                'locales' => NewsLocale::cases(),
+                'locales' => app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases(), is_string($news->getRawOriginal('locale')) ? $news->getRawOriginal('locale') : null),
 
                 'status' => $blockingStatus ?? NewsStatus::Draft,
 
                 'editable' => $editable,
+
+                'lockedVersions' => $lockedVersions,
+
+                'canUnpublishForEditing' => $canUnpublishForEditing,
 
             ],
 
@@ -1513,6 +1599,8 @@ final class NewsEdit extends Component
             'content',
 
         );
+
+        $this->newsType = $news->category?->newsType() ?? 'news_feature';
 
         $categoryId = $news->getAttribute('category_id');
 
@@ -1633,6 +1721,8 @@ final class NewsEdit extends Component
         $this->sinhalaSeoDescription = trim($this->sinhalaSeoDescription);
 
         $this->categoryId = trim($this->categoryId);
+
+        $this->updatedCategoryId($this->categoryId);
 
         $this->featuredImageId = trim($this->featuredImageId);
 

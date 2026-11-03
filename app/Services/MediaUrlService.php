@@ -34,6 +34,10 @@ final class MediaUrlService
             return null;
         }
 
+        if ($disk === 'public') {
+            return asset('storage/'.ltrim($path, '/'));
+        }
+
         return Storage::disk($disk)
             ->url($path);
     }
@@ -107,6 +111,10 @@ final class MediaUrlService
             || $disk !== trim($publicDisk)
         ) {
             return null;
+        }
+
+        if ($disk === 'public') {
+            return asset('storage/'.ltrim($path, '/'));
         }
 
         return Storage::disk($disk)

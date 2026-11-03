@@ -1,21 +1,66 @@
-/.phpunit.cache
-/.phpunit.result.cache
+# Dependencies and generated public assets
 /node_modules
 /public/build
 /public/themes
 /public/hot
 /public/storage
-/storage/*.key
 /vendor
+
+# Local environment, credentials and database files
 .env
-.env.backup
-.env.production
-.phpunit.cache
+.env.*
+!.env.example
+auth.json
+/.aws/
+/storage/*.key
+/database/*.sqlite*
+/database/*.sql
+/database/*.sql.gz
+/database/*.dump
+
+# Test output and local virtual machines
+/.phpunit.cache
+/.phpunit.result.cache
+/coverage/
+/coverage.xml
+/test-results/
+/playwright-report/
 Homestead.json
 Homestead.yaml
-auth.json
-npm-debug.log
-yarn-error.log
+
+# Local editor and agent settings
+/.cursor
 /.fleet
 /.idea
 /.vscode
+/.codex
+
+# Generated release packages, payload copies and local audit reports
+/deploy/
+
+# Regenerable architecture reports; keep the guide and tools in Git
+/docs/architecture/*.csv
+/docs/architecture/*.json
+/docs/architecture/*.zip
+/docs/architecture/*.zip.sha256
+/docs/architecture/ARCHITECTURE-REPORT.si.md
+/docs/architecture/index.html
+/docs/architecture/report-ui.js
+/docs/architecture/request-flow.svg
+
+# Logs, temporary files and operating-system metadata
+*.log
+npm-debug.log*
+yarn-error.log*
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

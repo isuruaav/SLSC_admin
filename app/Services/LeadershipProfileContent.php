@@ -80,7 +80,12 @@ final class LeadershipProfileContent
     {
         $safeHtml = $this->htmlSanitizer->sanitize($html);
         $safeCss = $this->layoutSanitizer->sanitizeCss($css);
-        $themeCss = file_get_contents(base_path('themes/school-of-signals/assets/css/theme.css')) ?: '';
+        $activeTheme = config('awcms.active_theme');
+        $themeCssPath = $activeTheme ? base_path("themes/{$activeTheme}/assets/css/style.css") : null;
+        if (! $themeCssPath || ! is_file($themeCssPath)) {
+            $themeCssPath = base_path('themes/school-of-signals/assets/css/theme.css');
+        }
+        $themeCss = is_file($themeCssPath) ? (file_get_contents($themeCssPath) ?: '') : '';
         preg_match('/:root\s*\{[^}]*\}/s', $themeCss, $root);
         $palette = $root[0] ?? '';
         $styles = str_replace('<', '\\3c ', $compiledCss."\n".$palette."\n".$safeCss);

@@ -1,3 +1,0 @@
-# Run from the Laravel project root containing artisan, .env and vendor/.
-unzip sch_of_slsc-update-after-1235-2026-10-22.zip -d update-after-1235-20261022
-bash update-after-1235-20261022/deploy.sh "$PWD"
