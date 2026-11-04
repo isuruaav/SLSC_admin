@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import vm from 'node:vm';
+import { initializeNavigation } from '../../themes/slsc/assets/js/navigation.js';
 import { pathToFileURL } from 'node:url';
 
 const { parseHTML } = await import(pathToFileURL(process.env.NAVIGATION_DOM_MODULE).href);
@@ -296,13 +296,7 @@ function publicNavigation() {
         location: new URL('https://example.test/school/news'), innerWidth: 390,
         addEventListener: bus.addEventListener.bind(bus), dispatchEvent: bus.dispatchEvent.bind(bus),
     };
-    const source = readFileSync(new URL('../../themes/school-of-signals/assets/js/theme.js', import.meta.url), 'utf8');
-    const functions = source.slice(source.indexOf('  /* ---------- Active navigation'), source.indexOf('  /* ---------- Language switch'));
-    vm.runInNewContext(`${functions}\ninitActiveNavigation(); initMobileMenu();`, {
-        window: browser, document, URL, label: (_, fallback) => fallback,
-        qs: (selector, parent = document) => parent.querySelector(selector),
-        qsa: (selector, parent = document) => [...parent.querySelectorAll(selector)],
-    });
+    initializeNavigation(document, browser);
     return { document, browser, Event: parseHTML('<html></html>').window.Event };
 }
 

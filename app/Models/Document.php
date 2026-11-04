@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DocumentStatus;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,9 @@ use Illuminate\Support\Str;
 
 final class Document extends Model
 {
+    /** @use HasFactory<\Database\Factories\DocumentFactory> */
+    use HasFactory;
+
     use SoftDeletes;
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\News;
 use App\Models\Page;
 use App\Models\Publication;
+use App\Services\DocumentUploadManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,15 @@ use Illuminate\Support\Str;
 
 final class PublicSearchController extends Controller
 {
+    public function __construct(private readonly DocumentUploadManager $documents) {}
+
     public function index(Request $request): View
     {
+        $request->validate([
+            'q' => ['nullable', 'string'],
+            'type' => ['nullable', 'string'],
+        ]);
+
         $locale = $this->resolveLocale($request);
         app()->setLocale($locale);
 
@@ -61,6 +69,8 @@ final class PublicSearchController extends Controller
 
     public function suggest(Request $request): JsonResponse
     {
+        $request->validate(['q' => ['nullable', 'string']]);
+
         $locale = $this->resolveLocale($request);
         app()->setLocale($locale);
 
@@ -80,7 +90,7 @@ final class PublicSearchController extends Controller
         $results = $searchData['all']->take(6)->values()->all();
         $total = $searchData['counts']['all'];
 
-        $viewAllUrl = $locale === 'si' 
+        $viewAllUrl = $locale === 'si'
             ? route('search.localized', ['locale' => 'si', 'q' => $query])
             : route('search', ['q' => $query]);
 
@@ -190,8 +200,7 @@ final class PublicSearchController extends Controller
         $grouped['courses'] = $courseResults;
 
         // 3. Documents
-        $documentResults = Document::query()
-            ->published()
+        $documentResults = $this->documents->publicQuery($locale)
             ->where(function ($q) use ($escaped): void {
                 $q->where('title', 'like', "%{$escaped}%")
                     ->orWhere('description', 'like', "%{$escaped}%")

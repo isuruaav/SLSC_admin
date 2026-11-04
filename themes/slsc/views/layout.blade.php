@@ -283,7 +283,7 @@
             <form action="{{ $currentLocale === 'si' ? url('/si/search') : url('/search') }}" method="GET" class="slsc-search-modal-form" role="search" data-modal-search-form>
                 <div class="slsc-search-modal-input-row">
                     <i class="fa-solid fa-magnifying-glass slsc-search-modal-icon" aria-hidden="true"></i>
-                    <input type="search" name="q" class="slsc-search-modal-input" placeholder="{{ $currentLocale === 'si' ? 'පුවත්, පාඨමාලා, ලේඛන, ප්‍රකාශන සොයන්න...' : 'Search news, courses, documents, publications...' }}" autocomplete="off" autocorrect="off" spellcheck="false" data-modal-search-input>
+                    <input type="search" name="q" class="slsc-search-modal-input" aria-label="{{ $currentLocale === 'si' ? 'සොයන්න' : 'Search' }}" placeholder="{{ $currentLocale === 'si' ? 'පුවත්, පාඨමාලා, ලේඛන, ප්‍රකාශන සොයන්න...' : 'Search news, courses, documents, publications...' }}" autocomplete="off" autocorrect="off" spellcheck="false" data-modal-search-input>
                     <button type="button" class="slsc-search-modal-esc" data-close-search-modal aria-label="{{ $currentLocale === 'si' ? 'වසන්න' : 'Close' }}">
                         <span>ESC</span>
                     </button>
@@ -314,7 +314,7 @@
             </div>
 
             <!-- Live Results Container -->
-            <div class="slsc-search-modal-results" data-modal-search-results hidden></div>
+            <div class="slsc-search-modal-results" aria-live="polite" data-modal-search-results hidden></div>
 
             <!-- Modal Footer -->
             <div class="slsc-search-modal-footer">

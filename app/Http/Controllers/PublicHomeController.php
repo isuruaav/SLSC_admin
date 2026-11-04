@@ -123,19 +123,6 @@ final class PublicHomeController
             ->latest('published_at')
             ->first();
 
-        if (! $photoStory) {
-            $photoStory = News::query()
-                ->published()
-                ->where('locale', $locale)
-                ->with([
-                    'category',
-                    'featuredImage.variants',
-                ])
-                ->orderByDesc('is_featured')
-                ->latest('published_at')
-                ->first();
-        }
-
         $newsFeatures = News::query()
             ->published()
             ->where('locale', $locale)
@@ -149,22 +136,6 @@ final class PublicHomeController
             ->latest('published_at')
             ->limit(3)
             ->get();
-
-        if ($newsFeatures->count() < 3) {
-            $excludedIds = array_filter([$photoStory?->id, ...$newsFeatures->pluck('id')->all()]);
-            $fillers = News::query()
-                ->published()
-                ->where('locale', $locale)
-                ->whereNotIn('id', $excludedIds)
-                ->with([
-                    'category',
-                    'featuredImage.variants',
-                ])
-                ->latest('published_at')
-                ->limit(3 - $newsFeatures->count())
-                ->get();
-            $newsFeatures = $newsFeatures->concat($fillers);
-        }
 
         $data = [
             'settings' => $settings,

@@ -151,6 +151,8 @@ test('news category form validates required category name', function (): void {
         'Site Administrator',
     );
 
+    $initialCount = NewsCategory::query()->count();
+
     Livewire::actingAs(
         $administrator,
     )
@@ -174,7 +176,7 @@ test('news category form validates required category name', function (): void {
     expect(
         NewsCategory::query()->count(),
     )->toBe(
-        0,
+        $initialCount,
     );
 });
 

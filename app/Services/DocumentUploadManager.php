@@ -233,6 +233,36 @@ final class DocumentUploadManager
         });
     }
 
+    /** @return Builder<Document> */
+    public function publicQuery(string $locale): Builder
+    {
+        $primary = $locale === 'si' ? 'current_version_si' : 'current_version';
+        $fallback = $locale === 'si' ? 'current_version' : 'current_version_si';
+
+        return Document::query()->published()
+            ->where(function (Builder $query) use ($primary, $fallback): void {
+                $query->where(function (Builder $preferred) use ($primary): void {
+                    $preferred->where($primary, '>', 0)
+                        ->whereHas('versions', function (Builder $versions) use ($primary): void {
+                            $versions->whereColumn('document_versions.version', 'documents.'.$primary)
+                                ->whereHas('media', function (Builder $media): void {
+                                    /** @var Builder<MediaAsset> $media */
+                                    $this->applyFileRules($media);
+                                });
+                        });
+                })->orWhere(function (Builder $other) use ($primary, $fallback): void {
+                    $other->where($primary, 0)->where($fallback, '>', 0)
+                        ->whereHas('versions', function (Builder $versions) use ($fallback): void {
+                            $versions->whereColumn('document_versions.version', 'documents.'.$fallback)
+                                ->whereHas('media', function (Builder $media): void {
+                                    /** @var Builder<MediaAsset> $media */
+                                    $this->applyFileRules($media);
+                                });
+                        });
+                });
+            });
+    }
+
     public function versionNumber(Document $document, string $locale): int
     {
         $english = (int) $document->getAttribute('current_version');

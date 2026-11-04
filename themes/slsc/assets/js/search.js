@@ -19,6 +19,7 @@ export function initializeSearch(doc = document, win = window) {
     const isSinhala = locale === 'si';
 
     let debounceTimer = null;
+    let focusTimer = null;
     let activeIndex = -1;
     let lastQuery = '';
     let currentAbortController = null;
@@ -50,6 +51,7 @@ export function initializeSearch(doc = document, win = window) {
     }
 
     function openModal() {
+        if (!modal.hidden) return;
         previousActiveElement = doc.activeElement;
         modal.hidden = false;
         modal.classList.add('is-open');
@@ -60,13 +62,15 @@ export function initializeSearch(doc = document, win = window) {
             modalInput.value = '';
             lastQuery = '';
             showSuggestedTopics();
-            setTimeout(() => {
+            focusTimer = setTimeout(() => {
                 modalInput.focus();
             }, 60);
         }
     }
 
     function closeModal() {
+        clearTimeout(debounceTimer);
+        clearTimeout(focusTimer);
         modal.hidden = true;
         modal.classList.remove('is-open');
         modal.style.display = 'none';
@@ -188,7 +192,7 @@ export function initializeSearch(doc = document, win = window) {
             if (!res.ok) throw new Error('Search failed');
 
             const data = await res.json();
-            if (modalInput.value.trim() === query) {
+            if (!modal.hidden && modalInput.value.trim() === query) {
                 renderResults(data, query);
             }
         } catch (err) {
@@ -253,8 +257,10 @@ export function initializeSearch(doc = document, win = window) {
     if (modalInput) {
         modalInput.addEventListener('input', () => {
             const query = modalInput.value.trim();
+            clearTimeout(debounceTimer);
 
             if (query.length < 2) {
+                lastQuery = '';
                 showSuggestedTopics();
                 if (currentAbortController) currentAbortController.abort();
                 return;
@@ -267,7 +273,6 @@ export function initializeSearch(doc = document, win = window) {
             lastQuery = query;
             renderLoading();
 
-            clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 fetchSuggestions(query);
             }, 200);
@@ -291,7 +296,7 @@ export function initializeSearch(doc = document, win = window) {
                     return;
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    activeIndex = activeIndex < 0 ? items.length - 1 : (activeIndex - 1 + items.length) % items.length;
                     updateActiveItem(items);
                     return;
                 } else if (e.key === 'Enter') {
@@ -309,6 +314,7 @@ export function initializeSearch(doc = document, win = window) {
         items.forEach((item, idx) => {
             const isActive = idx === activeIndex;
             item.classList.toggle('is-selected', isActive);
+            item.setAttribute('aria-selected', String(isActive));
             if (isActive) {
                 item.scrollIntoView({ block: 'nearest' });
             }
@@ -317,6 +323,20 @@ export function initializeSearch(doc = document, win = window) {
 
     // Global Keyboard Shortcuts (Esc to close, / or Ctrl+K to open)
     doc.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && !modal.hidden) {
+            const focusable = [...modal.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+                .filter(element => !element.disabled && element.tabIndex >= 0 && !element.closest('[hidden]'));
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (first && e.shiftKey && (doc.activeElement === first || !modal.contains(doc.activeElement))) {
+                e.preventDefault();
+                last.focus();
+            } else if (first && !e.shiftKey && (doc.activeElement === last || !modal.contains(doc.activeElement))) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+
         if (e.key === 'Escape' && !modal.hidden) {
             closeModal();
             return;

@@ -1,6 +1,7 @@
 import { translations } from './i18n.js';
 import { matchesQuery, formatMessage, activeSectionId, formatDisplayDate } from './helpers.js';
 import { initializeRegistration } from './registration.js';
+import { initializeNavigation } from './navigation.js';
 
 const instances = new WeakMap();
 
@@ -113,18 +114,7 @@ export function initializeSite(d = document, w = window) {
     on(d, 'click', event => { if (!header?.contains(event.target)) closeMenu(); });
     on(w, 'resize', () => { if (desktop.matches) closeMenu(); measureHeader(); queueScroll(); });
 
-    const mobileToggle = $('#mobileToggle') || $('[data-mobile-toggle]');
-    const mobileMenu = $('#mobileMenu') || $('[data-mobile-menu]');
-    if (mobileToggle && mobileMenu) {
-        on(mobileToggle, 'click', () => {
-            const isOpen = mobileMenu.classList.toggle('open');
-            mobileToggle.setAttribute('aria-expanded', String(isOpen));
-        });
-        $$('#mobileMenu a').forEach(link => on(link, 'click', () => {
-            mobileMenu.classList.remove('open');
-            mobileToggle.setAttribute('aria-expanded', 'false');
-        }));
-    }
+    initializeNavigation(d, w, on, { open: t('openMenu'), close: t('closeMenu') });
     function measureHeader() {
         const node = menu?.classList.contains('is-open') ? $('.brand-bar') : header;
         const height = node?.getBoundingClientRect().height;
