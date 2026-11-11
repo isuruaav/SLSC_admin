@@ -157,7 +157,7 @@
                             <!-- Target URL -->
                             <td class="px-4 py-4 align-top">
                                 <div class="max-w-xs truncate">
-                                    <a href="{{ $program->url }}" target="_blank" rel="noopener noreferrer"
+                                    <a href="{{ $program->linkUrl() }}" target="_blank" rel="noopener noreferrer"
                                         class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline">
                                         <span class="truncate">{{ $program->url }}</span>
                                         <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
@@ -243,7 +243,9 @@
 
                     <!-- Modal Body / Form -->
                     <form wire:submit="save">
-                        <div class="space-y-4 px-6 py-5">
+                        <div data-draft-feedback-container class="space-y-4 px-6 py-5">
+                            <x-admin.visibility-schedule />
+                            @if ($newImage || $currentImageUrl)<x-admin.image-crop-preview :url="$currentImageUrl" :upload="$newImage" />@endif
                             
                             <!-- English Title -->
                             <div>
@@ -275,14 +277,35 @@
                             </div>
 
                             <!-- Target URL -->
+                            <div class="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <label for="form-program-page" class="text-xs font-semibold uppercase tracking-wider text-zinc-700">Link to a website page</label>
+                                    @can('pages.create')
+                                        <a href="{{ route('admin.pages.create') }}" target="_blank" rel="noopener noreferrer"
+                                            class="text-xs font-semibold text-emerald-700 hover:underline">Create Page</a>
+                                    @endcan
+                                </div>
+                                <select id="form-program-page" wire:model.live="linkedPageId"
+                                    class="w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900">
+                                    <option value="">Choose a published page or enter a link below</option>
+                                    @foreach ($linkablePages as $page)
+                                        <option value="{{ $page->id }}">{{ $page->title }} ({{ strtoupper($page->locale->value) }})</option>
+                                    @endforeach
+                                </select>
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <p class="text-xs text-zinc-600">Create and publish your page, then refresh this list to select it.</p>
+                                    <button type="button" wire:click="$refresh" class="text-xs font-semibold text-emerald-700 hover:underline">Refresh pages</button>
+                                </div>
+                                @error('linkedPageId')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
                             <div>
                                 <label for="form-url" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-700">
                                     Target URL / Document Link <span class="text-red-500">*</span>
                                 </label>
-                                <input id="form-url" type="text" wire:model="url"
-                                    placeholder="https://alt.army.lk/... or /public/document.pdf"
+                                <input id="form-url" type="text" wire:model.live.debounce.300ms="url"
+                                    placeholder="/pages/about or https://example.com/program"
                                     class="w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm font-mono text-zinc-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
-                                <p class="mt-1 text-[11px] text-zinc-500">Enter a complete external URL or relative internal path.</p>
+                                <p class="mt-1 text-[11px] text-zinc-500">Use /pages/page-name, /si/pages/page-name or a copied document path. The site address is added automatically. External links need a complete URL.</p>
                                 @error('url')
                                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                 @enderror

@@ -1046,4 +1046,7 @@
             @endif
         </section>
     </div>
+    @if ($selectedRevision)
+        <section class="rounded-2xl border border-zinc-200 bg-white p-5"><h2 class="mb-4 font-bold">Revision compared with current content</h2><x-admin.field-diff :before="$selectedRevision->only(['title','slug','summary','excerpt','content','seo_title','seo_description'])" :after="$news->only(['title','slug','summary','excerpt','content','seo_title','seo_description'])" /></section>
+    @endif
 </div>

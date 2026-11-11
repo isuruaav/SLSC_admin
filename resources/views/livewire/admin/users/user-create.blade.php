@@ -16,6 +16,10 @@
         </x-slot:actions>
     </x-admin.page-header>
 
+    @if ($invitationUrl)
+        <section role="status" class="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5"><h2 class="font-bold">Invitation Ready</h2><p class="text-sm">Share this link privately. It expires after the configured invitation period and can only be used once. No email has been sent.</p><label class="block text-xs font-semibold">Invitation link<input type="text" readonly value="{{ $invitationUrl }}" @click="$el.select()" class="mt-2 block w-full rounded-xl border bg-white p-3 text-sm"></label><a href="{{ route('admin.users.index') }}" wire:navigate class="text-sm font-semibold underline">Back to Users</a></section>
+    @else
+    <label class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm"><input type="checkbox" wire:model.live="inviteByLink" class="mt-1"><span><strong>Create with an invitation link</strong><br>The user chooses their own password. Leave unchecked to set an initial password manually.</span></label>
     <form
         wire:submit="save"
         class="space-y-6"
@@ -131,6 +135,7 @@
             </div>
         </section>
 
+        @if (!$inviteByLink)
         <section
             class="rounded-2xl border border-zinc-200
                    bg-white p-6 shadow-sm"
@@ -194,6 +199,7 @@
                 </div>
             </div>
         </section>
+        @endif
 
         <div class="flex justify-end gap-3">
             <a
@@ -225,4 +231,5 @@
             </button>
         </div>
     </form>
+    @endif
 </div>

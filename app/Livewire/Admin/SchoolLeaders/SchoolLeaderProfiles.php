@@ -24,11 +24,19 @@ final class SchoolLeaderProfiles extends Component
 
     public bool $profileEnabled = false;
 
+    public bool $appointmentEnabled = true;
+
     public string $profileHtmlEn = '';
 
     public string $profileHtmlSi = '';
 
     public string $profileCss = '';
+
+    public string $profileEditorModeEn = 'visual';
+
+    public string $profileEditorModeSi = 'visual';
+
+    public int $editorVersion = 0;
 
     #[Locked]
     public string $previewEn = '';
@@ -70,6 +78,7 @@ final class SchoolLeaderProfiles extends Component
         $intro = $locale === 'si' ? 'නිලධාරියාගේ චරිතාපදානය මෙහි ඇතුළත් කරන්න.' : 'Add the officer\'s biography here.';
         $career = $locale === 'si' ? 'සේවා පළපුරුද්ද' : 'Service and Experience';
         $details = $locale === 'si' ? 'සේවා පළපුරුද්ද සහ සුදුසුකම් මෙහි ඇතුළත් කරන්න.' : 'Add service experience and qualifications here.';
+        $this->editorVersion++;
         $this->{$field} = '<section class="rounded-2xl bg-white p-6 md:p-10">'."\n"
             .'  <h2 class="text-2xl font-bold text-blue-900">'.$heading.'</h2>'."\n"
             .'  <p class="mt-4 text-slate-700">'.$intro.'</p>'."\n"
@@ -94,21 +103,12 @@ final class SchoolLeaderProfiles extends Component
         $leader = $this->leadersQuery()->findOrFail($this->editingId);
         $content = app(LeadershipProfileContent::class)->prepare($this->profileHtmlEn, $this->profileHtmlSi, $this->profileCss);
 
-        if ($this->profileEnabled) {
-            foreach (['en', 'si'] as $locale) {
-                if ($content['html_'.$locale] === '') {
-                    throw ValidationException::withMessages([
-                        $locale === 'en' ? 'profileHtmlEn' : 'profileHtmlSi' => 'Add meaningful profile content in both languages before enabling the page.',
-                    ]);
-                }
-            }
-        }
-
         $actor = Auth::user();
         abort_unless($actor instanceof User, 403);
 
         DB::transaction(function () use ($leader, $content, $actor): void {
             $leader->fill([
+                'is_active' => $this->appointmentEnabled,
                 'profile_enabled' => $this->profileEnabled,
                 'profile_html_en' => $content['html_en'],
                 'profile_html_si' => $content['html_si'],
@@ -122,7 +122,7 @@ final class SchoolLeaderProfiles extends Component
                 description: 'Leadership profile content and visibility updated.',
                 actor: $actor,
                 subject: $leader,
-                newValues: ['profile_enabled' => $leader->profile_enabled],
+                newValues: ['is_active' => $leader->is_active, 'profile_enabled' => $leader->profile_enabled],
             );
         });
 
@@ -130,7 +130,11 @@ final class SchoolLeaderProfiles extends Component
         $this->profileHtmlSi = $content['html_si'];
         $this->profileCss = $content['css'];
         $this->updatePreviews($content);
-        session()->flash('status', $this->profileEnabled ? 'Profile saved and enabled in English and Sinhala.' : 'Profile saved. The public profile is disabled.');
+        session()->flash('status', ! $this->appointmentEnabled
+            ? 'Saved. This appointment is hidden from the public website. Profile content has been retained.'
+            : ($this->profileEnabled && ($content['html_en'] !== '' || $content['html_si'] !== '')
+                ? 'Saved. The photo and name are visible. Profile content is shown in each language where it has been added.'
+                : 'Saved. The photo and name are visible. No public biography is shown.'));
     }
 
     public function render(): View
@@ -145,9 +149,11 @@ final class SchoolLeaderProfiles extends Component
 
     private function loadLeader(SchoolLeader $leader): void
     {
+        $this->editorVersion++;
         $this->editingId = $leader->id;
         $this->selectedLeaderId = (string) $leader->id;
         $this->profileEnabled = $leader->profile_enabled;
+        $this->appointmentEnabled = $leader->is_active;
         $this->profileHtmlEn = $leader->profile_html_en ?? '';
         $this->profileHtmlSi = $leader->profile_html_si ?? '';
         $this->profileCss = $leader->profile_css ?? '';
@@ -167,8 +173,11 @@ final class SchoolLeaderProfiles extends Component
     {
         $this->validate([
             'profileEnabled' => ['boolean'],
+            'appointmentEnabled' => ['boolean'],
             'profileHtmlEn' => ['nullable', 'string', 'max:100000'],
             'profileHtmlSi' => ['nullable', 'string', 'max:100000'],
+            'profileEditorModeEn' => ['in:visual,html'],
+            'profileEditorModeSi' => ['in:visual,html'],
             'profileCss' => ['nullable', 'string', 'max:50000'],
         ]);
     }
@@ -177,18 +186,18 @@ final class SchoolLeaderProfiles extends Component
     private function updatePreviews(array $content): void
     {
         $renderer = app(LeadershipProfileContent::class);
-        $this->previewEn = $renderer->document($content['html_en'], $content['css'], $content['compiled_css'], 'en');
-        $this->previewSi = $renderer->document($content['html_si'], $content['css'], $content['compiled_css'], 'si');
+        $this->previewEn = $content['html_en'] !== '' ? $renderer->document($content['html_en'], $content['css'], $content['compiled_css'], 'en') : '';
+        $this->previewSi = $content['html_si'] !== '' ? $renderer->document($content['html_si'], $content['css'], $content['compiled_css'], 'si') : '';
     }
 
     /** @return Builder<SchoolLeader> */
     private function leadersQuery(): Builder
     {
         return SchoolLeader::query()
-            ->where('is_active', true)
             ->whereHas('position', static fn (Builder $query) => $query
                 ->where('is_active', true))
-            ->with('position')
+            ->with(['position', 'image.variants'])
+            ->orderByDesc('is_active')
             ->orderByRaw('CASE WHEN end_date IS NULL THEN 0 ELSE 1 END')
             ->orderBy('position_id')
             ->orderByDesc('start_date')

@@ -20,11 +20,11 @@ function rolePresetOwner(): User
     return $owner;
 }
 
-test('recommended role setup creates six useful roles with distinct access', function (): void {
+test('recommended role setup creates seven useful roles with distinct access', function (): void {
     $this->artisan('roles:setup')->assertSuccessful();
 
-    expect(Role::query()->count())->toBe(6)
-        ->and(Permission::query()->count())->toBe(63);
+    expect(Role::query()->count())->toBe(7)
+        ->and(Permission::query()->count())->toBe(80);
     $publisher = Role::findByName('Publisher', 'web');
     $editor = Role::findByName('Content Editor', 'web');
     $media = Role::findByName('Media Operator', 'web');
@@ -37,6 +37,8 @@ test('recommended role setup creates six useful roles with distinct access', fun
         ->and($media->hasPermissionTo('news.create'))->toBeFalse()
         ->and($auditor->hasPermissionTo('audit.view'))->toBeTrue()
         ->and($auditor->hasPermissionTo('pages.update'))->toBeFalse()
+        ->and(Role::findByName('Training Manager', 'web')->hasPermissionTo('courses.publish'))->toBeTrue()
+        ->and(Role::findByName('Training Manager', 'web')->hasPermissionTo('settings.manage'))->toBeFalse()
         ->and(Role::findByName('Site Administrator', 'web')->hasPermissionTo('roles.manage'))->toBeFalse();
 });
 
@@ -57,7 +59,7 @@ test('setup preserves customized roles direct grants users and assignments on re
         ->and($user->fresh()->getRoleNames()->sort()->values()->all())->toBe(['My existing team', 'Publisher'])
         ->and($user->fresh()->permissions->pluck('name')->all())->toBe(['special-inspection.view'])
         ->and(User::query()->count())->toBe(1)
-        ->and(Role::query()->count())->toBe(7)
+        ->and(Role::query()->count())->toBe(8)
         ->and(AuditLog::query()->where('event', 'roles.created')->count())->toBe($createdLogs);
 });
 

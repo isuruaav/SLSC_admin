@@ -1,0 +1,378 @@
+/* ==========================================================================
+   Sri Lanka Signal Corps (SLSC) - CMS Pages & Article View Styles
+   File: assets/css/pages.css
+   ========================================================================== */
+
+/* Main Page Container */
+.theme-page {
+    background: linear-gradient(180deg, #f4f7fb 0%, #ffffff 32%, #f7f9fc 100%);
+    padding: 48px 0 88px;
+    min-height: calc(100vh - 350px);
+}
+
+/* Page Header (Matching Brigade Commanders & Leadership Style) */
+.cms-page-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 860px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+}
+
+.cms-page-head .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #16854b;
+    background: rgba(22, 133, 75, 0.08);
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+}
+
+.cms-page-head .title-lg {
+    font-size: clamp(28px, 3.8vw, 44px);
+    font-weight: 800;
+    color: #071b3a;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin: 0 0 14px;
+}
+
+.cms-page-head .lead {
+    font-size: 16px;
+    color: #5d6f85;
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* Article Card Container */
+.page-article-card {
+    max-width: 1040px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(7, 27, 58, 0.08);
+    box-shadow: 0 10px 30px -5px rgba(7, 27, 58, 0.06), 0 4px 12px -2px rgba(7, 27, 58, 0.03);
+    padding: 44px 56px;
+    position: relative;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .theme-page {
+        padding: 32px 0 60px;
+    }
+
+    .page-article-card {
+        padding: 24px 20px;
+        border-radius: 12px;
+        margin: 0 12px;
+    }
+}
+
+/* Typography & Content Styling for .awcms-content */
+.awcms-content {
+    font-size: 16.5px;
+    line-height: 1.85;
+    color: #334155;
+    word-wrap: break-word;
+}
+
+.awcms-content::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.awcms-content p {
+    margin: 1.25rem 0;
+}
+
+.awcms-content h1,
+.awcms-content h2,
+.awcms-content h3,
+.awcms-content h4 {
+    color: #071b3a;
+    font-family: inherit;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.awcms-content h1 {
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 800;
+    margin: 2.25rem 0 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.awcms-content h2 {
+    font-size: clamp(20px, 2.5vw, 26px);
+    font-weight: 700;
+    margin: 2rem 0 1rem;
+    position: relative;
+    padding-left: 14px;
+}
+
+.awcms-content h2::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    background: #16854b;
+    border-radius: 2px;
+}
+
+.awcms-content h3 {
+    font-size: clamp(18px, 2vw, 22px);
+    font-weight: 700;
+    margin: 1.75rem 0 0.75rem;
+}
+
+.awcms-content h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 1.5rem 0 0.5rem;
+    color: #16854b;
+}
+
+/* Image Presentation in Published View */
+.awcms-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(7, 27, 58, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.awcms-content img:hover {
+    box-shadow: 0 8px 24px rgba(7, 27, 58, 0.12);
+}
+
+/* Floated & Aligned Images with Text Wrap */
+.awcms-content img[style*="float: left"],
+.awcms-content img[style*="float:left"] {
+    margin: 0.5rem 1.75rem 1.25rem 0 !important;
+}
+
+.awcms-content img[style*="float: right"],
+.awcms-content img[style*="float:right"] {
+    margin: 0.5rem 0 1.25rem 1.75rem !important;
+}
+
+.awcms-content img[style*="margin: 1.25rem auto"],
+.awcms-content img[style*="margin: 1.5rem auto"],
+.awcms-content img[style*="margin:auto"],
+.awcms-content img[style*="margin: auto"] {
+    display: block !important;
+    margin: 1.75rem auto !important;
+    clear: both;
+}
+
+@media (max-width: 640px) {
+    .awcms-content img[style*="float: left"],
+    .awcms-content img[style*="float:left"],
+    .awcms-content img[style*="float: right"],
+    .awcms-content img[style*="float:right"] {
+        float: none !important;
+        margin: 1.5rem auto !important;
+        display: block !important;
+        max-width: 100% !important;
+    }
+}
+
+/* Lists */
+.awcms-content ul {
+    list-style-type: disc;
+    padding-left: 28px;
+    margin: 1.25rem 0;
+}
+
+.awcms-content ol {
+    list-style-type: decimal;
+    padding-left: 28px;
+    margin: 1.25rem 0;
+}
+
+.awcms-content li {
+    margin: 0.4rem 0;
+}
+
+/* Blockquotes */
+.awcms-content blockquote {
+    border-left: 4px solid #16854b;
+    background: #f0fdf4;
+    padding: 18px 24px;
+    border-radius: 0 12px 12px 0;
+    margin: 1.5rem 0;
+    color: #14532d;
+    font-style: italic;
+}
+
+/* Tables */
+.awcms-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.75rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.awcms-content th,
+.awcms-content td {
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+
+.awcms-content th {
+    background: #f8fafc;
+    color: #071b3a;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.awcms-content tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+/* Links */
+.awcms-content a {
+    color: #16854b;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s ease;
+}
+
+.awcms-content a:hover {
+    color: #0d5f34;
+}
+
+/* ==========================================================================
+   Administrator Preview Top Bar (Modern SLSC Design)
+   ========================================================================== */
+.admin-preview-bar {
+    background: #071b3a;
+    color: #ffffff;
+    border-bottom: 2px solid #16854b;
+    padding: 12px 20px;
+    position: relative;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-preview-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.admin-preview-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-preview-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(22, 133, 75, 0.2);
+    color: #4ade80;
+    font-size: 15px;
+}
+
+.admin-preview-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.admin-preview-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.admin-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-preview-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.admin-preview-status.status-published {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.admin-preview-status.status-draft {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.admin-preview-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.admin-preview-btn-edit {
+    background: #16854b;
+    color: #ffffff;
+}
+
+.admin-preview-btn-edit:hover {
+    background: #126e3d;
+    color: #ffffff;
+}
+
+.admin-preview-btn-public {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-preview-btn-public:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+

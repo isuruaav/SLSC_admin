@@ -37,6 +37,7 @@ final class DocumentUploadManager
         string $titleSi,
         ?MediaAsset $englishFile,
         ?MediaAsset $sinhalaFile,
+        bool $publish = true,
     ): Document {
         Gate::forUser($actor)->authorize(
             $documentId === null
@@ -44,7 +45,9 @@ final class DocumentUploadManager
                 : 'documents.update',
         );
 
-        Gate::forUser($actor)->authorize('documents.publish');
+        if ($publish) {
+            Gate::forUser($actor)->authorize('documents.publish');
+        }
 
         $title = trim(strip_tags($title));
         $titleSi = trim(strip_tags($titleSi));
@@ -76,6 +79,7 @@ final class DocumentUploadManager
             $titleSi,
             $englishFile,
             $sinhalaFile,
+            $publish,
         ): Document {
             $document = $documentId === null
                 ? new Document
@@ -84,6 +88,9 @@ final class DocumentUploadManager
                     ->whereKey($documentId)
                     ->firstOrFail();
 
+            if ($document->exists && $document->isPublished()) {
+                Gate::forUser($actor)->authorize('documents.publish');
+            }
             $isNew = ! $document->exists;
 
             $oldValues = $isNew ? [] : [
@@ -178,11 +185,9 @@ final class DocumentUploadManager
             }
 
             $document->forceFill([
-                'status' => DocumentStatus::Published,
-                'published_at' => $document->isPublished()
-                    ? $document->published_at
-                    : now(),
-                'published_by' => $actor->id,
+                'status' => $publish ? DocumentStatus::Published : DocumentStatus::Draft,
+                'published_at' => $publish ? ($document->published_at ?? now()) : null,
+                'published_by' => $publish ? $actor->id : null,
                 'archived_at' => null,
                 'archived_by' => null,
             ])->save();
@@ -191,7 +196,7 @@ final class DocumentUploadManager
                 event: $isNew
                     ? 'documents.upload-created'
                     : 'documents.upload-updated',
-                description: 'A bilingual document upload was saved and published.',
+                description: $publish ? 'A bilingual document upload was published.' : 'A bilingual document draft was saved.',
                 actor: $actor,
                 subject: $document,
                 oldValues: $oldValues,
@@ -200,7 +205,7 @@ final class DocumentUploadManager
                     'title_si' => $titleSi,
                     'current_version' => $document->getAttribute('current_version'),
                     'current_version_si' => $document->getAttribute('current_version_si'),
-                    'status' => DocumentStatus::Published->value,
+                    'status' => $publish ? DocumentStatus::Published->value : DocumentStatus::Draft->value,
                 ],
             );
 
@@ -372,5 +377,32 @@ final class DocumentUploadManager
                 $field => 'The stored document file could not be found.',
             ]);
         }
+    }
+
+    public function restore(int $id, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('documents.delete');
+        DB::transaction(function () use ($id, $actor): void {
+            $document = Document::onlyTrashed()->lockForUpdate()->whereKey($id)->firstOrFail();
+            $document->forceFill(['status' => DocumentStatus::Draft, 'published_at' => null, 'published_by' => null, 'updated_by' => $actor->id])->save();
+            $document->restore();
+            app(AuditLogger::class)->log(event: 'documents.restored', description: 'Document restored as a private draft.', actor: $actor, subject: $document);
+        });
+    }
+
+    public function restoreUploadVersion(Document $document, int $versionId, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('documents.update');
+        DB::transaction(function () use ($document, $versionId, $actor): void {
+            $record = Document::query()->lockForUpdate()->whereKey($document->getKey())->firstOrFail();
+            if ($record->isPublished()) {
+                Gate::forUser($actor)->authorize('documents.publish');
+            }
+            $version = $record->versions()->with('media')->whereKey($versionId)->firstOrFail();
+            $this->assertFile($version->media, 'version');
+            $column = str_starts_with((string) $version->version_label, 'SI ') ? 'current_version_si' : 'current_version';
+            $record->forceFill([$column => $version->version, 'updated_by' => $actor->id])->save();
+            app(AuditLogger::class)->log(event: 'documents.version-restored', description: 'A previous document file was restored.', actor: $actor, subject: $record, newValues: [$column => $version->version]);
+        });
     }
 }

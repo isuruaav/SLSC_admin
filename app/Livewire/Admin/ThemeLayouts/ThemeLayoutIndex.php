@@ -6,6 +6,7 @@ use App\Enums\ThemeLayoutLocale;
 use App\Enums\ThemeLayoutRegion;
 use App\Models\ThemeLayout;
 use App\Models\User;
+use App\Services\ContentLinkInspector;
 use App\Services\FooterEditorService;
 use App\Services\NavigationEditorService;
 use App\Services\SiteLanguageService;
@@ -34,6 +35,9 @@ final class ThemeLayoutIndex extends Component
     public string $layoutHtml = '';
 
     public string $layoutCss = '';
+
+    /** @var list<array{url: string, status: string, message: string}> */
+    public array $linkResults = [];
 
     public function mount(): void
     {
@@ -166,6 +170,7 @@ final class ThemeLayoutIndex extends Component
             'livewire.admin.theme-layouts.theme-layout-index',
             [
                 'layout' => $layout,
+                'revisions' => $layout?->revisions()->with('creator')->limit(15)->get() ?? collect(),
                 'themeName' => $theme !== null ? $theme['name'] : null,
                 'locales' => app(SiteLanguageService::class)->choices(ThemeLayoutLocale::cases()),
                 'placeholders' => ThemeLayoutSanitizer::ALLOWED_PLACEHOLDERS,
@@ -282,5 +287,25 @@ final class ThemeLayoutIndex extends Component
         }
 
         return $user;
+    }
+
+    public function restoreRevision(int $id): void
+    {
+        Gate::authorize('theme-layouts.manage');
+        $layout = $this->currentLayout();
+        abort_unless($layout !== null, 404);
+        $revision = $layout->revisions()->whereKey($id)->firstOrFail();
+        app(ThemeLayoutService::class)->saveDraft($this->themeSlug, $this->currentRegion(), $this->currentLocale(), $this->actor(), (string) $revision->content_html, (string) $revision->content_css);
+        $this->loadRegion();
+        session()->flash('status', 'Revision restored to Draft. The published layout is unchanged until you publish.');
+    }
+
+    public function checkLinks(): void
+    {
+        Gate::authorize('theme-layouts.manage');
+        $this->linkResults = app(ContentLinkInspector::class)->inspectHtml($this->layoutHtml);
+        if (! $this->linkResults) {
+            session()->flash('status', 'No links found in this layout draft.');
+        }
     }
 }

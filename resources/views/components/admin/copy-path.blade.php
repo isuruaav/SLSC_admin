@@ -2,12 +2,13 @@
     'path',
     'label' => 'Public file path',
 ])
+@php($displayPath = app(\App\Services\SiteUrlService::class)->portable((string) $path))
 
 <div x-data="awcmsCopyPath()" {{ $attributes->class(['min-w-0 space-y-2']) }}>
     <div class="flex flex-wrap items-end gap-2">
         <label class="block min-w-0 flex-1">
             <span class="mb-1 block text-xs font-semibold text-zinc-600">{{ $label }}</span>
-            <input x-ref="path" type="text" readonly value="{{ $path }}"
+            <input x-ref="path" type="text" readonly value="{{ $displayPath }}"
                 x-on:click="$el.select()" aria-label="{{ $label }}"
                 class="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
         </label>

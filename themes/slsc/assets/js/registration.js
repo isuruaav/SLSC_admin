@@ -102,7 +102,7 @@ export function initializeRegistration(d, w, options) {
 
     d.querySelectorAll('[data-open-registration]').forEach(node => on(node, 'click', open));
     d.querySelectorAll('[data-close-registration]').forEach(node => on(node, 'click', close));
-    on(d.getElementById('newRegistration'), 'click', startNew);
+    on(d.getElementById('newRegistration'), 'click', event => { event.preventDefault(); startNew(); });
     on(dialog, 'close', finishClose);
     on(dialog, 'cancel', event => { event.preventDefault(); close(); });
     on(dialog, 'click', event => {

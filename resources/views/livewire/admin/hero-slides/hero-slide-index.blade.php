@@ -202,7 +202,13 @@
                                 Both English and Sinhala titles are required.
                             </p>
                         </div>
-                        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+                        <div data-draft-feedback-container class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+                            @php
+                                $existingMedia = $imageMediaId ? \App\Models\MediaAsset::find($imageMediaId) : null;
+                                $existingPreviewUrl = $existingMedia ? app(\App\Services\MediaUrlService::class)->mediumOrOriginal($existingMedia) : null;
+                            @endphp
+                            <x-admin.visibility-schedule />
+                            @if ($newImage || $existingPreviewUrl)<x-admin.image-crop-preview :url="$existingPreviewUrl" :upload="$newImage" />@endif
                             @if ($errors->any())
                                 <div role="alert" tabindex="-1" x-init="$el.focus()"
                                     class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -230,10 +236,6 @@
                                         class="rounded-xl border-2 border-dashed border-emerald-300
                            bg-emerald-50/50 p-4">
                                         <label for="new-hero-image" class="block cursor-pointer text-center">
-                                            @php
-                                                $existingMedia = $imageMediaId ? \App\Models\MediaAsset::find($imageMediaId) : null;
-                                                $existingPreviewUrl = $existingMedia ? app(\App\Services\MediaUrlService::class)->mediumOrOriginal($existingMedia) : null;
-                                            @endphp
                                             @if ($newImage instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile)
                                                 <img src="{{ $newImage->temporaryUrl() }}" alt="New slider image preview"
                                                     class="mx-auto h-44 w-full rounded-lg object-cover">

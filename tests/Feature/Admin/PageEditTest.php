@@ -99,6 +99,29 @@ test('duplicate slug cannot be assigned during page editing', function (): void 
         ]);
 });
 
+test('an existing draft can reuse a slug from trash', function (): void {
+    $editor = User::factory()->create();
+    $editor->assignRole('Content Editor');
+
+    $deletedPage = Page::factory()->create(['slug' => 'slsc-flag']);
+    $deletedPage->delete();
+
+    $page = Page::factory()->create([
+        'slug' => 'slsc-flag-5',
+        'status' => PageStatus::Draft->value,
+    ]);
+
+    Livewire::actingAs($editor)
+        ->test(PageEdit::class, ['page' => $page])
+        ->set('slug', 'slsc-flag')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($page->fresh()->slug)->toBe('slsc-flag')
+        ->and($deletedPage->fresh()->trashed())->toBeTrue()
+        ->and($deletedPage->fresh()->slug)->toBe('slsc-flag');
+});
+
 test('updating a page creates a safe change audit record', function (): void {
     $editor = User::factory()->create();
     $editor->assignRole('Content Editor');

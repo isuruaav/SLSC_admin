@@ -109,3 +109,17 @@ test('sanitized page html is rendered publicly', function (): void {
             false,
         );
 });
+
+test('root relative media and document links are preserved or prefixed in page html', function (): void {
+    $page = Page::factory()
+        ->published()
+        ->create([
+            'slug' => 'media-links-page',
+            'content' => '<p><a href="/document-files/en/test-doc/view"><img src="/media-files/cover.jpg" alt="Cover"></a></p>',
+        ]);
+
+    $this->get(route('pages.show', $page->slug))
+        ->assertOk()
+        ->assertSee('document-files/en/test-doc/view')
+        ->assertSee('media-files/cover.jpg');
+});

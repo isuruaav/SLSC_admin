@@ -11,6 +11,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class AuditLogIndex extends Component
 {
@@ -106,6 +107,81 @@ final class AuditLogIndex extends Component
     {
         $this->normalisePerPage();
 
+        $query = $this->filteredQuery();
+
+        $logs = $query
+            ->latest('id')
+            ->paginate($this->perPage);
+
+        $events = AuditLog::query()
+            ->select('event')
+            ->distinct()
+            ->orderBy('event')
+            ->pluck('event')
+            ->map(
+                static fn (mixed $event): string => (string) $event,
+            )
+            ->values();
+
+        $selectedLog = $this->selectedLogId === null
+            ? null
+            : AuditLog::query()->find(
+                $this->selectedLogId,
+            );
+
+        return view(
+            'livewire.admin.audit-logs.audit-log-index',
+            compact(
+                'logs',
+                'events',
+                'selectedLog',
+            ),
+        )->layout(
+            'components.layouts.admin',
+            [
+                'title' => 'Audit Logs',
+            ],
+        );
+    }
+
+    private function normalisePerPage(): void
+    {
+        if (
+            ! in_array(
+                $this->perPage,
+                self::PER_PAGE_OPTIONS,
+                true,
+            )
+        ) {
+            $this->perPage = 25;
+        }
+    }
+
+    private function normalisedDate(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $value,
+        );
+
+        if (
+            $date === false
+            || $date->format('Y-m-d') !== $value
+        ) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /** @return Builder<AuditLog> */
+    private function filteredQuery(): Builder
+    {
+        Gate::authorize('audit.view');
         $query = AuditLog::query();
 
         $search = trim($this->search);
@@ -180,72 +256,31 @@ final class AuditLogIndex extends Component
             );
         }
 
-        $logs = $query
-            ->latest('id')
-            ->paginate($this->perPage);
-
-        $events = AuditLog::query()
-            ->select('event')
-            ->distinct()
-            ->orderBy('event')
-            ->pluck('event')
-            ->map(
-                static fn (mixed $event): string => (string) $event,
-            )
-            ->values();
-
-        $selectedLog = $this->selectedLogId === null
-            ? null
-            : AuditLog::query()->find(
-                $this->selectedLogId,
-            );
-
-        return view(
-            'livewire.admin.audit-logs.audit-log-index',
-            compact(
-                'logs',
-                'events',
-                'selectedLog',
-            ),
-        )->layout(
-            'components.layouts.admin',
-            [
-                'title' => 'Audit Logs',
-            ],
-        );
+        return $query;
     }
 
-    private function normalisePerPage(): void
+    public function exportCsv(): StreamedResponse
     {
-        if (
-            ! in_array(
-                $this->perPage,
-                self::PER_PAGE_OPTIONS,
-                true,
-            )
-        ) {
-            $this->perPage = 25;
-        }
-    }
+        Gate::authorize('audit.view');
+        $query = $this->filteredQuery()->orderBy('id');
 
-    private function normalisedDate(string $value): ?string
-    {
-        if ($value === '') {
-            return null;
-        }
+        return response()->streamDownload(function () use ($query): void {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                return;
+            }
+            fwrite($stream, "\xEF\xBB\xBF");
+            fputcsv($stream, ['ID', 'Date', 'Event', 'Description', 'Actor', 'Email', 'Request path'], ',', '"', '');
+            foreach ($query->cursor() as $log) {
+                $row = [$log->id, $log->created_at?->toIso8601String(), $log->event, $log->description, $log->actor_name, $log->actor_email, $log->request_path];
+                $row = array_map(static function ($value): string {
+                    $value = (string) $value;
 
-        $date = DateTimeImmutable::createFromFormat(
-            '!Y-m-d',
-            $value,
-        );
-
-        if (
-            $date === false
-            || $date->format('Y-m-d') !== $value
-        ) {
-            return null;
-        }
-
-        return $value;
+                    return preg_match('/^\s*[=+\-@]|^[\t\r\n]/', $value) ? "'".$value : $value;
+                }, $row);
+                fputcsv($stream, $row, ',', '"', '');
+            }
+            fclose($stream);
+        }, 'audit-logs-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
 }

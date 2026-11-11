@@ -43,8 +43,11 @@ final class CourseIndex extends Component
 
     public bool $isActive = true;
 
-    /** @var list<string> */
+    /** @var array<int, string> */
     public array $qualifications = [''];
+
+    /** @var array<int, string> */
+    public array $qualificationsSi = [];
 
     public string $search = '';
 
@@ -52,7 +55,7 @@ final class CourseIndex extends Component
 
     public function mount(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.view');
     }
 
     public function updatedSearch(): void
@@ -67,7 +70,7 @@ final class CourseIndex extends Component
 
     public function selectCategory(?int $categoryId): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.view');
         if ($categoryId !== null) {
             CourseCategory::query()->findOrFail($categoryId);
         }
@@ -77,7 +80,7 @@ final class CourseIndex extends Component
 
     public function openCategoryForm(?int $id = null): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.categories.manage');
         $this->reset(['editingCategoryId', 'categoryName', 'categoryNameSi']);
         $this->resetValidation();
 
@@ -93,7 +96,7 @@ final class CourseIndex extends Component
 
     public function saveCategory(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.categories.manage');
         $validated = $this->validate([
             'categoryName' => [
                 'required',
@@ -106,7 +109,7 @@ final class CourseIndex extends Component
 
         if ($this->editingCategoryId === null) {
             $category = new CourseCategory;
-            $category->sort_order = (int) CourseCategory::query()->max('sort_order') + 1;
+            $category->sort_order = max(0, (int) CourseCategory::query()->max('sort_order')) + 1;
         } else {
             $category = CourseCategory::query()->findOrFail($this->editingCategoryId);
         }
@@ -124,7 +127,7 @@ final class CourseIndex extends Component
 
     public function closeCategoryForm(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.categories.manage');
         $this->categoryFormOpen = false;
         $this->reset(['editingCategoryId', 'categoryName', 'categoryNameSi']);
         $this->resetValidation();
@@ -132,7 +135,7 @@ final class CourseIndex extends Component
 
     public function deleteCategory(int $id): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.categories.manage');
         $category = CourseCategory::query()->findOrFail($id);
         $category->delete();
 
@@ -146,14 +149,14 @@ final class CourseIndex extends Component
 
     public function create(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.create');
         $this->resetForm();
         $this->formOpen = true;
     }
 
     public function edit(int $id): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.update');
         $course = Course::query()->with('qualifications')->findOrFail($id);
         $this->resetForm();
         $this->editingId = $course->id;
@@ -165,22 +168,24 @@ final class CourseIndex extends Component
         $this->startDate = $course->start_date?->format('Y-m-d') ?? '';
         $this->endDate = $course->end_date?->format('Y-m-d') ?? '';
         $this->isActive = $course->is_active;
-        $this->qualifications = $course->qualifications->pluck('qualification')->all();
+        $this->qualifications = $course->qualifications->map(fn ($row): string => (string) $row->getAttribute('qualification'))->all();
+        $this->qualificationsSi = $course->qualifications->map(fn ($row) => (string) ($row->qualification_si ?? ''))->all();
         $this->qualifications = $this->qualifications !== [] ? $this->qualifications : [''];
         $this->formOpen = true;
     }
 
     public function addQualification(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize($this->editingId === null ? 'courses.create' : 'courses.update');
         $this->qualifications[] = '';
     }
 
     public function removeQualification(int $index): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize($this->editingId === null ? 'courses.create' : 'courses.update');
         if (array_key_exists($index, $this->qualifications)) {
-            unset($this->qualifications[$index]);
+            unset($this->qualifications[$index], $this->qualificationsSi[$index]);
+            $this->qualificationsSi = array_values($this->qualificationsSi);
             $this->qualifications = array_values($this->qualifications);
         }
         if ($this->qualifications === []) {
@@ -190,7 +195,10 @@ final class CourseIndex extends Component
 
     public function save(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize($this->editingId === null ? 'courses.create' : 'courses.update');
+        if ($this->isActive || ($this->editingId !== null && Course::query()->whereKey($this->editingId)->where('is_active', true)->exists())) {
+            Gate::authorize('courses.publish');
+        }
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'nameSi' => ['required', 'string', 'max:255'],
@@ -199,6 +207,8 @@ final class CourseIndex extends Component
             'endDate' => ['nullable', 'date_format:Y-m-d'],
             'isActive' => ['boolean'],
             'qualifications' => ['array', 'max:30'],
+            'qualificationsSi' => ['array', 'max:30'],
+            'qualificationsSi.*' => ['nullable', 'string', 'max:500'],
             'qualifications.*' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -210,13 +220,12 @@ final class CourseIndex extends Component
             ]);
         }
 
-        $qualifications = array_values(array_filter(
-            array_map(
-                static fn (mixed $qualification): string => is_string($qualification) ? trim($qualification) : '',
-                $validated['qualifications'],
-            ),
-            static fn (string $qualification): bool => $qualification !== '',
-        ));
+        foreach ($validated['qualificationsSi'] as $index => $value) {
+            if (trim((string) $value) !== '' && trim((string) ($validated['qualifications'][$index] ?? '')) === '') {
+                throw ValidationException::withMessages(['qualifications.'.$index => 'Add the matching English qualification.']);
+            }
+        }
+        $qualifications = array_filter(array_map(static fn ($value): string => trim((string) $value), $validated['qualifications']), static fn (string $value): bool => $value !== '');
 
         DB::transaction(function () use ($validated, $startDate, $endDate, $qualifications): void {
             $course = $this->editingId === null
@@ -224,7 +233,7 @@ final class CourseIndex extends Component
                 : Course::query()->findOrFail($this->editingId);
 
             if (! $course->exists) {
-                $course->sort_order = (int) Course::query()->max('sort_order') + 1;
+                $course->sort_order = max(0, (int) Course::query()->max('sort_order')) + 1;
             }
 
             $course->fill([
@@ -241,6 +250,7 @@ final class CourseIndex extends Component
                 $course->qualifications()->create([
                     'qualification' => $qualification,
                     'sort_order' => $index,
+                    'qualification_si' => trim((string) ($validated['qualificationsSi'][$index] ?? '')) ?: null,
                 ]);
             }
         });
@@ -252,7 +262,7 @@ final class CourseIndex extends Component
 
     public function toggleActive(int $id): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.publish');
         $course = Course::query()->findOrFail($id);
         $course->update(['is_active' => ! $course->is_active]);
         session()->flash('status', $course->is_active ? 'Course activated.' : 'Course deactivated.');
@@ -260,7 +270,7 @@ final class CourseIndex extends Component
 
     public function delete(int $id): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.delete');
         Course::query()->findOrFail($id)->delete();
         session()->flash('status', 'Course deleted.');
         $this->resetPage();
@@ -268,13 +278,13 @@ final class CourseIndex extends Component
 
     public function cancel(): void
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.view');
         $this->resetForm();
     }
 
     public function render(): View
     {
-        Gate::authorize('settings.manage');
+        Gate::authorize('courses.view');
 
         $courses = Course::query()
             ->with(['qualifications', 'category'])
@@ -315,7 +325,8 @@ final class CourseIndex extends Component
     private function resetForm(): void
     {
         $this->reset(['editingId', 'formOpen', 'name', 'nameSi', 'courseCategoryId', 'startDate', 'endDate', 'isActive', 'qualifications']);
-        $this->isActive = true;
+        $this->isActive = Gate::allows('courses.publish');
+        $this->qualificationsSi = [];
         $this->qualifications = [''];
         $this->resetValidation();
     }

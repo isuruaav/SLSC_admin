@@ -93,7 +93,7 @@ final class PageHtmlSanitizer
         $this->visualPurifier = $this->makePurifier(
             cachePath: $cachePath,
             definitionId: 'awcms-page-visual-html',
-            definitionRev: 5,
+            definitionRev: 6,
             allowVisualStyles: true,
         );
     }
@@ -240,6 +240,23 @@ final class PageHtmlSanitizer
                     'color',
                     'background-color',
                     'text-align',
+                    'float',
+                    'clear',
+                    'margin',
+                    'margin-left',
+                    'margin-right',
+                    'margin-top',
+                    'margin-bottom',
+                    'padding',
+                    'padding-left',
+                    'padding-right',
+                    'padding-top',
+                    'padding-bottom',
+                    'width',
+                    'height',
+                    'max-width',
+                    'max-height',
+                    'vertical-align',
                 ]
                 : [],
         );

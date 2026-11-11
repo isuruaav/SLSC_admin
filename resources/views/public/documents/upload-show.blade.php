@@ -37,7 +37,7 @@
 @endpush
 
 @section('content')
-    <main class="document-public">
+    <div class="document-public">
         <div class="document-shell">
             <a class="document-back" href="{{ $indexUrl }}">
                 {{ $isSinhala ? '← සියලු ලේඛන' : '← All Documents' }}
@@ -101,5 +101,5 @@
                 @endif
             </article>
         </div>
-    </main>
+    </div>
 @endsection

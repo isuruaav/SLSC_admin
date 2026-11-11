@@ -396,7 +396,7 @@ final class NewsWorkflowService
         }
 
         return DB::transaction(function () use ($news, $actor): int {
-            $news = News::query()->findOrFail($news->getKey());
+            $news = News::query()->whereKey($news->getKey())->firstOrFail();
             $translationGroup = $news->getAttribute('translation_group');
             $versionsQuery = News::query();
 

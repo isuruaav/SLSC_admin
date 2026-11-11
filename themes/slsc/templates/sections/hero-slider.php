@@ -25,14 +25,13 @@ $slides = $slides ?? [
                     <p class="hero-overline"><span class="hero-pulse" aria-hidden="true"></span><span data-i18n="<?= esc($slide['label']) ?>"><?= esc($slide['overline']) ?></span></p>
                     <h1 data-i18n="<?= esc($slide['title']) ?>"><?= esc($slide['heading']) ?></h1>
                     <p class="hero-description" data-i18n="<?= esc($slide['description']) ?>"><?= esc($slide['copy']) ?></p>
+                    <?php if (!empty($slide['url']) && !empty($slide['button'])): ?>
                     <div class="hero-links">
                         <a class="button button-green" href="<?= esc($slide['url']) ?>"<?= str_starts_with($slide['url'], 'https:') ? ' target="_blank" rel="noopener noreferrer"' : '' ?>>
                             <span data-i18n="<?= esc($slide['cta']) ?>"><?= esc($slide['button']) ?></span><?= icon('arrow-right') ?>
                         </a>
-                        <a class="hero-secondary" href="#special-programs">
-                            <span data-i18n="navPrograms">Special Programs</span><?= icon('arrow-right') ?>
-                        </a>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </article>

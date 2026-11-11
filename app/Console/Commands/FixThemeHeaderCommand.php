@@ -1105,7 +1105,7 @@ CSS;
                 ->first();
 
             if (! $layout instanceof ThemeLayout) {
-                $layout = new ThemeLayout();
+                $layout = new ThemeLayout;
                 $layout->uuid = (string) Str::uuid();
                 $layout->theme_slug = 'school-of-signals';
                 $layout->region = ThemeLayoutRegion::Header;
@@ -1219,7 +1219,7 @@ CSS;
         foreach ($footerLayouts as $fLayout) {
             $existingCss = $fLayout->published_css ?? '';
             if (! str_contains($existingCss, 'Footer Mobile & Tablet Responsiveness')) {
-                $updatedCss = $existingCss . "\n\n" . $footerCssResponsive;
+                $updatedCss = $existingCss."\n\n".$footerCssResponsive;
             } else {
                 $updatedCss = preg_replace(
                     '/\/\* =========================================================\s*Footer Mobile & Tablet Responsiveness[\s\S]*$/',
@@ -1244,12 +1244,12 @@ CSS;
                 'status' => ThemeLayoutStatus::Published->value,
             ]);
 
-            $localeLabel = $fLayout->locale instanceof ThemeLayoutLocale ? $fLayout->locale->name : (string) $fLayout->locale;
+            $localeLabel = $fLayout->locale->name;
             $this->info("✓ Successfully updated {$localeLabel} Footer (#{$fLayout->id}) with responsive mobile styles.");
         }
 
         $this->info('Done! All header and footer layouts are published and fully responsive.');
+
         return self::SUCCESS;
     }
 }
-

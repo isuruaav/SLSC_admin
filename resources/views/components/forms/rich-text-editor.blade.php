@@ -25,6 +25,7 @@
         >
 
         <trix-editor
+            data-draft-model="{{ $model }}"
             id="{{ $id }}"
             input="{{ $id }}-input"
             aria-label="{{ $label }}"

@@ -1,27 +1,39 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminMediaQuickUploadController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NewsPreviewController;
 use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\PastChiefInstructorController;
 use App\Http\Controllers\PastCommandantController;
 use App\Http\Controllers\PastSergeantMajorController;
+use App\Http\Controllers\PublicBrigadeCommanderController;
 use App\Http\Controllers\PublicContactController;
+use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\PublicCourseController;
 use App\Http\Controllers\PublicDocumentController;
+use App\Http\Controllers\PublicFirstAppointmentController;
 use App\Http\Controllers\PublicGalleryController;
 use App\Http\Controllers\PublicHomeController;
 use App\Http\Controllers\PublicMediaFileController;
 use App\Http\Controllers\PublicNewsController;
+use App\Http\Controllers\PublicOrganizationController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\PublicPastAppointmentsController;
 use App\Http\Controllers\PublicPublicationController;
 use App\Http\Controllers\PublicRedirectController;
 use App\Http\Controllers\PublicSchoolLeadershipController;
 use App\Http\Controllers\PublicSearchController;
 use App\Http\Controllers\PublicSitemapController;
+use App\Livewire\Admin\BrigadeCommanders\BrigadeCommanderIndex;
 use App\Livewire\Admin\Documents\DocumentUploads;
 use App\Livewire\Admin\Courses\CourseIndex;
+use App\Livewire\Admin\FirstAppointments\FirstAppointmentIndex;
 use App\Livewire\Admin\HeroSlides\HeroSlideIndex;
+use App\Livewire\Admin\Organizations\OrganizationCategoryIndex;
+use App\Livewire\Admin\Organizations\OrganizationEditor;
+use App\Livewire\Admin\Organizations\OrganizationImportIndex;
+use App\Livewire\Admin\Organizations\OrganizationIndex;
 use App\Livewire\Admin\SpecialPrograms\SpecialProgramIndex;
 use App\Livewire\Admin\Publications\PublicationUploads;
 use App\Livewire\Admin\SchoolLeaders\SchoolLeaderIndex;
@@ -231,12 +243,18 @@ Route::get(
 */
 
 Route::get('/publications', [PublicPublicationController::class, 'index'])->name('publications.index');
+Route::get('/signaller-magazines', [PublicPublicationController::class, 'index'])->name('publications.signaller-magazines');
 Route::get('/{locale}/publications', [PublicPublicationController::class, 'index'])
     ->whereIn('locale', ['en', 'si'])->name('publications.index.localized');
+Route::get('/{locale}/signaller-magazines', [PublicPublicationController::class, 'index'])
+    ->whereIn('locale', ['en', 'si']);
+Route::get('/{locale}/si-signaller-magazines', [PublicPublicationController::class, 'index'])
+    ->where('locale', 'si');
 Route::get('/courses', [PublicCourseController::class, 'index'])->name('courses.index');
 Route::get('/{locale}/courses', [PublicCourseController::class, 'index'])
     ->whereIn('locale', ['en', 'si'])->name('courses.index.localized');
 Route::get('/publications/{publication:uuid}/pdf', [PublicPublicationController::class, 'pdf'])->name('publications.pdf');
+Route::get('/publications/{publication:uuid}/download', [PublicPublicationController::class, 'download'])->name('publications.download');
 Route::get('/publications/{publication:uuid}/cover', [PublicPublicationController::class, 'cover'])->name('publications.cover');
 
 Route::get(
@@ -347,6 +365,11 @@ Route::post('/{locale}/contact', [PublicContactController::class, 'store'])
     ->whereIn('locale', ['en', 'si'])
     ->middleware('throttle:5,1')
     ->name('contact.store.localized');
+
+Route::post('/register-interest', PublicRegistrationController::class)->middleware('throttle:5,1')->name('registration.store');
+Route::get('/register-interest', [PublicRegistrationController::class, 'create'])->name('registration.create');
+Route::get('/{locale}/register-interest', [PublicRegistrationController::class, 'create'])->whereIn('locale', ['en', 'si'])->name('registration.create.localized');
+Route::post('/{locale}/register-interest', PublicRegistrationController::class)->whereIn('locale', ['en', 'si'])->middleware('throttle:5,1')->name('registration.store.localized');
 
 Route::get(
     '/en/history/past-commandants',
@@ -728,6 +751,16 @@ Route::middleware([
                     'media.upload',
                 );
 
+            Route::post(
+                '/media/quick-upload',
+                [AdminMediaQuickUploadController::class, 'upload'],
+            )->name('media.quick-upload');
+
+            Route::get(
+                '/media/recent-images',
+                [AdminMediaQuickUploadController::class, 'recentImages'],
+            )->name('media.recent-images');
+
             Route::livewire(
                 '/media/{media}/edit',
                 'admin.media.media-edit',
@@ -793,11 +826,17 @@ Route::middleware([
             Route::livewire('/publications', PublicationUploads::class)
                 ->middleware('can:documents.view')->name('publications.index');
             Route::livewire('/courses', CourseIndex::class)
-                ->middleware('can:settings.manage')->name('courses.index');
+                ->middleware('can:courses.view')->name('courses.index');
             Route::get('/publications/{publication:uuid}/pdf', [PublicPublicationController::class, 'previewPdf'])
                 ->middleware('can:documents.view')->name('publications.pdf');
             Route::get('/publications/{publication:uuid}/cover', [PublicPublicationController::class, 'previewCover'])
                 ->middleware('can:documents.view')->name('publications.cover');
+
+            Route::get('/documents/{document}/versions/{version}/file', \App\Http\Controllers\Admin\DocumentVersionFileController::class)
+                ->whereNumber('version')->middleware('can:documents.view')->name('documents.version-file');
+
+            Route::get('/system-tools', \App\Livewire\Admin\Settings\SystemTools::class)->middleware('can:settings.manage')->name('system-tools');
+            Route::get('/backups/{filename}', \App\Http\Controllers\Admin\BackupDownloadController::class)->middleware('can:settings.manage')->name('backups.download');
 
             Route::livewire(
                 '/documents',
@@ -969,6 +1008,51 @@ Route::middleware([
                 ->name(
                     'audit-logs.index',
                 );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Organization Management
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get('/organizations', OrganizationIndex::class)
+                ->middleware('can:organizations.view')
+                ->name('organizations.index');
+
+            Route::get('/organizations/create', OrganizationEditor::class)
+                ->middleware('can:organizations.create')
+                ->name('organizations.create');
+
+            Route::get('/organizations/{id}/edit', OrganizationEditor::class)
+                ->whereNumber('id')
+                ->middleware('can:organizations.update')
+                ->name('organizations.edit');
+
+            Route::get('/organizations/categories', OrganizationCategoryIndex::class)
+                ->middleware('can:organizations.categories.manage')
+                ->name('organizations.categories.index');
+
+            Route::get('/organizations/import', OrganizationImportIndex::class)
+                ->middleware('can:organizations.import')
+                ->name('organizations.import.index');
+
+            /*
+            |--------------------------------------------------------------------------
+            | First Appointment Holders Management
+            |--------------------------------------------------------------------------
+            */
+            Route::get('/first-appointments', FirstAppointmentIndex::class)
+                ->middleware('can:first-appointments.view')
+                ->name('first-appointments.index');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Brigade Commanders Management
+            |--------------------------------------------------------------------------
+            */
+            Route::get('/brigade-commanders', BrigadeCommanderIndex::class)
+                ->middleware('can:brigade-commanders.view')
+                ->name('brigade-commanders.index');
         });
 });
 
@@ -1048,6 +1132,243 @@ Route::get(
     ->where('locale', 'en|si')
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('document-files.download');
+
+/*
+|--------------------------------------------------------------------------
+| Public Organization Directory & Unit Pages
+|--------------------------------------------------------------------------
+*/
+Route::get(
+    '/{locale}/organization',
+    [PublicOrganizationController::class, 'index'],
+)
+    ->where('locale', 'en|si')
+    ->name('organization.index.localized');
+
+Route::get(
+    '/organization',
+    [PublicOrganizationController::class, 'index'],
+)->name('organization.index');
+
+Route::get(
+    '/{locale}/organization/{slug}',
+    [PublicOrganizationController::class, 'show'],
+)
+    ->where('locale', 'en|si')
+    ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('organization.show.localized');
+
+Route::get(
+    '/organization/{slug}',
+    [PublicOrganizationController::class, 'show'],
+)
+    ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('organization.show');
+
+/*
+|--------------------------------------------------------------------------
+| Public First Appointment Holders Page
+|--------------------------------------------------------------------------
+*/
+Route::get(
+    '/{locale}/first-appoinment-holders',
+    [PublicFirstAppointmentController::class, 'index'],
+)
+    ->where('locale', 'en|si')
+    ->name('first-appointments.index.localized');
+
+Route::get(
+    '/{locale}/si-first-appoinment-holders',
+    [PublicFirstAppointmentController::class, 'index'],
+)
+    ->where('locale', 'si')
+    ->name('first-appointments.index.si-legacy');
+
+Route::get(
+    '/first-appoinment-holders',
+    [PublicFirstAppointmentController::class, 'index'],
+)->name('first-appointments.index');
+
+Route::get(
+    '/first-appointment-holders',
+    fn () => redirect()->route('first-appointments.index', [], 301),
+);
+
+/*
+|--------------------------------------------------------------------------
+| Public Brigade Commanders Page
+|--------------------------------------------------------------------------
+*/
+Route::get(
+    '/{locale}/brigade-commanders',
+    [PublicBrigadeCommanderController::class, 'index'],
+)
+    ->where('locale', 'en|si')
+    ->name('brigade-commanders.index.localized');
+
+Route::get(
+    '/{locale}/si-brigade-commanders',
+    [PublicBrigadeCommanderController::class, 'index'],
+)
+    ->where('locale', 'si')
+    ->name('brigade-commanders.index.si-legacy');
+
+Route::get(
+    '/brigade-commanders',
+    [PublicBrigadeCommanderController::class, 'index'],
+)->name('brigade-commanders.index');
+
+Route::get(
+    '/bde-comds',
+    fn () => redirect()->route('brigade-commanders.index', [], 301),
+);
+
+/*
+|--------------------------------------------------------------------------
+| Public Past & Present Appointment Holders Pages (8 Tabs Architecture)
+|--------------------------------------------------------------------------
+*/
+Route::get('/past-appointments', [PublicPastAppointmentsController::class, 'index'])
+    ->name('past-appointments.index');
+
+Route::get('/{locale}/past-appointments', [PublicPastAppointmentsController::class, 'index'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.index.localized');
+
+Route::get('/regt-comdt-col-comdt', [PublicPastAppointmentsController::class, 'colonelCommandant'])
+    ->name('past-appointments.colonel-commandant');
+
+Route::get('/{locale}/regt-comdt-col-comdt', [PublicPastAppointmentsController::class, 'colonelCommandant'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.colonel-commandant.localized');
+
+Route::get('/{locale}/si-regt-comdt-col-comdt', [PublicPastAppointmentsController::class, 'colonelCommandant'])
+    ->where('locale', 'si')
+    ->name('past-appointments.colonel-commandant.si-legacy');
+
+Route::get('/chief-signal-officers', [PublicPastAppointmentsController::class, 'chiefSignalOfficer'])
+    ->name('past-appointments.chief-signal-officer');
+
+Route::get('/{locale}/chief-signal-officers', [PublicPastAppointmentsController::class, 'chiefSignalOfficer'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.chief-signal-officer.localized');
+
+Route::get('/{locale}/si-chief-signal-officers', [PublicPastAppointmentsController::class, 'chiefSignalOfficer'])
+    ->where('locale', 'si')
+    ->name('past-appointments.chief-signal-officer.si-legacy');
+
+Route::get('/directors-of-it', [PublicPastAppointmentsController::class, 'directorIt'])
+    ->name('past-appointments.director-it');
+
+Route::get('/{locale}/directors-of-it', [PublicPastAppointmentsController::class, 'directorIt'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.director-it.localized');
+
+Route::get('/{locale}/si-directors-of-it', [PublicPastAppointmentsController::class, 'directorIt'])
+    ->where('locale', 'si')
+    ->name('past-appointments.director-it.si-legacy');
+
+Route::get('/1-bde-comds', [PublicPastAppointmentsController::class, 'commander1SignalBrigade'])
+    ->name('past-appointments.commander-1-brigade');
+
+Route::get('/1_bde_comds', fn () => redirect()->route('past-appointments.commander-1-brigade', [], 301));
+
+Route::get('/{locale}/1-bde-comds', [PublicPastAppointmentsController::class, 'commander1SignalBrigade'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.commander-1-brigade.localized');
+
+Route::get('/{locale}/1_bde_comds', fn (string $locale) => redirect()->route('past-appointments.commander-1-brigade.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+
+Route::get('/{locale}/si-1-bde-comds', [PublicPastAppointmentsController::class, 'commander1SignalBrigade'])
+    ->where('locale', 'si')
+    ->name('past-appointments.commander-1-brigade.si-legacy');
+
+Route::get('/{locale}/si-1_bde_comds', fn () => redirect()->route('past-appointments.commander-1-brigade.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+
+Route::get('/2-bde-comds', [PublicPastAppointmentsController::class, 'commander2SignalBrigade'])
+    ->name('past-appointments.commander-2-brigade');
+
+Route::get('/2_bde_comds', fn () => redirect()->route('past-appointments.commander-2-brigade', [], 301));
+
+Route::get('/{locale}/2-bde-comds', [PublicPastAppointmentsController::class, 'commander2SignalBrigade'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.commander-2-brigade.localized');
+
+Route::get('/{locale}/2_bde_comds', fn (string $locale) => redirect()->route('past-appointments.commander-2-brigade.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+
+Route::get('/{locale}/si-2-bde-comds', [PublicPastAppointmentsController::class, 'commander2SignalBrigade'])
+    ->where('locale', 'si')
+    ->name('past-appointments.commander-2-brigade.si-legacy');
+
+Route::get('/{locale}/si-2_bde_comds', fn () => redirect()->route('past-appointments.commander-2-brigade.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+
+Route::get('/centre-commandants', [PublicPastAppointmentsController::class, 'regimentalCentreCommandant'])
+    ->name('past-appointments.centre-commandant');
+
+Route::get('/cen-comdts', fn () => redirect()->route('past-appointments.centre-commandant', [], 301));
+
+Route::get('/{locale}/centre-commandants', [PublicPastAppointmentsController::class, 'regimentalCentreCommandant'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.centre-commandant.localized');
+
+Route::get('/{locale}/si-centre-commandants', [PublicPastAppointmentsController::class, 'regimentalCentreCommandant'])
+    ->where('locale', 'si')
+    ->name('past-appointments.centre-commandant.si-legacy');
+
+Route::get('/regimental-adjutants', [PublicPastAppointmentsController::class, 'regimentalAdjutant'])
+    ->name('past-appointments.regimental-adjutant');
+
+Route::get('/reg_adjutants', fn () => redirect()->route('past-appointments.regimental-adjutant', [], 301));
+Route::get('/reg-adjutants', fn () => redirect()->route('past-appointments.regimental-adjutant', [], 301));
+
+Route::get('/{locale}/regimental-adjutants', [PublicPastAppointmentsController::class, 'regimentalAdjutant'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.regimental-adjutant.localized');
+
+Route::get('/{locale}/reg_adjutants', fn (string $locale) => redirect()->route('past-appointments.regimental-adjutant.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+Route::get('/{locale}/reg-adjutants', fn (string $locale) => redirect()->route('past-appointments.regimental-adjutant.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+
+Route::get('/{locale}/si-regimental-adjutants', [PublicPastAppointmentsController::class, 'regimentalAdjutant'])
+    ->where('locale', 'si')
+    ->name('past-appointments.regimental-adjutant.si-legacy');
+
+Route::get('/{locale}/si-reg_adjutants', fn () => redirect()->route('past-appointments.regimental-adjutant.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+Route::get('/{locale}/si-reg-adjutants', fn () => redirect()->route('past-appointments.regimental-adjutant.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+
+Route::get('/regimental-sergeant-major', [PublicPastAppointmentsController::class, 'regimentalSergeantMajor'])
+    ->name('past-appointments.regimental-sergeant-major');
+
+Route::get('/regimental-sergent-major', fn () => redirect()->route('past-appointments.regimental-sergeant-major', [], 301));
+Route::get('/reg_sgt_major', fn () => redirect()->route('past-appointments.regimental-sergeant-major', [], 301));
+Route::get('/reg-sgt-major', fn () => redirect()->route('past-appointments.regimental-sergeant-major', [], 301));
+
+Route::get('/{locale}/regimental-sergeant-major', [PublicPastAppointmentsController::class, 'regimentalSergeantMajor'])
+    ->whereIn('locale', ['en', 'si'])
+    ->name('past-appointments.regimental-sergeant-major.localized');
+
+Route::get('/{locale}/reg_sgt_major', fn (string $locale) => redirect()->route('past-appointments.regimental-sergeant-major.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+Route::get('/{locale}/reg-sgt-major', fn (string $locale) => redirect()->route('past-appointments.regimental-sergeant-major.localized', ['locale' => $locale], 301))
+    ->whereIn('locale', ['en', 'si']);
+
+Route::get('/{locale}/si-regimental-sergeant-major', [PublicPastAppointmentsController::class, 'regimentalSergeantMajor'])
+    ->where('locale', 'si')
+    ->name('past-appointments.regimental-sergeant-major.si-legacy');
+
+Route::get('/{locale}/si-reg_sgt_major', fn () => redirect()->route('past-appointments.regimental-sergeant-major.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+Route::get('/{locale}/si-reg-sgt-major', fn () => redirect()->route('past-appointments.regimental-sergeant-major.si-legacy', ['locale' => 'si'], 301))
+    ->where('locale', 'si');
+
+
 /*
 |--------------------------------------------------------------------------
 | Account / Profile Settings

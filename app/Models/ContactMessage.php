@@ -35,6 +35,7 @@ final class ContactMessage extends Model
         'resolved_at',
         'handled_by',
         'ip_address',
+        'reference', 'district', 'interest', 'consented_at', 'assigned_to', 'internal_notes',
     ];
 
     protected static function booted(): void
@@ -57,6 +58,7 @@ final class ContactMessage extends Model
         return [
             'read_at' => 'immutable_datetime',
             'resolved_at' => 'immutable_datetime',
+            'consented_at' => 'immutable_datetime',
         ];
     }
 

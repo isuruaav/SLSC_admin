@@ -165,18 +165,17 @@ test('site search finds the commandant, location and journal by their content', 
     } finally { s.close(); }
 });
 
-test('styles preserve compact cards, hover photos and responsive navigation', () => {
+test('compact program banners preserve their height and keyboard hover treatment', () => {
     const dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>');
     const style = dom.window.document.createElement('style');
     style.textContent = fs.readFileSync('assets/css/base.css', 'utf8') + fs.readFileSync('assets/css/responsive.css', 'utf8');
     dom.window.document.head.append(style);
     const rules = [...style.sheet.cssRules];
-    const rule = rules.find(rule => rule.selectorText === '.program-card');
-    assert.equal(rule.style.getPropertyValue('min-height'), '120px');
-    assert.equal(rules.find(rule => rule.selectorText === '.program-card::before').style.opacity, '0');
-    assert.equal(rules.find(rule => rule.selectorText?.includes('.program-card:hover::before')).style.opacity, '1');
-    const mobile = rules.find(rule => rule.conditionText?.includes('480px'));
-    assert.equal([...mobile.cssRules].find(rule => rule.selectorText === '.program-card').style.getPropertyValue('min-height'), '104px');
+    const rule = rules.find(rule => rule.selectorText === '.program-card.program-card-compact');
+    assert.equal(rule.style.getPropertyValue('min-height'), '82px');
+    assert.equal(rule.style.getPropertyValue('max-height'), '82px');
+    assert.ok(rules.find(rule => rule.selectorText?.includes('.program-card-compact:focus-visible')));
+    assert.equal(rules.find(rule => rule.selectorText === '.program-card-compact:hover .program-banner-img').style.transform, 'scale(1.05)');
     dom.window.close();
 });
 

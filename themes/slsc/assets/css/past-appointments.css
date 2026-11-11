@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Sri Lanka Signal Corps (SLSC) - Past Appointments Styles
+   Matching Brigade Commanders page layout and structure
+   ========================================================================== */
+
+.officer-current-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #16854b;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(22, 133, 75, 0.4);
+    letter-spacing: 0.02em;
+}
+
+.card-profile-action {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #e1e7ef;
+}
+
+.card-profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #16854b;
+    text-decoration: none;
+    transition: color 0.15s ease, gap 0.15s ease;
+}
+
+.card-profile-link:hover {
+    color: #071b3a;
+    gap: 8px;
+}

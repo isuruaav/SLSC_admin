@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Local header verification</title>
+<style>body{margin:0;background:#edf2f7}iframe{display:block;border:0;width:1338px;height:840px}pre{white-space:pre-wrap}</style>
+</head><body><iframe id="preview" title="Local site preview" src="./si" style="width: 390px;"></iframe><pre id="checks">{
+  "viewport": 390,
+  "topbar": {
+    "x": 0,
+    "y": 0,
+    "width": 375,
+    "height": 40,
+    "right": 375
+  },
+  "brand": {
+    "x": 18,
+    "y": 56,
+    "width": 227,
+    "height": 50,
+    "right": 245
+  },
+  "nav": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "right": 0
+  },
+  "actions": {
+    "x": 265,
+    "y": 59,
+    "width": 92,
+    "height": 44,
+    "right": 357
+  },
+  "menuExpanded": "true",
+  "languageLinks": [
+    "http://localhost/slsc_admin/public",
+    "http://localhost/slsc_admin/public/si"
+  ],
+  "appointmentLinks": [
+    "http://localhost/slsc_admin/public/si/school-leadership/colonel-commandant",
+    "http://localhost/slsc_admin/public/si/school-leadership/chief-signal-officer",
+    "http://localhost/slsc_admin/public/si/school-leadership/director-it",
+    "http://localhost/slsc_admin/public/si/school-leadership/commander-1-signal-brigade",
+    "http://localhost/slsc_admin/public/si/school-leadership/commander-2-signal-brigade",
+    "http://localhost/slsc_admin/public/si/school-leadership/regimental-centre-commandant",
+    "http://localhost/slsc_admin/public/si/school-leadership/regimental-adjutant",
+    "http://localhost/slsc_admin/public/si/school-leadership/regimental-sergeant-major"
+  ]
+}</pre>
+<script>
+const options = new URLSearchParams(location.search);
+const frame = document.getElementById('preview');
+frame.style.width = `${Number(options.get('width') || 1338)}px`;
+frame.src = options.get('locale') === 'si' ? './si' : './';
+frame.addEventListener('load', () => {
+ const doc = frame.contentDocument;
+ const rect = selector => { const box=doc.querySelector(selector).getBoundingClientRect();return {x:box.x,y:box.y,width:box.width,height:box.height,right:box.right}; };
+ if(options.has('open')) { doc.querySelector('#mobileToggle').click(); doc.querySelector('#mobileMenu details').open = true; }
+ document.getElementById('checks').textContent=JSON.stringify({
+ viewport:frame.contentWindow.innerWidth, topbar:rect('.aw-topbar'), brand:rect('.aw-brand'), nav:rect('.aw-desktop-navigation'), actions:rect('.aw-header-actions'),
+ menuExpanded:doc.querySelector('#mobileToggle').getAttribute('aria-expanded'), languageLinks:[...doc.querySelectorAll('.cms-language-option')].map(a=>a.href),
+ appointmentLinks:[...doc.querySelectorAll('.aw-desktop-navigation a[href*="/school-leadership/"]')].map(a=>a.href)
+ },null,2);
+});
+</script>
+</body></html>

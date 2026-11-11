@@ -1,4 +1,5 @@
 import { layoutPreview } from './theme-layout-preview.js';
+import { headerEditor } from './navigation-header.js';
 
 const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
 const cleanLabel = (link) => {
@@ -26,6 +27,7 @@ export function validNavigationHref(value) {
 window.awcmsNavigationEditor = function (wire, config) {
     return {
         ...layoutPreview(wire),
+        ...headerEditor(config, validNavigationHref),
         html: '', css: '', mode: 'visual', items: [], selectedId: '', navIndex: 0,
         problem: '', error: '',
         history: [], historyIndex: -1, sort: null, desktopHrefs: [],
@@ -52,6 +54,7 @@ window.awcmsNavigationEditor = function (wire, config) {
             this.$watch('$wire.layoutCss', (value) => {
                 if (value === this.css) return;
                 this.css = value || '';
+                this.readHeader();
                 this.readStyle();
                 this.queuePreview();
             });
@@ -103,6 +106,7 @@ window.awcmsNavigationEditor = function (wire, config) {
             this.problem = '';
             this.error = '';
             const doc = this.expandedDocument();
+            this.readHeader(doc);
             const nav = this.navigation(doc);
             this.items = [];
             let sequence = 0;
@@ -349,8 +353,7 @@ window.awcmsNavigationEditor = function (wire, config) {
 
         ensureBaseCss() {
             const base = /\/\* Navigation editor base \*\/[\s\S]*?\/\* End navigation editor base \*\//;
-            if (base.test(this.css)) this.css = this.css.replace(base, () => config.baseCss.trim());
-            else this.css += `\n\n${config.baseCss}`;
+            if (!base.test(this.css)) this.css += `\n\n${config.baseCss}`;
         },
 
         ensureMobileMenu(doc, nav) {
@@ -370,6 +373,7 @@ window.awcmsNavigationEditor = function (wire, config) {
 
         readStyle() {
             const defaults = { color: '#162052', background: '#ffffff', accent: '#047857', size: 14, gap: 20 };
+            if (this.header.available) Object.assign(defaults, { background: this.headerStyle.background, accent: '#0076b3', size: 13, gap: 2 });
             for (const [key, fallback] of Object.entries(defaults)) {
                 const matches = [...this.css.matchAll(new RegExp(`--aw-nav-${key}\\s*:\\s*([^;}]+)`, 'g'))];
                 const value = matches.at(-1)?.[1]?.trim();
@@ -414,11 +418,12 @@ window.awcmsNavigationEditor = function (wire, config) {
                     }
                 }
             }
-            this.readStyle(); this.commit();
+            this.readHeader(); this.readStyle(); this.commit();
         },
         flush() {
             if (this.mode === 'code') this.codeChanged('html');
             else {
+                if (!this.flushHeader()) return false;
                 const item = this.selected();
                 if (item && this.$refs.linkLabel && this.$refs.linkAddress) {
                     if (this.$refs.linkLabel.value !== item.label && !this.update('label', this.$refs.linkLabel.value)) return false;

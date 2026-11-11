@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasVisibilitySchedule;
 use App\Services\MediaUrlService;
+use App\Services\SiteUrlService;
+use Database\Factories\SpecialProgramFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,10 +13,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class SpecialProgram extends Model
 {
+    /** @use HasFactory<SpecialProgramFactory> */
     use HasFactory;
 
+    use HasVisibilitySchedule;
+
     public const CATEGORY_HERITAGE = 'heritage';
+
     public const CATEGORY_COMMUNITY = 'community';
+
     public const CATEGORY_RESOURCES = 'resources';
 
     /**
@@ -26,7 +34,7 @@ final class SpecialProgram extends Model
         'category',
         'image_media_id',
         'sort_order',
-        'is_active',
+        'is_active', 'starts_at', 'ends_at',
         'open_in_new_tab',
     ];
 
@@ -36,6 +44,7 @@ final class SpecialProgram extends Model
     protected $casts = [
         'image_media_id' => 'integer',
         'is_active' => 'boolean',
+        'starts_at' => 'immutable_datetime', 'ends_at' => 'immutable_datetime',
         'open_in_new_tab' => 'boolean',
         'sort_order' => 'integer',
     ];
@@ -60,21 +69,29 @@ final class SpecialProgram extends Model
         return app(MediaUrlService::class)->mediumOrOriginal($this->image);
     }
 
+    public function linkUrl(): string
+    {
+        $urls = app(SiteUrlService::class);
+        $path = $urls->normalizeLink($this->url);
+
+        return $path === null ? '#' : $urls->resolve($path);
+    }
+
     /**
      * Scope only active programs.
      *
-     * @param Builder<SpecialProgram> $query
+     * @param  Builder<SpecialProgram>  $query
      * @return Builder<SpecialProgram>
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->visibleNow();
     }
 
     /**
      * Scope ordered programs.
      *
-     * @param Builder<SpecialProgram> $query
+     * @param  Builder<SpecialProgram>  $query
      * @return Builder<SpecialProgram>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -86,8 +103,7 @@ final class SpecialProgram extends Model
     /**
      * Scope by category.
      *
-     * @param Builder<SpecialProgram> $query
-     * @param string $category
+     * @param  Builder<SpecialProgram>  $query
      * @return Builder<SpecialProgram>
      */
     public function scopeCategory(Builder $query, string $category): Builder
@@ -160,4 +176,3 @@ final class SpecialProgram extends Model
         ];
     }
 }
-

@@ -43,7 +43,6 @@ final class ThemeLayoutRenderer
     ): ?array {
         $siteSettings = $siteSettings instanceof SiteSetting ? $siteSettings : null;
         $primaryMenu = $primaryMenu instanceof Menu ? $primaryMenu : null;
-        $socialLinks = is_iterable($socialLinks) && ! ($socialLinks instanceof \__PHP_Incomplete_Class) ? $socialLinks : [];
 
         if (
             preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $themeSlug) !== 1
@@ -121,7 +120,6 @@ final class ThemeLayoutRenderer
     ): array {
         $siteSettings = $siteSettings instanceof SiteSetting ? $siteSettings : null;
         $primaryMenu = $primaryMenu instanceof Menu ? $primaryMenu : null;
-        $socialLinks = is_iterable($socialLinks) && ! ($socialLinks instanceof \__PHP_Incomplete_Class) ? $socialLinks : [];
         $html = $this->sanitizer->sanitizeHtml($html);
         $css = $this->sanitizer->sanitizeCss($css);
 
@@ -166,7 +164,7 @@ final class ThemeLayoutRenderer
         );
 
         return [
-            'html' => $this->replaceSiteUrlPlaceholders($renderedHtml, $locale),
+            'html' => app(SiteUrlService::class)->resolveHtml($this->replaceSiteUrlPlaceholders($renderedHtml, $locale)),
             'css' => $css,
         ];
     }
@@ -618,9 +616,9 @@ final class ThemeLayoutRenderer
     {
         $label = $locale === 'si' ? 'සොයන්න' : 'Search';
 
-        return '<button type="button" class="search-toggle-btn managed-school-search-btn" aria-label="' . $this->escape($label) . '" title="' . $this->escape($label) . '" data-open-search-modal>'
-            . '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>'
-            . '</button>';
+        return '<button type="button" class="search-toggle-btn managed-school-search-btn" aria-label="'.$this->escape($label).'" title="'.$this->escape($label).'" data-open-search-modal>'
+            .'<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>'
+            .'</button>';
     }
 
     private function searchBar(string $locale): string
@@ -628,10 +626,10 @@ final class ThemeLayoutRenderer
         $placeholder = $locale === 'si' ? 'වෙබ් අඩවිය තුළ සොයන්න...' : 'Search the website...';
         $label = $locale === 'si' ? 'සොයන්න' : 'Search';
 
-        return '<div class="mobile-search-bar managed-school-search-bar" role="button" tabindex="0" data-open-search-modal aria-label="' . $this->escape($label) . '">'
-            . '<input type="text" placeholder="' . $this->escape($placeholder) . '" aria-label="' . $this->escape($label) . '" readonly style="cursor: pointer;">'
-            . '<button type="button" aria-label="' . $this->escape($label) . '"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>'
-            . '</div>';
+        return '<div class="mobile-search-bar managed-school-search-bar" role="button" tabindex="0" data-open-search-modal aria-label="'.$this->escape($label).'">'
+            .'<input type="text" placeholder="'.$this->escape($placeholder).'" aria-label="'.$this->escape($label).'" readonly style="cursor: pointer;">'
+            .'<button type="button" aria-label="'.$this->escape($label).'"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>'
+            .'</div>';
     }
 
     private function safeHref(string $url): string

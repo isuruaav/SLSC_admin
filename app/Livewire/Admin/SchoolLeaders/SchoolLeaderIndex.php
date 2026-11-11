@@ -59,6 +59,10 @@ final class SchoolLeaderIndex extends Component
 
     public string $endDate = '';
 
+    public string $secondaryTenureEn = '';
+
+    public string $secondaryTenureSi = '';
+
     public bool $isCurrent = false;
 
     public string $search = '';
@@ -147,6 +151,10 @@ final class SchoolLeaderIndex extends Component
         $this->startDate = $leader->start_date?->format('Y-m-d') ?? '';
 
         $this->endDate = $leader->end_date?->format('Y-m-d') ?? '';
+
+        $this->secondaryTenureEn = is_string($leader->secondary_tenure_en) ? $leader->secondary_tenure_en : '';
+
+        $this->secondaryTenureSi = is_string($leader->secondary_tenure_si) ? $leader->secondary_tenure_si : '';
 
         $this->isCurrent = $leader->end_date === null;
 
@@ -454,6 +462,26 @@ final class SchoolLeaderIndex extends Component
 
             ],
 
+            'secondaryTenureEn' => [
+
+                'nullable',
+
+                'string',
+
+                'max:1000',
+
+            ],
+
+            'secondaryTenureSi' => [
+
+                'nullable',
+
+                'string',
+
+                'max:1000',
+
+            ],
+
         ]);
 
         $position = SchoolLeadershipPosition::query()
@@ -547,6 +575,10 @@ final class SchoolLeaderIndex extends Component
                 'title_en' => $position->name_en,
 
                 'title_si' => $position->name_si,
+
+                'secondary_tenure_en' => trim($this->secondaryTenureEn) !== '' ? trim($this->secondaryTenureEn) : null,
+
+                'secondary_tenure_si' => trim($this->secondaryTenureSi) !== '' ? trim($this->secondaryTenureSi) : null,
 
                 'name_en' => $this->cleanRequired(
 
@@ -1146,6 +1178,10 @@ final class SchoolLeaderIndex extends Component
         $this->startDate = '';
 
         $this->endDate = '';
+
+        $this->secondaryTenureEn = '';
+
+        $this->secondaryTenureSi = '';
 
         $this->isCurrent = false;
 

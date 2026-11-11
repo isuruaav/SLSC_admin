@@ -12,12 +12,12 @@ test('PDF worker, fonts and WASM assets keep the Laravel subdirectory or CDN pre
     assert.equal(publicationPdfAssets('/node_modules/pdfjs-dist/build/pdf.worker.mjs', 'http://localhost:5173/resources/js/renderer.js', '6.4.299', true).assets, 'http://localhost:5173/node_modules/pdfjs-dist/');
 });
 
-test('publication selection accepts PDF filenames and enforces a 20 MB bound', () => {
+test('publication selection accepts PDF filenames and enforces a 50 MB bound', () => {
     assert.doesNotThrow(() => validatePublicationPdf({ name: 'Journal.PDF', size: 1024 }));
-    assert.doesNotThrow(() => validatePublicationPdf({ name: 'journal.pdf', size: 20 * 1024 * 1024 }));
+    assert.doesNotThrow(() => validatePublicationPdf({ name: 'journal.pdf', size: 50 * 1024 * 1024 }));
     assert.throws(() => validatePublicationPdf({ name: 'journal.exe', size: 1024 }), /Select a PDF/);
     assert.throws(() => validatePublicationPdf({ name: 'journal.pdf', size: 0 }), /empty/);
-    assert.throws(() => validatePublicationPdf({ name: 'journal.pdf', size: 20 * 1024 * 1024 + 1 }), /20 MB/);
+    assert.throws(() => validatePublicationPdf({ name: 'journal.pdf', size: 50 * 1024 * 1024 + 1 }), /50 MB/);
 });
 
 test('publication cover selection accepts JPEG images up to 2 MB', () => {
@@ -49,12 +49,13 @@ function uploadFixture(wire, file = new File(['pdf bytes'], 'signals-journal.pdf
     const placeholder = { hidden: false };
     const title = { value: '' };
     const events = [];
-    const elements = { '[data-publication-upload-status]': status, '[data-publication-cover-preview]': preview, '[data-publication-cover-placeholder]': placeholder, '[data-publication-title]': title };
+    const autoCover = { checked: false };
+    const elements = { '[data-publication-auto-cover]': autoCover, '[data-publication-upload-status]': status, '[data-publication-cover-preview]': preview, '[data-publication-cover-placeholder]': placeholder, '[data-publication-title]': title };
     const form = { querySelector: (selector) => elements[selector], dispatchEvent: (event) => events.push(event.type) };
     const component = { getAttribute: () => 'publication-test' };
     const input = { files: [file], disabled: false, value: file.name, closest: (selector) => selector === '[data-publication-upload]' ? form : component };
     globalThis.window = { Livewire: { find: () => wire } };
-    return { input, status, preview, placeholder, title, events, type };
+    return { input, status, preview, placeholder, title, events, type, autoCover };
 }
 
 test('PDF upload waits for completion and asks for a manual cover image', async () => {
@@ -121,5 +122,30 @@ test('failed PDF upload clears only its temporary property and releases the form
     assert.match(fixture.status.textContent, /upload failed/);
     assert.ok(assignments.some(([name, value]) => name === 'pdf' && value === null));
     assert.deepEqual(fixture.events, ['publication-upload-start', 'publication-upload-end']);
+    delete globalThis.window;
+});
+
+test('automatic cover generation uploads the PDF and generated JPEG before releasing the form', async () => {
+    const uploads = [];
+    const fixture = uploadFixture({ set: async () => {}, upload(property, file, success) { uploads.push(property); success('ready'); } });
+    fixture.autoCover.checked = true;
+    await preparePublicationUpload(fixture.input, 'pdf', async () => new File(['jpeg'], 'cover.jpg', { type: 'image/jpeg' }));
+    assert.deepEqual(uploads, ['pdf', 'cover']);
+    assert.equal(fixture.preview.hidden, false);
+    assert.match(fixture.status.textContent, /generated cover are ready/);
+    assert.equal(fixture.input.disabled, false);
+    URL.revokeObjectURL(fixture.preview.src);
+    delete globalThis.window;
+});
+
+test('a failed cover generator preserves the completed PDF for manual cover upload', async () => {
+    const assignments = [];
+    const fixture = uploadFixture({ set: async (...args) => assignments.push(args), upload(property, file, success) { success('ready'); } });
+    fixture.autoCover.checked = true;
+    await preparePublicationUpload(fixture.input, 'pdf', async () => { throw new Error('Unreadable PDF'); });
+    assert.match(fixture.status.textContent, /Select a JPG\/JPEG cover/);
+    assert.equal(assignments.filter(([key, value]) => key === 'pdf' && value === null).length, 1);
+    assert.equal(fixture.input.value, 'signals-journal.pdf');
+    assert.equal(fixture.input.disabled, false);
     delete globalThis.window;
 });

@@ -15,6 +15,15 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+                    <flux:sidebar.item icon="building-office-2" :href="route('admin.organizations.index')" :current="request()->routeIs('admin.organizations.*')" wire:navigate>
+                        {{ __('Organizations') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="trophy" :href="route('admin.first-appointments.index')" :current="request()->routeIs('admin.first-appointments.*')" wire:navigate>
+                        {{ __('1st Appointments') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="shield-check" :href="route('admin.brigade-commanders.index')" :current="request()->routeIs('admin.brigade-commanders.*')" wire:navigate>
+                        {{ __('Brigade Commanders') }}
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 

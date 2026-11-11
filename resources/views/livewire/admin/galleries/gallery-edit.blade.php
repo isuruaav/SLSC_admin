@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-5xl space-y-6">
+<div data-unsaved-form data-draft-key="gallery-{{ $galleryId }}" data-save-actions="saveAllImageDetails,publish" class="mx-auto max-w-5xl space-y-6">
     @php($published = $gallery->status === \App\Enums\GalleryStatus::Published)
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -16,7 +16,7 @@
         </div>
     @endif
     <section class="space-y-5 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <form wire:submit="save" class="space-y-4">
+        <form wire:submit="save" data-save-actions="save,publish,selectCover" class="space-y-4">
             <label for="gallery-title" class="block text-sm font-semibold">English title</label>
             <input id="gallery-title" wire:model="title" type="text" maxlength="255" required @disabled(! $editable)
                 class="w-full rounded-xl border border-zinc-300 px-4 py-3 disabled:bg-zinc-100">
@@ -36,7 +36,7 @@
             @can('galleries.publish')
                 @if ($editable)
                     <x-admin.icon-action label="Publish" icon="arrow-up-tray" tone="success"
-                        type="button" wire:click="publish" wire:confirm="Save the title and publish this gallery?" wire:loading.attr="disabled"
+                        type="button" wire:click="publish" wire:confirm="Save the changes and publish this gallery?" wire:loading.attr="disabled"
                     />
                 @else
                     <x-admin.icon-action label="{{ $published ? 'Unpublish' : 'Return to Draft' }}" icon="eye-slash" tone="warning"
@@ -62,14 +62,15 @@
                 <p wire:loading wire:target="uploads" role="status" class="text-sm text-emerald-700">Preparing images…</p>
                 @if ($uploads !== [])<p class="text-sm text-zinc-600">{{ count($uploads) }} images selected</p>@endif
                 <button type="submit" wire:loading.attr="disabled" class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Upload Images</button>
+                @foreach ($imageUploadResults as $index => $result)<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-xs"><span class="break-all">{{ $result['name'] }} · {{ $result['message'] }}</span>@if (!$result['success'])<button type="button" wire:click="retryImageUpload({{ $index }})" wire:loading.attr="disabled" class="font-semibold text-emerald-800 underline">Retry Image</button>@endif</div>@endforeach
             </form>
         @endcan
     @endif
     <section class="rounded-2xl border border-zinc-200 bg-white p-6">
         <h2 class="mb-5 text-lg font-bold">Photographs ({{ $gallery->images->count() }})</h2>
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div @if($editable) data-gallery-sort @endif class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             @foreach ($gallery->images as $image)
-                <div wire:key="gallery-image-{{ $image->id }}" class="overflow-hidden rounded-xl border border-zinc-200">
+                <div data-gallery-image="{{ $image->id }}" wire:key="gallery-image-{{ $image->id }}" class="overflow-hidden rounded-xl border border-zinc-200">
                     @if ($previewUrls[$image->id] ?? null)
                         <img src="{{ $previewUrls[$image->id] }}" alt="{{ $image->alt_text ?: $gallery->title }}" loading="lazy" class="aspect-square w-full object-cover">
                     @endif
@@ -78,6 +79,11 @@
                             <p class="font-bold text-emerald-700">Cover image</p>
                         @endif
                         @if ($editable)
+                            <button type="button" data-gallery-drag aria-label="Drag to reorder image" class="cursor-grab rounded-lg border px-3 py-2 text-zinc-600">↕ Drag to reorder</button>
+                            <label class="block">Caption<input wire:model="imageCaptions.{{ $image->id }}" maxlength="1000" class="mt-1 block w-full rounded-lg border border-zinc-300 p-2"></label>
+                            <label class="block">Image description<input wire:model="imageAltTexts.{{ $image->id }}" maxlength="255" class="mt-1 block w-full rounded-lg border border-zinc-300 p-2"></label>
+                            @error('imageCaptions.'.$image->id)<p class="text-red-700">{{ $message }}</p>@enderror
+                            @error('imageAltTexts.'.$image->id)<p class="text-red-700">{{ $message }}</p>@enderror
                             <div class="flex flex-wrap gap-3">
                                 <x-admin.icon-action label="Set cover" icon="photo" tone="info"
                                     type="button" wire:click="selectCover({{ $image->id }})" wire:loading.attr="disabled"
@@ -103,6 +109,7 @@
                 </div>
             @endforeach
         </div>
+        @if ($editable && $gallery->images->isNotEmpty())<button type="button" wire:click="saveAllImageDetails" wire:loading.attr="disabled" class="mt-4 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white">Save All Captions &amp; Descriptions</button>@endif
         @if ($gallery->images->isEmpty())<p class="text-sm text-zinc-500">Upload images before publishing.</p>@endif
     </section>
 </div>

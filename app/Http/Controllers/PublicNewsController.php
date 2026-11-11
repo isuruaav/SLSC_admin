@@ -8,6 +8,8 @@ use App\Models\MediaAsset;
 use App\Models\News;
 use App\Services\MediaUrlService;
 use App\Services\PageHtmlSanitizer;
+use App\Services\SiteLanguageService;
+use App\Services\SiteUrlService;
 use App\Services\ThemeViewResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -56,7 +58,7 @@ final class PublicNewsController extends Controller
             [
                 'news' => $news,
                 'locale' => $locale,
-                'locales' => app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
+                'locales' => app(SiteLanguageService::class)->choices(NewsLocale::cases()),
                 'languageVersions' => $this->indexLanguageVersions($currentType),
                 'currentType' => $currentType,
             ],
@@ -146,7 +148,7 @@ final class PublicNewsController extends Controller
     : null,
                 ];
             },
-            app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
+            app(SiteLanguageService::class)->choices(NewsLocale::cases()),
         );
 
         $rawEditorMode = $news->getRawOriginal('editor_mode');
@@ -168,6 +170,7 @@ final class PublicNewsController extends Controller
         $safeContent = $editorMode === NewsEditorMode::Visual
             ? $sanitizer->sanitizeVisual($rawContent)
             : $sanitizer->sanitize($rawContent);
+        $safeContent = app(SiteUrlService::class)->resolveHtml($safeContent);
 
         return $this->newsView(
             'show',
@@ -222,7 +225,7 @@ final class PublicNewsController extends Controller
                     ? route('news.index', $currentType === null ? [] : ['type' => $currentType])
                     : route('news.index.localized', array_filter(['locale' => $locale->value, 'type' => $currentType])),
             ],
-            app(\App\Services\SiteLanguageService::class)->choices(NewsLocale::cases()),
+            app(SiteLanguageService::class)->choices(NewsLocale::cases()),
         );
     }
 

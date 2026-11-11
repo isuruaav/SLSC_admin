@@ -4,13 +4,17 @@ namespace App\Livewire\Admin\SpecialPrograms;
 
 use App\Enums\MediaType;
 use App\Enums\MediaVisibility;
+use App\Enums\PageLocale;
+use App\Livewire\Admin\Concerns\EditsVisibilitySchedule;
+use App\Models\Page;
 use App\Models\SpecialProgram;
 use App\Models\User;
 use App\Services\MediaUploadService;
+use App\Services\SiteUrlService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -19,6 +23,7 @@ use Livewire\WithPagination;
 
 final class SpecialProgramIndex extends Component
 {
+    use EditsVisibilitySchedule;
     use WithFileUploads;
     use WithPagination;
 
@@ -32,6 +37,8 @@ final class SpecialProgramIndex extends Component
     public string $titleSi = '';
 
     public string $url = '';
+
+    public string $linkedPageId = '';
 
     public string $category = SpecialProgram::CATEGORY_HERITAGE;
 
@@ -79,8 +86,32 @@ final class SpecialProgramIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedLinkedPageId(): void
+    {
+        $this->authorizeAccess();
+        $this->resetValidation('linkedPageId');
+        if ($this->linkedPageId === '') {
+            return;
+        }
+        $page = Page::query()->published()->find($this->linkedPageId);
+        if ($page === null) {
+            $this->addError('linkedPageId', 'Select a published page. Draft, scheduled and deleted pages cannot be linked yet.');
+
+            return;
+        }
+        $this->url = $this->pagePath($page);
+        $this->openInNewTab = false;
+        $this->resetValidation('url');
+    }
+
+    public function updatedUrl(): void
+    {
+        $this->linkedPageId = '';
+    }
+
     public function startCreate(): void
     {
+        $this->reset(['startsAt', 'endsAt']);
         $this->authorizeAccess();
         $this->resetForm();
 
@@ -100,13 +131,15 @@ final class SpecialProgramIndex extends Component
         $this->editingId = $program->id;
         $this->titleEn = $program->title_en;
         $this->titleSi = $program->title_si ?? '';
-        $this->url = $program->url;
+        $this->url = app(SiteUrlService::class)->normalizeLink($program->url) ?? $program->url;
+        $this->linkedPageId = (string) ($this->pageForPath($this->url)->id ?? '');
         $this->category = $program->category;
         $this->imageMediaId = $program->image_media_id;
         $this->currentImageUrl = $program->imageUrl();
         $this->newImage = null;
         $this->sortOrder = $program->sort_order;
         $this->isActive = $program->is_active;
+        $this->loadSchedule($program);
         $this->openInNewTab = $program->open_in_new_tab;
 
         $this->resetValidation();
@@ -124,6 +157,14 @@ final class SpecialProgramIndex extends Component
     {
         $this->authorizeAccess();
 
+        $this->scheduleAttributes();
+        if ($this->linkedPageId !== '') {
+            $page = Page::query()->published()->find($this->linkedPageId);
+            if ($page === null) {
+                throw ValidationException::withMessages(['linkedPageId' => 'This page is no longer published. Publish it or choose another page.']);
+            }
+            $this->url = $this->pagePath($page);
+        }
         $validated = $this->validate([
             'titleEn' => ['required', 'string', 'max:255'],
             'titleSi' => ['nullable', 'string', 'max:255'],
@@ -134,6 +175,14 @@ final class SpecialProgramIndex extends Component
             'isActive' => ['boolean'],
             'openInNewTab' => ['boolean'],
         ]);
+
+        $path = app(SiteUrlService::class)->normalizeLink($validated['url']);
+        if ($path === null) {
+            throw ValidationException::withMessages(['url' => 'Enter a website path such as /pages/about or a complete https:// URL.']);
+        }
+        if (preg_match('~^/(?:en/|si/|ta/)?pages/~', $path) && $this->pageForPath($path) === null) {
+            throw ValidationException::withMessages(['url' => 'This page is not publicly available. Create and publish it, then select it from the page list.']);
+        }
 
         $imageMediaId = $this->imageMediaId;
 
@@ -154,9 +203,10 @@ final class SpecialProgramIndex extends Component
         }
 
         $attributes = [
+            ...$this->scheduleAttributes(),
             'title_en' => trim($validated['titleEn']),
             'title_si' => trim($validated['titleSi']) !== '' ? trim($validated['titleSi']) : null,
-            'url' => trim($validated['url']),
+            'url' => $path,
             'category' => $validated['category'],
             'image_media_id' => $imageMediaId,
             'sort_order' => (int) $validated['sortOrder'],
@@ -185,7 +235,7 @@ final class SpecialProgramIndex extends Component
 
         session()->flash(
             'status',
-            $program->title_en . ($program->is_active ? ' activated.' : ' deactivated.'),
+            $program->title_en.($program->is_active ? ' activated.' : ' deactivated.'),
         );
     }
 
@@ -226,8 +276,8 @@ final class SpecialProgramIndex extends Component
         if ($search !== '') {
             $query->where(function (Builder $q) use ($search) {
                 $q->where('title_en', 'like', "%{$search}%")
-                  ->orWhere('title_si', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
+                    ->orWhere('title_si', 'like', "%{$search}%")
+                    ->orWhere('url', 'like', "%{$search}%");
             });
         }
 
@@ -241,12 +291,13 @@ final class SpecialProgramIndex extends Component
             $query->where('is_active', false);
         }
 
-        $programs = $query->orderBy($this->sortField, $this->sortDirection)
+        $programs = $query->orderBy(in_array($this->sortField, ['title_en', 'category', 'sort_order', 'is_active', 'created_at', 'updated_at'], true) ? $this->sortField : 'sort_order', $this->sortDirection === 'desc' ? 'desc' : 'asc')
             ->paginate($this->perPage);
 
         return view('livewire.admin.special-programs.special-program-index', [
             'programs' => $programs,
             'categories' => SpecialProgram::categories(),
+            'linkablePages' => $this->showEditor ? Page::query()->published()->orderBy('locale')->orderBy('title')->get(['id', 'title', 'slug', 'locale']) : collect(),
         ])->layout('components.layouts.admin', [
             'title' => 'Special Programs',
         ]);
@@ -258,6 +309,7 @@ final class SpecialProgramIndex extends Component
         $this->titleEn = '';
         $this->titleSi = '';
         $this->url = '';
+        $this->linkedPageId = '';
         $this->category = SpecialProgram::CATEGORY_HERITAGE;
         $this->imageMediaId = null;
         $this->newImage = null;
@@ -266,6 +318,30 @@ final class SpecialProgramIndex extends Component
         $this->isActive = true;
         $this->openInNewTab = true;
         $this->resetValidation();
+    }
+
+    private function pagePath(Page $page): string
+    {
+        $locale = $page->getRawOriginal('locale');
+        $url = $locale === PageLocale::English->value
+            ? route('pages.show', ['slug' => $page->slug])
+            : route('pages.show.localized', ['locale' => $locale, 'slug' => $page->slug]);
+
+        return app(SiteUrlService::class)->portable($url);
+    }
+
+    private function pageForPath(string $url): ?Page
+    {
+        $path = app(SiteUrlService::class)->normalizeLink($url);
+        if ($path === null || ! str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return null;
+        }
+        $path = parse_url($path, PHP_URL_PATH);
+        if (! is_string($path) || ! preg_match('~^/(?:(en|si|ta)/)?pages/([a-z0-9]+(?:-[a-z0-9]+)*)/?$~', $path, $matches)) {
+            return null;
+        }
+
+        return Page::query()->published()->where('locale', $matches[1] ?: 'en')->where('slug', $matches[2])->first();
     }
 
     private function authorizeAccess(): void
@@ -284,4 +360,3 @@ final class SpecialProgramIndex extends Component
         abort(403, 'Unauthorized access to Special Programs.');
     }
 }
-

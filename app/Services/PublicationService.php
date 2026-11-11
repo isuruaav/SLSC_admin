@@ -17,7 +17,7 @@ use Throwable;
 final class PublicationService
 {
     // Publications use the existing document permissions and private file disk.
-    public function save(User $actor, string $title, string $titleSi, bool $publish, ?UploadedFile $pdf, ?UploadedFile $cover, ?Publication $publication = null, string $locale = 'en'): Publication
+    public function save(User $actor, string $title, string $titleSi, bool $publish, ?UploadedFile $pdf, ?UploadedFile $cover, ?Publication $publication = null, string $locale = 'en', string $issueNumber = '', ?int $issueYear = null): Publication
     {
         Gate::forUser($actor)->authorize('documents.view');
         Gate::forUser($actor)->authorize($publication === null ? 'documents.create' : 'documents.update');
@@ -28,11 +28,13 @@ final class PublicationService
         $titleSi = trim($titleSi);
         $isCreating = $publication === null;
         $replacingPdf = $pdf !== null;
-        Validator::make(compact('title', 'titleSi', 'pdf', 'cover', 'locale'), [
+        Validator::make(compact('title', 'titleSi', 'pdf', 'cover', 'locale', 'issueNumber', 'issueYear'), [
             'title' => ['required', 'string', 'max:255'],
             'titleSi' => ['nullable', 'string', 'max:255'],
             'locale' => ['required', 'string', 'in:en,si'],
-            'pdf' => [$isCreating ? 'required' : 'nullable', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'extensions:pdf', 'max:20480'],
+            'issueNumber' => ['nullable', 'string', 'max:80'],
+            'issueYear' => ['nullable', 'integer', 'between:1900,9999'],
+            'pdf' => [$isCreating ? 'required' : 'nullable', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'extensions:pdf', 'max:51200'],
             'cover' => [$isCreating || $replacingPdf ? 'required' : 'nullable', 'file', 'image', 'mimes:jpg,jpeg', 'max:2048', 'dimensions:max_width=1400,max_height=1600'],
         ], ['cover.required' => 'Upload the first-page cover image before saving.'])->validate();
         if ($pdf !== null && (new finfo(FILEINFO_MIME_TYPE))->file($pdf->getPathname()) !== 'application/pdf') {
@@ -79,7 +81,7 @@ final class PublicationService
             if ($uploads !== []) {
                 $uploads['disk'] = $disk;
             }
-            $saved = DB::transaction(function () use ($actor, $title, $titleSi, $publish, $publication, $uploads, $locale, &$oldFiles): Publication {
+            $saved = DB::transaction(function () use ($actor, $title, $titleSi, $publish, $publication, $uploads, $locale, $issueNumber, $issueYear, &$oldFiles): Publication {
                 $record = $publication === null ? new Publication : Publication::query()->lockForUpdate()->whereKey($publication->getKey())->firstOrFail();
                 if ($record->is_published) {
                     Gate::forUser($actor)->authorize('documents.publish');
@@ -97,7 +99,7 @@ final class PublicationService
                 $creating = ! $record->exists;
                 $record->fill([
                     ...$uploads, 'title' => $title, 'title_si' => $titleSi !== '' ? $titleSi : null, 'locale' => $locale,
-                    'is_published' => $publish,
+                    'is_published' => $publish, 'issue_number' => trim($issueNumber) ?: null, 'issue_year' => $issueYear,
                     'published_at' => $publish ? ($record->published_at ?? now()) : null,
                     'created_by' => $record->created_by ?? $actor->id, 'updated_by' => $actor->id,
                 ])->save();
@@ -150,6 +152,18 @@ final class PublicationService
         DB::transaction(function () use ($publication, $actor): void {
             $publication->delete();
             app(AuditLogger::class)->log(event: 'publications.deleted', description: 'Publication moved to trash.', actor: $actor, subject: $publication);
+        });
+    }
+
+    public function restore(Publication $publication, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('documents.view');
+        Gate::forUser($actor)->authorize('documents.delete');
+        DB::transaction(function () use ($publication, $actor): void {
+            $record = Publication::onlyTrashed()->lockForUpdate()->whereKey($publication->getKey())->firstOrFail();
+            $record->forceFill(['is_published' => false, 'published_at' => null, 'updated_by' => $actor->id])->save();
+            $record->restore();
+            app(AuditLogger::class)->log(event: 'publications.restored', description: 'Publication restored as a draft.', actor: $actor, subject: $record);
         });
     }
 }

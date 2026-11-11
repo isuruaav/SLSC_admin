@@ -16,7 +16,7 @@
 @endpush
 
 @section('content')
-    <main class="document-public">
+    <div class="document-public">
         <div class="document-shell">
             <header class="document-heading">
                 <span>{{ $isSinhala ? 'සංඥා පාසල' : 'School of Signals' }}</span>
@@ -97,5 +97,5 @@
                 </nav>
             @endif
         </div>
-    </main>
+    </div>
 @endsection

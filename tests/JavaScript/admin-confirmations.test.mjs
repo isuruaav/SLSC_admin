@@ -104,7 +104,7 @@ function dialogFixture() {
 }
 
 test('save, publish, unpublish and deletion methods have appropriate confirmation choices', () => {
-    for (const method of ['save', 'saveDraft', 'savePermissions', 'saveAndPublish', 'publishArticle', 'unpublishPage', 'delete', 'forceDeleteMedia']) {
+    for (const method of ['saveAndPublish', 'publishArticle', 'unpublishPage', 'delete', 'forceDeleteMedia']) {
         const options = confirmationForAction(method);
         assert.ok(options?.confirmLabel.startsWith('Yes, '), method);
     }
@@ -114,7 +114,7 @@ test('save, publish, unpublish and deletion methods have appropriate confirmatio
 });
 
 test('searching, opening editors, file uploads and background polling are not confirmation actions', () => {
-    for (const method of ['refreshUnreadCount', '$refresh', 'openMessage', 'edit', 'startCreate', 'create', 'search', 'uploadImages', '_finishUpload']) {
+    for (const method of ['save', 'saveDraft', 'savePermissions', 'refreshUnreadCount', '$refresh', 'openMessage', 'edit', 'startCreate', 'create', 'search', 'uploadImages', '_finishUpload']) {
         assert.equal(confirmationForAction(method), null, method);
     }
 });
@@ -161,7 +161,7 @@ test('Yes executes an existing confirmed click once, while No allows a later ret
 test('a save waits for Yes and sends exactly the original Livewire action', async () => {
     let choose;
     const { listeners } = hooks(() => new Promise((resolve) => { choose = resolve; }));
-    const action = actionFor('save');
+    const action = actionFor('saveAndPublish');
     listeners.action({ action });
     assert.equal(action.isDeferred(), true);
     assert.equal(action.sent, 0);
@@ -172,14 +172,28 @@ test('a save waits for Yes and sends exactly the original Livewire action', asyn
     assert.equal(await action.promise, 'sent');
 });
 
-test('No cancels a deferred save without sending it', async () => {
+test('No cancels deferred publishing without sending it', async () => {
     const { listeners } = hooks(() => false);
-    const action = actionFor('saveDraft');
+    const action = actionFor('saveAndPublish');
     listeners.action({ action });
     await flush();
     assert.equal(action.sent, 0);
     assert.equal(action.isCancelled(), true);
     await assert.rejects(action.promise);
+});
+
+test('ordinary saves run without a modal and still reject duplicate submissions', async () => {
+    const { listeners } = hooks(() => { throw new Error('Ordinary saves should not ask for confirmation'); });
+    const first = actionFor('save');
+    first._fire = () => { first.sent++; };
+    listeners.action({ action: first });
+    assert.equal(first.isDeferred(), false);
+    const duplicate = actionFor('save');
+    duplicate.component = first.component;
+    listeners.action({ action: duplicate });
+    assert.equal(duplicate.isCancelled(), true);
+    first.resolvePromise('saved');
+    await flush();
 });
 
 test('an action already gated by wire:confirm does not ask twice', () => {
@@ -198,7 +212,7 @@ test('typed confirmations and public components retain their existing behavior',
     const { listeners, bindings } = hooks(() => { throw new Error('Should not ask'); });
     bindings.enhance(typed);
     assert.equal(typed.__livewire_confirm, original);
-    const action = actionFor('save', new Element(), 'public.contact-form');
+    const action = actionFor('saveAndPublish', new Element(), 'public.contact-form');
     listeners.action({ action });
     assert.equal(action.isDeferred(), false);
 });
@@ -236,10 +250,10 @@ test('the modal defaults focus to No and renders warning text as text', async ()
 
 test('Yes accepts one pending request and a second request cannot replace its text', async () => {
     const fixture = dialogFixture();
-    const first = fixture.controller.ask(confirmationForAction('save'), fixture.trigger);
+    const first = fixture.controller.ask(confirmationForAction('saveAndPublish'), fixture.trigger);
     const second = fixture.controller.ask(confirmationForAction('delete'), fixture.trigger);
     assert.equal(await second, false);
-    assert.equal(fixture.title.textContent, 'Save changes');
+    assert.equal(fixture.title.textContent, 'Save and publish');
     fixture.yes.click();
     assert.equal(await first, true);
     assert.equal(fixture.dialog.opened, 1);
@@ -266,7 +280,7 @@ test('Escape, backdrop clicks and navigation all mean No', async () => {
 test('a finishing Livewire request cannot send a save before Yes is selected', async () => {
     let choose;
     const { listeners } = hooks(() => new Promise((resolve) => { choose = resolve; }));
-    const action = actionFor('save', new Element(), 'admin.news.news-edit');
+    const action = actionFor('saveAndPublish', new Element(), 'admin.news.news-edit');
     const finishRequest = deferBehindActiveRequest(action);
     listeners.action({ action });
     await flush();
@@ -279,7 +293,7 @@ test('a finishing Livewire request cannot send a save before Yes is selected', a
 
 test('Yes preserves Livewire request ordering and a queued callback sends only once', async () => {
     const { listeners } = hooks(() => true);
-    const action = actionFor('save', new Element(), 'admin.pages.page-edit');
+    const action = actionFor('saveAndPublish', new Element(), 'admin.pages.page-edit');
     const finishRequest = deferBehindActiveRequest(action);
     listeners.action({ action });
     await flush();
@@ -291,7 +305,7 @@ test('Yes preserves Livewire request ordering and a queued callback sends only o
 
 test('No still cancels a save when the earlier Livewire request later finishes', async () => {
     const { listeners } = hooks(() => false);
-    const action = actionFor('save');
+    const action = actionFor('saveAndPublish');
     const finishRequest = deferBehindActiveRequest(action);
     listeners.action({ action });
     await flush();
@@ -318,12 +332,12 @@ test('a changed wire action cannot reuse a confirmation for the previous news ar
 
 test('a pending save is cancelled if its form action changes', async () => {
     let choose;
-    const form = new Element({ 'wire:submit': 'save' }, 'form');
-    const action = actionFor('save', form, 'admin.news.news-edit');
+    const form = new Element({ 'wire:submit': 'saveAndPublish' }, 'form');
+    const action = actionFor('saveAndPublish', form, 'admin.news.news-edit');
     const { listeners } = hooks(() => new Promise((resolve) => { choose = resolve; }));
     listeners.action({ action });
     await flush();
-    form.attributes['wire:submit'] = 'saveAndPublish';
+    form.attributes['wire:submit'] = 'save';
     choose(true);
     await flush();
     assert.equal(action.sent, 0);
@@ -333,12 +347,12 @@ test('a pending save is cancelled if its form action changes', async () => {
 test('duplicate saves are blocked until the current action finishes and a later retry is allowed', async () => {
     let asked = 0;
     const { listeners } = hooks(() => { asked++; return true; });
-    const first = actionFor('save');
+    const first = actionFor('saveAndPublish');
     first._fire = () => { first.sent++; };
     listeners.action({ action: first });
     await flush();
 
-    const second = actionFor('save');
+    const second = actionFor('saveAndPublish');
     second.component = first.component;
     listeners.action({ action: second });
     await flush();
@@ -348,7 +362,7 @@ test('duplicate saves are blocked until the current action finishes and a later 
 
     first.resolvePromise('saved');
     await flush();
-    const third = actionFor('save');
+    const third = actionFor('saveAndPublish');
     third.component = first.component;
     listeners.action({ action: third });
     await flush();
@@ -358,12 +372,12 @@ test('duplicate saves are blocked until the current action finishes and a later 
 
 test('Livewire cannot resume a duplicate save that was already cancelled', async () => {
     const { listeners } = hooks(() => true);
-    const first = actionFor('save');
+    const first = actionFor('saveAndPublish');
     first._fire = () => { first.sent++; };
     listeners.action({ action: first });
     await flush();
 
-    const duplicate = actionFor('save');
+    const duplicate = actionFor('saveAndPublish');
     duplicate.component = first.component;
     const finishRequest = deferBehindActiveRequest(duplicate);
     listeners.action({ action: duplicate });

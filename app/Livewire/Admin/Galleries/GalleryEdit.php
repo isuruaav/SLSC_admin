@@ -11,13 +11,16 @@ use App\Models\MediaAsset;
 use App\Models\MediaVariant;
 use App\Models\User;
 use App\Services\GalleryService;
+use App\Services\MediaDuplicateFinder;
 use App\Services\MediaUploadService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -30,6 +33,15 @@ final class GalleryEdit extends Component
 
     /** @var array<int, TemporaryUploadedFile> */
     public array $uploads = [];
+
+    /** @var array<int, array{name: string, success: bool, message: string}> */
+    #[Locked]
+    public array $imageUploadResults = [];
+
+    public function updatedUploads(): void
+    {
+        $this->imageUploadResults = [];
+    }
 
     #[Locked]
     public int $galleryId;
@@ -240,7 +252,7 @@ final class GalleryEdit extends Component
 
         $this->newAltText = '';
 
-        $this->loadImageMetadata();
+        $this->refreshImageMetadata();
 
         session()->flash(
             'status',
@@ -302,7 +314,8 @@ final class GalleryEdit extends Component
             ),
         );
 
-        $this->loadImageMetadata();
+        $this->imageCaptions[$galleryImageId] = $caption;
+        $this->imageAltTexts[$galleryImageId] = $altText;
 
         session()->flash(
             'status',
@@ -334,7 +347,7 @@ final class GalleryEdit extends Component
         );
 
         $this->coverMediaId = (string) ($this->gallery()->cover_media_id ?? '');
-        $this->loadImageMetadata();
+        $this->refreshImageMetadata();
 
         session()->flash(
             'status',
@@ -383,6 +396,7 @@ final class GalleryEdit extends Component
             ]);
         }
         $this->save();
+        $this->saveAllImageDetails();
         Gate::authorize(
             'galleries.publish',
         );
@@ -447,25 +461,55 @@ final class GalleryEdit extends Component
     {
         Gate::authorize('galleries.update');
         Gate::authorize('media.upload');
-        $gallery = $this->gallery();
-        abort_unless($gallery->isEditable(), 409, 'Unpublish the gallery before editing.');
-        $this->validate([
-            'uploads' => ['required', 'array', 'min:1', 'max:20'],
-            'uploads.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
-        ]);
-        foreach ($this->uploads as $index => $file) {
-            $media = app(MediaUploadService::class)->upload(
-                file: $file, type: MediaType::Image, visibility: MediaVisibility::Public,
-                actor: $this->actor(), title: mb_substr($gallery->title, 0, 240).' - '.($index + 1),
-                altText: $gallery->title, caption: null,
-            );
-            app(GalleryService::class)->addImage(gallery: $gallery, media: $media, actor: $this->actor());
-            unset($this->uploads[$index]);
+        abort_unless($this->gallery()->isEditable(), 409, 'Unpublish the gallery before editing.');
+        $this->validate(['uploads' => ['required', 'array', 'min:1', 'max:20']]);
+        foreach (array_keys($this->uploads) as $index) {
+            $this->storeGalleryUpload((int) $index);
         }
-        $this->uploads = [];
-        $this->loadGallery($gallery->refresh());
+        $this->refreshImageMetadata();
+        session()->flash('status', $this->uploads === [] ? 'Images added. Publish when ready.' : 'Some files need attention. Successful images were kept; retry only the failed files.');
+    }
+
+    public function retryImageUpload(int $index): void
+    {
+        Gate::authorize('galleries.update');
+        Gate::authorize('media.upload');
+        abort_unless($this->gallery()->isEditable(), 409, 'Unpublish the gallery before editing.');
+        $this->storeGalleryUpload($index);
+        $this->refreshImageMetadata();
+    }
+
+    private function storeGalleryUpload(int $index): void
+    {
+        $file = $this->uploads[$index] ?? null;
+        abort_unless($file instanceof TemporaryUploadedFile, 404);
+        $name = $file->getClientOriginalName();
+        try {
+            Validator::make(['image' => $file], ['image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192']])->validate();
+            $gallery = $this->gallery();
+            $media = app(MediaDuplicateFinder::class)->find($file, 'public', $this->actor())
+                ?? app(MediaUploadService::class)->upload(file: $file, type: MediaType::Image, visibility: MediaVisibility::Public, actor: $this->actor(), title: mb_substr($gallery->title, 0, 240).' - '.($index + 1), altText: $gallery->title);
+            if (! $gallery->images()->where('media_asset_id', $media->id)->exists()) {
+                app(GalleryService::class)->addImage(gallery: $gallery, media: $media, actor: $this->actor());
+            }
+            $this->imageUploadResults[$index] = ['name' => $name, 'success' => true, 'message' => 'Added to the gallery.'];
+            unset($this->uploads[$index]);
+        } catch (\Throwable $exception) {
+            if (! $exception instanceof ValidationException) {
+                report($exception);
+            }
+            $this->imageUploadResults[$index] = ['name' => $name, 'success' => false, 'message' => $exception instanceof ValidationException ? collect($exception->errors())->flatten()->implode(' ') : 'Could not add this file. Retry it after checking gallery status.'];
+        }
+    }
+
+    private function refreshImageMetadata(): void
+    {
+        $captions = $this->imageCaptions;
+        $alts = $this->imageAltTexts;
         $this->loadImageMetadata();
-        session()->flash('status', 'Images added. Save changes and publish when ready.');
+        $this->imageCaptions = array_replace($this->imageCaptions, array_intersect_key($captions, $this->imageCaptions));
+        $this->imageAltTexts = array_replace($this->imageAltTexts, array_intersect_key($alts, $this->imageAltTexts));
+        $this->coverMediaId = (string) ($this->gallery()->cover_media_id ?? '');
     }
 
     public function selectCover(int $galleryImageId): void
@@ -1116,5 +1160,28 @@ final class GalleryEdit extends Component
         );
 
         return $actor;
+    }
+
+    /** @param array<array-key, int|string> $ids */
+    public function reorderImages(array $ids): void
+    {
+        Gate::authorize('galleries.update');
+        Validator::make(['ids' => $ids], ['ids' => ['array'], 'ids.*' => ['required', 'integer', 'distinct']])->validate();
+        $order = array_values(array_map('intval', $ids));
+        app(GalleryService::class)->reorderImages(gallery: $this->gallery(), actor: $this->actor(), orderedImageIds: $order);
+        session()->flash('status', 'Image order saved.');
+    }
+
+    public function saveAllImageDetails(): void
+    {
+        Gate::authorize('galleries.update');
+        $this->validate(['imageCaptions' => ['array'], 'imageCaptions.*' => ['nullable', 'string', 'max:1000'], 'imageAltTexts' => ['array'], 'imageAltTexts.*' => ['nullable', 'string', 'max:255']]);
+        DB::transaction(function (): void {
+            foreach (array_keys($this->imageCaptions + $this->imageAltTexts) as $id) {
+                app(GalleryService::class)->updateImage(galleryImage: $this->galleryImage((int) $id), actor: $this->actor(), caption: $this->nullableString($this->imageCaptions[$id] ?? ''), altText: $this->nullableString($this->imageAltTexts[$id] ?? ''));
+            }
+        });
+        $this->loadImageMetadata();
+        session()->flash('status', 'All image captions and descriptions saved.');
     }
 }

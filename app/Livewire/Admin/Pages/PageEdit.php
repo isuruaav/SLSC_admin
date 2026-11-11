@@ -13,6 +13,7 @@ use App\Services\ContentSanitizer;
 use App\Services\PageBlockSanitizer;
 use App\Services\PageHtmlSanitizer;
 use App\Services\PageRevisionService;
+use App\Services\SiteLanguageService;
 use App\Support\PageBlockFactory;
 use App\Support\PageSlugger;
 use Illuminate\Contracts\View\View;
@@ -787,7 +788,7 @@ final class PageEdit extends Component
                     $this->locale,
                 )->ignore(
                     $this->pageId,
-                ),
+                )->withoutTrashed(),
             ],
 
             'excerpt' => [
@@ -882,7 +883,7 @@ final class PageEdit extends Component
     public function render(): View
     {
         $page = $this->page();
-        $locales = app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases(), $this->locale);
+        $locales = app(SiteLanguageService::class)->choices(PageLocale::cases(), $this->locale);
 
         $translations = Page::withTrashed()
             ->where(

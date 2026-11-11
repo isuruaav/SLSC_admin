@@ -362,7 +362,8 @@
                                         Never
                                     </span>
                                 @endif
-                            </td>
+                            <p class="mt-2 text-xs {{ $user->two_factor_secret && $user->two_factor_confirmed_at ? 'text-emerald-700' : 'text-zinc-500' }}">{{ $user->two_factor_secret && $user->two_factor_confirmed_at ? 'MFA enabled' : 'MFA not enabled' }}</p>
+                                </td>
 
                             {{-- Actions --}}
                             <td class="px-5 py-4 text-right">

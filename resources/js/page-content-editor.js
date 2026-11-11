@@ -1,6 +1,9 @@
+import { portableSitePath, resolveSitePath, resolveEditorPaths, storeEditorPaths } from './site-paths.js';
+
 window.awcmsPageContentEditor = function awcmsPageContentEditor(
     initialContent = '',
     initialMode = 'visual',
+    editorOptions = {},
 ) {
     return {
         mode: initialMode === 'html' ? 'html' : 'visual',
@@ -12,9 +15,49 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         historyIndex: -1,
         restoringHistory: false,
 
+        // Options (URLs, base paths, CSRF)
+        options: {
+            basePath: '',
+            baseUrl: '',
+            uploadUrl: '',
+            recentImagesUrl: '',
+            csrfToken: '',
+            ...editorOptions,
+        },
+
+        // Image management state
+        imageModalOpen: false,
+        imageTab: 'library', // 'upload' | 'library' | 'url'
+        modalSelectedFile: null,
+        modalFilePreview: '',
+        modalImageTitle: '',
+        modalImageAlt: '',
+        modalImagePosition: 'left', // 'left' | 'center' | 'right' | 'full'
+        uploadingImage: false,
+        uploadError: '',
+
+        libraryImages: [],
+        loadingLibrary: false,
+        librarySearch: '',
+        selectedLibraryImage: null,
+
+        manualImageUrl: '',
+        manualImageAlt: '',
+        manualImagePreviewSrc: '',
+        manualPreviewLoaded: false,
+        manualPreviewError: false,
+
+        // Image in-editor manipulation state
+        selectedImage: null,
+        draggedImage: null,
+        imageAlign: 'left',
+        floatingToolbarPos: { top: 0, left: 0 },
+
         init() {
             this.$nextTick(() => {
                 this.$refs.visual.innerHTML = this.content;
+                this.setupImagesInVisual();
+                this.setupDragAndDrop();
                 this.$refs.code.value = this.prettyFormatHtml(this.content);
                 this.pushHistory(this.content, true);
                 this.syncLivewireInputs();
@@ -25,24 +68,633 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             document.documentElement.style.overflow = '';
         },
 
+        pathOptions() {
+            return { ...this.options, origin: window.location.origin };
+        },
+
+        resolveMediaUrl(url) {
+            return resolveSitePath(url, this.pathOptions(), true);
+        },
+
+        canonicalMediaSrc(url) {
+            return portableSitePath(url, this.pathOptions(), true);
+        },
+
+        setupImagesInVisual() {
+            if (!this.$refs.visual) {
+                return;
+            }
+
+            resolveEditorPaths(this.$refs.visual, this.pathOptions());
+            const images = this.$refs.visual.querySelectorAll('img');
+            images.forEach((img) => {
+                img.setAttribute('draggable', 'true');
+                img.classList.add('awcms-draggable-image');
+                if (!img.style.maxWidth && !img.style.width) {
+                    img.style.maxWidth = '100%';
+                }
+            });
+        },
+
+        setupDragAndDrop() {
+            const editor = this.$refs.visual;
+            if (!editor || editor._awcmsDndInit) {
+                return;
+            }
+            editor._awcmsDndInit = true;
+
+            // Dragstart on image
+            editor.addEventListener('dragstart', (e) => {
+                if (e.target && e.target.tagName === 'IMG') {
+                    this.draggedImage = e.target;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', e.target.getAttribute('src') || '');
+                    e.target.classList.add('awcms-image-dragging');
+                    this.deselectImage();
+                }
+            });
+
+            // Dragover editor
+            editor.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                const range = this.caretRangeFromPoint(e.clientX, e.clientY);
+                if (range && editor.contains(range.startContainer)) {
+                    this.showDropIndicator(range);
+                }
+            });
+
+            // Dragleave editor
+            editor.addEventListener('dragleave', (e) => {
+                if (!editor.contains(e.relatedTarget)) {
+                    this.hideDropIndicator();
+                }
+            });
+
+            // Drop on editor
+            editor.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.hideDropIndicator();
+
+                // 1. Files dropped from OS
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const files = Array.from(e.dataTransfer.files).filter((f) =>
+                        f.type.startsWith('image/'),
+                    );
+                    if (files.length > 0) {
+                        const dropRange = this.caretRangeFromPoint(e.clientX, e.clientY);
+                        this.uploadAndInsertDroppedFile(files[0], dropRange);
+                        return;
+                    }
+                }
+
+                // 2. Existing image moved within content
+                if (this.draggedImage) {
+                    const dropRange = this.caretRangeFromPoint(e.clientX, e.clientY);
+                    if (dropRange && editor.contains(dropRange.startContainer)) {
+                        dropRange.insertNode(this.draggedImage);
+                        this.draggedImage.classList.remove('awcms-image-dragging');
+                        this.selectImage(this.draggedImage);
+                        this.syncFromVisual();
+                    } else {
+                        this.draggedImage.classList.remove('awcms-image-dragging');
+                    }
+                    this.draggedImage = null;
+                }
+            });
+
+            // Dragend
+            editor.addEventListener('dragend', () => {
+                if (this.draggedImage) {
+                    this.draggedImage.classList.remove('awcms-image-dragging');
+                    this.draggedImage = null;
+                }
+                this.hideDropIndicator();
+            });
+
+            // Click inside editor
+            editor.addEventListener('click', (e) => {
+                if (e.target && e.target.tagName === 'IMG') {
+                    e.stopPropagation();
+                    this.selectImage(e.target);
+                } else {
+                    this.deselectImage();
+                }
+            });
+
+            // Paste image from clipboard
+            editor.addEventListener('paste', (e) => {
+                const items = e.clipboardData ? e.clipboardData.items : null;
+                if (!items) {
+                    return;
+                }
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const file = items[i].getAsFile();
+                        if (file) {
+                            e.preventDefault();
+                            this.uploadAndInsertDroppedFile(file, this.currentRange());
+                            break;
+                        }
+                    }
+                }
+            });
+
+            // Scroll / resize repositions floating toolbar
+            window.addEventListener('resize', () => {
+                if (this.selectedImage) {
+                    this.positionFloatingToolbar();
+                }
+            });
+            editor.addEventListener('scroll', () => {
+                if (this.selectedImage) {
+                    this.positionFloatingToolbar();
+                }
+            });
+        },
+
+        caretRangeFromPoint(x, y) {
+            if (document.caretRangeFromPoint) {
+                return document.caretRangeFromPoint(x, y);
+            }
+            if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(x, y);
+                if (pos) {
+                    const range = document.createRange();
+                    range.setStart(pos.offsetNode, pos.offset);
+                    range.collapse(true);
+                    return range;
+                }
+            }
+            return null;
+        },
+
+        showDropIndicator(range) {
+            if (!range || !this.$refs.dropIndicator) {
+                return;
+            }
+            const shellRect = this.$el.getBoundingClientRect();
+            const rects = range.getClientRects();
+
+            if (rects.length > 0) {
+                const r = rects[0];
+                this.$refs.dropIndicator.style.display = 'block';
+                this.$refs.dropIndicator.style.top = `${r.top - shellRect.top}px`;
+                this.$refs.dropIndicator.style.left = `${r.left - shellRect.left}px`;
+                this.$refs.dropIndicator.style.width = '180px';
+            } else {
+                const container =
+                    range.startContainer.nodeType === Node.ELEMENT_NODE
+                        ? range.startContainer
+                        : range.startContainer.parentElement;
+                if (container) {
+                    const cr = container.getBoundingClientRect();
+                    this.$refs.dropIndicator.style.display = 'block';
+                    this.$refs.dropIndicator.style.top = `${cr.top - shellRect.top}px`;
+                    this.$refs.dropIndicator.style.left = `${cr.left - shellRect.left}px`;
+                    this.$refs.dropIndicator.style.width = `${Math.min(cr.width, 300)}px`;
+                }
+            }
+        },
+
+        hideDropIndicator() {
+            if (this.$refs.dropIndicator) {
+                this.$refs.dropIndicator.style.display = 'none';
+            }
+        },
+
+        selectImage(img) {
+            if (this.selectedImage && this.selectedImage !== img) {
+                this.selectedImage.classList.remove('awcms-image-selected');
+            }
+
+            this.selectedImage = img;
+            img.classList.add('awcms-image-selected');
+
+            // Determine active alignment
+            const fl = img.style.float;
+            const disp = img.style.display;
+            const w = img.style.width;
+
+            if (disp === 'block' && w === '100%') {
+                this.imageAlign = 'full';
+            } else if (fl === 'left') {
+                this.imageAlign = 'left';
+            } else if (fl === 'right') {
+                this.imageAlign = 'right';
+            } else if (disp === 'block' || img.style.margin.includes('auto')) {
+                this.imageAlign = 'center';
+            } else {
+                this.imageAlign = 'left';
+            }
+
+            this.$nextTick(() => {
+                this.positionFloatingToolbar();
+            });
+        },
+
+        deselectImage() {
+            if (this.selectedImage) {
+                this.selectedImage.classList.remove('awcms-image-selected');
+                this.selectedImage = null;
+            }
+        },
+
+        positionFloatingToolbar() {
+            if (!this.selectedImage || !this.$refs.floatingToolbar) {
+                return;
+            }
+            const imgRect = this.selectedImage.getBoundingClientRect();
+            const shellRect = this.$el.getBoundingClientRect();
+            const tb = this.$refs.floatingToolbar;
+
+            let top = imgRect.top - shellRect.top - 46;
+            if (top < 10) {
+                top = imgRect.bottom - shellRect.top + 8;
+            }
+            let left = imgRect.left - shellRect.left + imgRect.width / 2 - tb.offsetWidth / 2;
+            if (left < 10) {
+                left = 10;
+            }
+            if (left + tb.offsetWidth > shellRect.width - 10) {
+                left = shellRect.width - tb.offsetWidth - 10;
+            }
+
+            this.floatingToolbarPos = { top, left };
+        },
+
+        setImageAlign(align) {
+            if (!this.selectedImage) {
+                return;
+            }
+            this.imageAlign = align;
+
+            switch (align) {
+                case 'left':
+                    this.selectedImage.style.float = 'left';
+                    this.selectedImage.style.margin = '0 1.25rem 1rem 0';
+                    this.selectedImage.style.display = 'inline-block';
+                    this.selectedImage.style.clear = 'none';
+                    if (!this.selectedImage.style.maxWidth || this.selectedImage.style.maxWidth === '100%') {
+                        this.selectedImage.style.maxWidth = '50%';
+                    }
+                    break;
+                case 'center':
+                    this.selectedImage.style.float = 'none';
+                    this.selectedImage.style.margin = '1.25rem auto';
+                    this.selectedImage.style.display = 'block';
+                    this.selectedImage.style.clear = 'both';
+                    break;
+                case 'right':
+                    this.selectedImage.style.float = 'right';
+                    this.selectedImage.style.margin = '0 0 1rem 1.25rem';
+                    this.selectedImage.style.display = 'inline-block';
+                    this.selectedImage.style.clear = 'none';
+                    if (!this.selectedImage.style.maxWidth || this.selectedImage.style.maxWidth === '100%') {
+                        this.selectedImage.style.maxWidth = '50%';
+                    }
+                    break;
+                case 'full':
+                    this.selectedImage.style.float = 'none';
+                    this.selectedImage.style.margin = '1.25rem 0';
+                    this.selectedImage.style.display = 'block';
+                    this.selectedImage.style.width = '100%';
+                    this.selectedImage.style.maxWidth = '100%';
+                    this.selectedImage.style.clear = 'both';
+                    break;
+            }
+
+            this.syncFromVisual();
+            this.$nextTick(() => this.positionFloatingToolbar());
+        },
+
+        setImageWidth(percent) {
+            if (!this.selectedImage) {
+                return;
+            }
+            this.selectedImage.style.width = `${percent}%`;
+            this.selectedImage.style.maxWidth = '100%';
+            this.selectedImage.style.height = 'auto';
+            this.syncFromVisual();
+            this.$nextTick(() => this.positionFloatingToolbar());
+        },
+
+        deleteSelectedImage() {
+            if (!this.selectedImage) {
+                return;
+            }
+            this.selectedImage.remove();
+            this.selectedImage = null;
+            this.syncFromVisual();
+        },
+
+        // Image Modal & Uploads
+        openImageModal() {
+            this.rememberSelection();
+            this.imageModalOpen = true;
+            this.uploadError = '';
+            this.manualPreviewError = false;
+            this.manualPreviewLoaded = false;
+            if (this.imageTab === 'library' && this.libraryImages.length === 0) {
+                this.loadRecentImages();
+            }
+        },
+
+        closeImageModal() {
+            this.imageModalOpen = false;
+            this.modalSelectedFile = null;
+            this.modalFilePreview = '';
+            this.uploadingImage = false;
+            this.uploadError = '';
+        },
+
+        handleModalFileSelect(e) {
+            const files = e.target.files;
+            if (files && files[0]) {
+                this.setModalFile(files[0]);
+            }
+        },
+
+        handleModalFileDrop(e) {
+            const files = e.dataTransfer.files;
+            if (files && files[0] && files[0].type.startsWith('image/')) {
+                this.setModalFile(files[0]);
+            }
+        },
+
+        setModalFile(file) {
+            this.modalSelectedFile = file;
+            this.uploadError = '';
+            if (!this.modalImageTitle) {
+                this.modalImageTitle = file.name.replace(/\.[^/.]+$/, '');
+            }
+            if (!this.modalImageAlt) {
+                this.modalImageAlt = this.modalImageTitle;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.modalFilePreview = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+
+        clearModalFile() {
+            this.modalSelectedFile = null;
+            this.modalFilePreview = '';
+            if (this.$refs.imageFileInput) {
+                this.$refs.imageFileInput.value = '';
+            }
+        },
+
+        formatBytes(bytes, decimals = 1) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        },
+
+        async uploadAndInsertDroppedFile(file, targetRange = null) {
+            try {
+                const data = await this.performFileUpload(file);
+                this.insertImageElement(
+                    data.url,
+                    data.alt || data.name,
+                    data.path,
+                    'left',
+                    targetRange,
+                );
+            } catch (err) {
+                alert('Upload failed: ' + (err.message || 'Unknown error'));
+            }
+        },
+
+        async submitModalUpload() {
+            if (!this.modalSelectedFile || this.uploadingImage) {
+                return;
+            }
+
+            this.uploadingImage = true;
+            this.uploadError = '';
+
+            try {
+                const data = await this.performFileUpload(
+                    this.modalSelectedFile,
+                    this.modalImageTitle,
+                    this.modalImageAlt,
+                );
+                this.insertImageElement(
+                    data.url,
+                    this.modalImageAlt || data.alt || data.name,
+                    data.path,
+                    this.modalImagePosition,
+                );
+                this.closeImageModal();
+            } catch (err) {
+                this.uploadError = err.message || 'Image upload failed. Please try again.';
+            } finally {
+                this.uploadingImage = false;
+            }
+        },
+
+        async performFileUpload(file, title = '', altText = '') {
+            if (!this.options.uploadUrl) {
+                throw new Error('Upload endpoint is not configured.');
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            if (title) {
+                formData.append('title', title);
+            }
+            if (altText) {
+                formData.append('alt_text', altText);
+            }
+
+            const headers = {
+                Accept: 'application/json',
+            };
+            if (this.options.csrfToken) {
+                headers['X-CSRF-TOKEN'] = this.options.csrfToken;
+            }
+
+            const response = await fetch(this.options.uploadUrl, {
+                method: 'POST',
+                headers,
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                const msg = data.message || (data.errors ? Object.values(data.errors).flat().join(', ') : 'Upload failed');
+                throw new Error(msg);
+            }
+
+            return data;
+        },
+
+        async loadRecentImages() {
+            if (!this.options.recentImagesUrl) {
+                return;
+            }
+            this.loadingLibrary = true;
+            try {
+                const url = new URL(this.options.recentImagesUrl, window.location.origin);
+                if (this.librarySearch.trim() !== '') {
+                    url.searchParams.set('q', this.librarySearch.trim());
+                }
+                const response = await fetch(url.toString(), {
+                    headers: { Accept: 'application/json' },
+                });
+                const data = await response.json();
+                if (data.success && Array.isArray(data.images)) {
+                    this.libraryImages = data.images;
+                }
+            } catch (err) {
+                console.error('Failed to load recent images', err);
+            } finally {
+                this.loadingLibrary = false;
+            }
+        },
+
+        submitModalLibrary() {
+            if (!this.selectedLibraryImage) {
+                return;
+            }
+            this.insertImageElement(
+                this.selectedLibraryImage.url,
+                this.modalImageAlt || this.selectedLibraryImage.alt || this.selectedLibraryImage.title,
+                this.selectedLibraryImage.path,
+                this.modalImagePosition,
+            );
+            this.closeImageModal();
+        },
+
+        updateManualPreview() {
+            if (!this.manualImageUrl || this.manualImageUrl.trim() === '') {
+                this.manualImagePreviewSrc = '';
+                this.manualPreviewLoaded = false;
+                this.manualPreviewError = false;
+                return;
+            }
+            this.manualPreviewLoaded = false;
+            this.manualPreviewError = false;
+            this.manualImagePreviewSrc = this.resolveMediaUrl(this.manualImageUrl.trim());
+        },
+
+        submitModalUrl() {
+            if (!this.manualImageUrl || this.manualImageUrl.trim() === '') {
+                return;
+            }
+            const src = this.manualImageUrl.trim();
+            const resolved = this.resolveMediaUrl(src);
+            const canonical = this.canonicalMediaSrc(src);
+
+            this.insertImageElement(
+                resolved,
+                this.manualImageAlt.trim(),
+                canonical,
+                this.modalImagePosition,
+            );
+            this.closeImageModal();
+        },
+
+        insertImageElement(resolvedSrc, alt = '', canonicalPath = '', align = 'left', targetRange = null) {
+            const img = document.createElement('img');
+            img.setAttribute('src', resolvedSrc);
+            img.setAttribute('alt', alt || '');
+            img.setAttribute('data-canonical-src', canonicalPath || this.canonicalMediaSrc(resolvedSrc));
+            img.setAttribute('draggable', 'true');
+            img.setAttribute('loading', 'lazy');
+            img.classList.add('awcms-draggable-image');
+
+            switch (align) {
+                case 'left':
+                    img.style.float = 'left';
+                    img.style.margin = '0 1.25rem 1rem 0';
+                    img.style.maxWidth = '50%';
+                    img.style.display = 'inline-block';
+                    break;
+                case 'center':
+                    img.style.float = 'none';
+                    img.style.margin = '1.25rem auto';
+                    img.style.display = 'block';
+                    img.style.clear = 'both';
+                    break;
+                case 'right':
+                    img.style.float = 'right';
+                    img.style.margin = '0 0 1rem 1.25rem';
+                    img.style.maxWidth = '50%';
+                    img.style.display = 'inline-block';
+                    break;
+                case 'full':
+                    img.style.float = 'none';
+                    img.style.margin = '1.25rem 0';
+                    img.style.display = 'block';
+                    img.style.width = '100%';
+                    img.style.maxWidth = '100%';
+                    img.style.clear = 'both';
+                    break;
+                default:
+                    img.style.maxWidth = '100%';
+            }
+
+            const range = targetRange || this.currentRange();
+            if (range && this.$refs.visual.contains(range.startContainer)) {
+                range.deleteContents();
+                range.insertNode(img);
+
+                const spacer = document.createElement('br');
+                img.after(spacer);
+            } else {
+                this.$refs.visual.appendChild(img);
+            }
+
+            this.setupImagesInVisual();
+            this.selectImage(img);
+            this.syncFromVisual();
+        },
+
+        // Legacy compatibility
+        insertImage() {
+            this.openImageModal();
+        },
+
+        // Core visual editor methods
         syncLivewireInputs() {
             this.$refs.contentInput.value = this.content;
-            this.$refs.contentInput.dispatchEvent(
-                new Event('input', { bubbles: true }),
-            );
+            this.$refs.contentInput.dispatchEvent(new Event('input', { bubbles: true }));
 
             this.$refs.modeInput.value = this.mode;
-            this.$refs.modeInput.dispatchEvent(
-                new Event('input', { bubbles: true }),
-            );
+            this.$refs.modeInput.dispatchEvent(new Event('input', { bubbles: true }));
         },
 
         syncFromVisual(recordHistory = true) {
             this.normaliseVisualMarkup();
-            this.content = this.$refs.visual.innerHTML.trim();
+
+            // Clone to sanitize temporary editor DOM state
+            const clone = this.$refs.visual.cloneNode(true);
+            clone.querySelectorAll('img').forEach((img) => {
+                img.classList.remove(
+                    'awcms-image-selected',
+                    'awcms-image-dragging',
+                    'awcms-draggable-image',
+                );
+                if (img.classList.length === 0) {
+                    img.removeAttribute('class');
+                }
+                img.removeAttribute('draggable');
+            });
+
+            storeEditorPaths(clone, this.pathOptions());
+            this.content = clone.innerHTML.trim();
             this.$refs.code.value = this.prettyFormatHtml(this.content);
 
-            if (recordHistory && ! this.restoringHistory) {
+            if (recordHistory && !this.restoringHistory) {
                 this.pushHistory(this.content);
             }
 
@@ -63,6 +715,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             if (this.mode === 'visual') {
                 this.syncFromVisual();
+                this.deselectImage();
             } else {
                 this.syncFromCode();
             }
@@ -71,8 +724,8 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 const advanced = this.hasAdvancedMarkup(this.content);
 
                 if (
-                    advanced
-                    && ! window.confirm(
+                    advanced &&
+                    !window.confirm(
                         'Advanced HTML/Tailwind markup was detected. Opening it in the Visual Editor may change complex layout markup if you edit and save it.\n\nChoose OK to open visually, or Cancel to stay in HTML + Tailwind.',
                     )
                 ) {
@@ -81,6 +734,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
                 this.advancedWarning = advanced;
                 this.$refs.visual.innerHTML = this.content;
+                this.setupImagesInVisual();
                 this.pushHistory(this.content, true);
             } else {
                 this.advancedWarning = false;
@@ -106,13 +760,15 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 return false;
             }
 
-            return /\bclass\s*=\s*["'][^"']+["']/i.test(html)
-                || /<(section|main|article|header|footer|nav|aside)\b/i.test(html)
-                || /\b(?:sm|md|lg|xl|2xl):[\w\-\[\]\/.:]+/i.test(html);
+            return (
+                /\bclass\s*=\s*["'][^"']+["']/i.test(html) ||
+                /<(section|main|article|header|footer|nav|aside)\b/i.test(html) ||
+                /\b(?:sm|md|lg|xl|2xl):[\w\-\[\]\/.:]+/i.test(html)
+            );
         },
 
         selectionIsInsideEditor(selection = window.getSelection()) {
-            if (! selection || selection.rangeCount === 0) {
+            if (!selection || selection.rangeCount === 0) {
                 return false;
             }
 
@@ -120,13 +776,12 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             const focus = selection.focusNode;
 
             return Boolean(
-                anchor
-                && focus
-                && this.$refs.visual.contains(anchor)
-                && this.$refs.visual.contains(focus),
+                anchor &&
+                    focus &&
+                    this.$refs.visual.contains(anchor) &&
+                    this.$refs.visual.contains(focus),
             );
         },
-
 
         captureToolbarSelection() {
             if (this.mode !== 'visual') {
@@ -147,7 +802,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             const selection = window.getSelection();
 
-            if (! this.selectionIsInsideEditor(selection)) {
+            if (!this.selectionIsInsideEditor(selection)) {
                 return;
             }
 
@@ -157,13 +812,13 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         restoreSelection() {
             this.$refs.visual.focus({ preventScroll: true });
 
-            if (! this.savedRange) {
+            if (!this.savedRange) {
                 return false;
             }
 
             const selection = window.getSelection();
 
-            if (! selection) {
+            if (!selection) {
                 return false;
             }
 
@@ -184,7 +839,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             const selection = window.getSelection();
 
-            if (! this.selectionIsInsideEditor(selection)) {
+            if (!this.selectionIsInsideEditor(selection)) {
                 return null;
             }
 
@@ -194,7 +849,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         selectNodeContents(node) {
             const selection = window.getSelection();
 
-            if (! selection) {
+            if (!selection) {
                 return;
             }
 
@@ -259,7 +914,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         applyInlineTag(tagName, nativeCommand) {
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
@@ -271,8 +926,9 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             const fragment = range.cloneContents();
             const containsBlock = Array.from(fragment.childNodes).some(
-                (node) => node.nodeType === Node.ELEMENT_NODE
-                    && this.isBlockElement(node),
+                (node) =>
+                    node.nodeType === Node.ELEMENT_NODE &&
+                    this.isBlockElement(node),
             );
 
             if (containsBlock) {
@@ -288,39 +944,17 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             this.finishVisualCommand();
         },
 
-        applyInlineStyle(property, value, nativeCommand) {
-            const range = this.currentRange();
-
-            if (! range) {
-                return;
-            }
-
-            if (range.collapsed) {
-                this.runNativeCommand('styleWithCSS', true);
-                this.runNativeCommand(nativeCommand, value);
-                this.finishVisualCommand();
-                return;
-            }
-
-            const wrapper = document.createElement('span');
-            wrapper.style[property] = value;
-            wrapper.appendChild(range.extractContents());
-            range.insertNode(wrapper);
-            this.selectNodeContents(wrapper);
-            this.finishVisualCommand();
-        },
-
         formatBlock(tagName) {
             const allowed = ['P', 'H1', 'H2', 'H3', 'BLOCKQUOTE'];
             const tag = String(tagName || 'P').toUpperCase();
 
-            if (! allowed.includes(tag)) {
+            if (!allowed.includes(tag)) {
                 return;
             }
 
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
@@ -364,39 +998,32 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         },
 
         setTextColor(colour) {
-            if (! /^#[0-9a-f]{6}$/i.test(colour)) {
+            if (!/^#[0-9a-f]{6}$/i.test(colour)) {
                 return;
             }
 
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
-            // Do not rely on deprecated execCommand colour handling. Some
-            // Chromium builds report success without keeping the selected
-            // range. Apply the safe inline style directly to the DOM instead.
             this.applyInlineStyleFallback(range, 'color', colour);
             this.finishVisualCommand();
         },
 
         setBackgroundColor(colour) {
-            if (! /^#[0-9a-f]{6}$/i.test(colour)) {
+            if (!/^#[0-9a-f]{6}$/i.test(colour)) {
                 return;
             }
 
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
-            this.applyInlineStyleFallback(
-                range,
-                'backgroundColor',
-                colour,
-            );
+            this.applyInlineStyleFallback(range, 'backgroundColor', colour);
             this.finishVisualCommand();
         },
 
@@ -423,11 +1050,12 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             const fragment = range.cloneContents();
             const containsBlock = Array.from(fragment.childNodes).some(
-                (node) => node.nodeType === Node.ELEMENT_NODE
-                    && this.isBlockElement(node),
+                (node) =>
+                    node.nodeType === Node.ELEMENT_NODE &&
+                    this.isBlockElement(node),
             );
 
-            if (! containsBlock) {
+            if (!containsBlock) {
                 const span = document.createElement('span');
                 span.style[property] = value;
                 span.appendChild(range.extractContents());
@@ -442,13 +1070,13 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         },
 
         applyAlignment(alignment) {
-            if (! ['left', 'center', 'right', 'justify'].includes(alignment)) {
+            if (!['left', 'center', 'right', 'justify'].includes(alignment)) {
                 return;
             }
 
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
@@ -477,7 +1105,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         applyList(listTag, nativeCommand) {
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
@@ -488,7 +1116,12 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             const block = this.closestBlock(range.startContainer);
 
-            if (! block || ! ['P', 'DIV', 'H1', 'H2', 'H3', 'BLOCKQUOTE'].includes(block.tagName)) {
+            if (
+                !block ||
+                !['P', 'DIV', 'H1', 'H2', 'H3', 'BLOCKQUOTE'].includes(
+                    block.tagName,
+                )
+            ) {
                 return;
             }
 
@@ -513,14 +1146,14 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 'https://',
             );
 
-            if (! url || url.trim() === '') {
+            if (!url || url.trim() === '') {
                 return;
             }
 
-            const cleanUrl = url.trim();
+            const cleanUrl = portableSitePath(url, this.pathOptions());
             const range = this.currentRange();
 
-            if (range && ! range.collapsed) {
+            if (range && !range.collapsed) {
                 const anchor = document.createElement('a');
                 anchor.href = cleanUrl;
                 anchor.appendChild(range.extractContents());
@@ -544,79 +1177,38 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 '',
             );
 
-            if (! url || url.trim() === '') {
+            if (!url || url.trim() === '') {
                 return;
             }
 
-            const label = window.prompt('Enter the document link text.', 'View document');
+            const label = window.prompt(
+                'Enter the document link text.',
+                'View document',
+            );
 
             if (label === null) {
                 return;
             }
 
             const anchor = document.createElement('a');
-            anchor.setAttribute('href', url.trim());
+            anchor.setAttribute('href', this.canonicalMediaSrc(url));
             anchor.textContent = label.trim() || 'View document';
 
             this.insertElement(anchor, false);
             this.finishVisualCommand();
         },
 
-        insertImage() {
-            this.restoreSelection();
-
-            const url = window.prompt(
-                'Enter the image URL. For AWCMS media, copy the public image URL from the Media Library.',
-                '',
-            );
-
-            if (! url || url.trim() === '') {
-                return;
-            }
-
-            const alt = window.prompt(
-                'Enter alternative text for accessibility.',
-                '',
-            );
-
-            const image = document.createElement('img');
-            image.src = url.trim();
-            image.alt = (alt || '').trim();
-
-            this.insertElement(image, false);
-            this.finishVisualCommand();
-        },
-
         insertTable() {
             this.restoreSelection();
 
-            const rowsInput = window.prompt(
-                'Number of rows (1-20):',
-                '3',
-            );
+            const rowsInput = window.prompt('Number of rows (1-20):', '3');
+            if (rowsInput === null) return;
 
-            if (rowsInput === null) {
-                return;
-            }
+            const columnsInput = window.prompt('Number of columns (1-10):', '3');
+            if (columnsInput === null) return;
 
-            const columnsInput = window.prompt(
-                'Number of columns (1-10):',
-                '3',
-            );
-
-            if (columnsInput === null) {
-                return;
-            }
-
-            const rows = Math.min(
-                20,
-                Math.max(1, Number.parseInt(rowsInput, 10) || 1),
-            );
-
-            const columns = Math.min(
-                10,
-                Math.max(1, Number.parseInt(columnsInput, 10) || 1),
-            );
+            const rows = Math.min(20, Math.max(1, Number.parseInt(rowsInput, 10) || 1));
+            const columns = Math.min(10, Math.max(1, Number.parseInt(columnsInput, 10) || 1));
 
             const table = document.createElement('table');
             const body = document.createElement('tbody');
@@ -624,19 +1216,12 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
                 const row = document.createElement('tr');
 
-                for (
-                    let columnIndex = 0;
-                    columnIndex < columns;
-                    columnIndex += 1
-                ) {
-                    const cell = document.createElement(
-                        rowIndex === 0 ? 'th' : 'td',
-                    );
-
-                    cell.textContent = rowIndex === 0
-                        ? `Heading ${columnIndex + 1}`
-                        : `Cell ${rowIndex + 1}.${columnIndex + 1}`;
-
+                for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
+                    const cell = document.createElement(rowIndex === 0 ? 'th' : 'td');
+                    cell.textContent =
+                        rowIndex === 0
+                            ? `Heading ${columnIndex + 1}`
+                            : `Cell ${rowIndex + 1}.${columnIndex + 1}`;
                     row.appendChild(cell);
                 }
 
@@ -652,13 +1237,11 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             const range = this.currentRange();
             const selection = window.getSelection();
 
-            if (! range || ! selection) {
+            if (!range || !selection) {
                 this.$refs.visual.appendChild(element);
-
                 if (sync) {
                     this.finishVisualCommand();
                 }
-
                 return;
             }
 
@@ -682,7 +1265,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         clearFormatting() {
             const range = this.currentRange();
 
-            if (! range) {
+            if (!range) {
                 return;
             }
 
@@ -692,7 +1275,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 return;
             }
 
-            if (! range.collapsed) {
+            if (!range.collapsed) {
                 const text = range.toString();
                 range.deleteContents();
                 const textNode = document.createTextNode(text);
@@ -709,8 +1292,12 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         },
 
         isBlockElement(node) {
-            return node instanceof Element
-                && /^(ADDRESS|ARTICLE|ASIDE|BLOCKQUOTE|DIV|FIGCAPTION|FIGURE|FOOTER|H1|H2|H3|H4|H5|H6|HEADER|HR|LI|MAIN|NAV|OL|P|PRE|SECTION|TABLE|TBODY|TD|TFOOT|TH|THEAD|TR|UL)$/.test(node.tagName);
+            return (
+                node instanceof Element &&
+                /^(ADDRESS|ARTICLE|ASIDE|BLOCKQUOTE|DIV|FIGCAPTION|FIGURE|FOOTER|H1|H2|H3|H4|H5|H6|HEADER|HR|LI|MAIN|NAV|OL|P|PRE|SECTION|TABLE|TBODY|TD|TFOOT|TH|THEAD|TR|UL)$/.test(
+                    node.tagName,
+                )
+            );
         },
 
         closestBlock(node) {
@@ -720,7 +1307,6 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 if (this.isBlockElement(current)) {
                     return current;
                 }
-
                 current = current.parentElement;
             }
 
@@ -749,19 +1335,15 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
         normaliseVisualMarkup() {
             const editor = this.$refs.visual;
+            if (!editor) return;
 
             editor.querySelectorAll('font').forEach((font) => {
                 const span = document.createElement('span');
                 const colour = font.getAttribute('color');
                 const background = font.style.backgroundColor;
 
-                if (colour) {
-                    span.style.color = colour;
-                }
-
-                if (background) {
-                    span.style.backgroundColor = background;
-                }
+                if (colour) span.style.color = colour;
+                if (background) span.style.backgroundColor = background;
 
                 while (font.firstChild) {
                     span.appendChild(font.firstChild);
@@ -774,8 +1356,8 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
                 const alignment = element.getAttribute('align');
 
                 if (
-                    alignment
-                    && ['left', 'center', 'right', 'justify'].includes(
+                    alignment &&
+                    ['left', 'center', 'right', 'justify'].includes(
                         alignment.toLowerCase(),
                     )
                 ) {
@@ -848,6 +1430,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             this.restoringHistory = true;
             this.content = snapshot;
             this.$refs.visual.innerHTML = snapshot;
+            this.setupImagesInVisual();
             this.$refs.code.value = this.prettyFormatHtml(snapshot);
             this.syncLivewireInputs();
             this.restoringHistory = false;
@@ -886,19 +1469,30 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
 
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = (node.textContent ?? '').trim();
-
                 return text === '' ? '' : `${indent}${text}`;
             }
 
-            if (! (node instanceof Element)) {
+            if (!(node instanceof Element)) {
                 return '';
             }
 
             const tag = node.tagName.toLowerCase();
             const opening = this.openingTag(node);
             const voidTags = new Set([
-                'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-                'link', 'meta', 'param', 'source', 'track', 'wbr',
+                'area',
+                'base',
+                'br',
+                'col',
+                'embed',
+                'hr',
+                'img',
+                'input',
+                'link',
+                'meta',
+                'param',
+                'source',
+                'track',
+                'wbr',
             ]);
 
             if (voidTags.has(tag)) {
@@ -906,17 +1500,43 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
             }
 
             const blockTags = new Set([
-                'article', 'aside', 'blockquote', 'div', 'figcaption', 'figure',
-                'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header',
-                'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'table',
-                'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'ul',
+                'article',
+                'aside',
+                'blockquote',
+                'div',
+                'figcaption',
+                'figure',
+                'footer',
+                'form',
+                'h1',
+                'h2',
+                'h3',
+                'h4',
+                'h5',
+                'h6',
+                'header',
+                'li',
+                'main',
+                'nav',
+                'ol',
+                'p',
+                'pre',
+                'section',
+                'table',
+                'tbody',
+                'td',
+                'tfoot',
+                'th',
+                'thead',
+                'tr',
+                'ul',
             ]);
 
             const hasBlockChild = Array.from(node.children).some((child) =>
                 blockTags.has(child.tagName.toLowerCase()),
             );
 
-            if (! hasBlockChild) {
+            if (!hasBlockChild) {
                 return `${indent}${opening}${node.innerHTML.trim()}</${tag}>`;
             }
 
@@ -944,7 +1564,7 @@ window.awcmsPageContentEditor = function awcmsPageContentEditor(
         },
 
         toggleFullscreen() {
-            this.fullscreen = ! this.fullscreen;
+            this.fullscreen = !this.fullscreen;
             document.documentElement.style.overflow = this.fullscreen
                 ? 'hidden'
                 : '';

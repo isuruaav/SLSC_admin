@@ -98,6 +98,7 @@ export function initializeSite(d = document, w = window) {
     function closeMenu(restoreFocus = false) {
         const wasOpen = menu?.classList.contains('is-open');
         menu?.classList.remove('is-open');
+        $$('[data-slsc-nav-group]').forEach(group => { group.open = false; });
         menuButton?.setAttribute('aria-expanded', 'false');
         if (menuButton) { menuButton.dataset.i18nAria = 'openMenu'; menuButton.setAttribute('aria-label', t('openMenu')); }
         if (wasOpen && restoreFocus) menuButton?.focus();
@@ -110,7 +111,7 @@ export function initializeSite(d = document, w = window) {
         menuButton.setAttribute('aria-label', t(menuButton.dataset.i18nAria));
         measureHeader();
     });
-    $$('.nav-link').forEach(link => on(link, 'click', () => closeMenu()));
+    $$('a.nav-link, .slsc-nav-submenu a').forEach(link => on(link, 'click', () => closeMenu()));
     on(d, 'click', event => { if (!header?.contains(event.target)) closeMenu(); });
     on(w, 'resize', () => { if (desktop.matches) closeMenu(); measureHeader(); queueScroll(); });
 
@@ -205,6 +206,13 @@ export function initializeSite(d = document, w = window) {
         if ($('#newsCount')) $('#newsCount').textContent = countText('newsCount', count);
         $$('[data-news-filter]').forEach(button => { const active = button.dataset.newsFilter === newsCategory; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
     }
+    function syncProgramTabs(category) {
+        $$('.prog-tab-btn').forEach(btn => {
+            const active = (btn.dataset.cat || 'all') === category;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', String(active));
+        });
+    }
     function filterPrograms() {
         const query = $('#programSearch')?.value ?? '';
         const category = $('#programCategory')?.value ?? 'all';
@@ -215,14 +223,37 @@ export function initializeSite(d = document, w = window) {
         });
         if ($('#noPrograms')) $('#noPrograms').hidden = count !== 0;
         if ($('#programCount')) $('#programCount').textContent = countText('programCount', count);
+        syncProgramTabs(category);
     }
     $$('[data-news-filter]').forEach(button => on(button, 'click', () => { newsCategory = button.dataset.newsFilter; filterNews(); }));
     on($('#newsSearch'), 'input', filterNews);
-    on($('#programSearch'), 'input', filterPrograms);
+    on($('#programSearch'), 'input', () => {
+        const clearBtn = $('#programSearchClear');
+        if (clearBtn) clearBtn.style.display = $('#programSearch')?.value ? 'flex' : 'none';
+        filterPrograms();
+    });
+    on($('#programSearchClear'), 'click', () => {
+        const search = $('#programSearch');
+        if (search) { search.value = ''; search.focus(); }
+        const clearBtn = $('#programSearchClear');
+        if (clearBtn) clearBtn.style.display = 'none';
+        filterPrograms();
+    });
+    $$('.prog-tab-btn').forEach(button => on(button, 'click', () => {
+        const category = button.dataset.cat || 'all';
+        if ($('#programCategory')) $('#programCategory').value = category;
+        filterPrograms();
+    }));
     on($('#programCategory'), 'change', filterPrograms);
     $$('[data-reset]').forEach(button => on(button, 'click', () => {
         if (button.dataset.reset === 'news') { newsCategory = 'all'; if ($('#newsSearch')) $('#newsSearch').value = ''; filterNews(); $('#newsSearch')?.focus(); }
-        else { $('#programSearch').value = ''; $('#programCategory').value = 'all'; filterPrograms(); $('#programSearch').focus(); }
+        else {
+            if ($('#programSearch')) $('#programSearch').value = '';
+            if ($('#programSearchClear')) $('#programSearchClear').style.display = 'none';
+            if ($('#programCategory')) $('#programCategory').value = 'all';
+            filterPrograms();
+            $('#programSearch')?.focus();
+        }
     }));
 
     // Search is entirely local: visitors can search in English or Sinhala in either display language.

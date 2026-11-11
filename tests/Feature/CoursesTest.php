@@ -49,7 +49,10 @@ it('seeds the supplied courses and only lists active courses with their details'
     $this->get(route('courses.index.localized', ['locale' => 'si']))
         ->assertOk()
         ->assertSeeText('පාඨමාලා')
-        ->assertSeeText('Active course for testing')
+        ->assertSeeText('Active course for testing');
+
+    $this->get(route('courses.index.localized', ['locale' => 'si', 'q' => 'Electronic Warfare']))
+        ->assertOk()
         ->assertSeeText('විද්‍යුත් සංග්‍රාම ක්‍රමවේද පිළිබඳ සහතිකපත්‍ර පාඨමාලාව')
         ->assertDontSeeText('Certificate in Electronic Warfare');
 });

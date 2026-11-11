@@ -1,6 +1,9 @@
 import './page-content-editor.js';
 import './copy-path.js';
 import './admin-confirmations.js';
+import './admin-editor-drafts.js';
+import './gallery-ordering.js';
+import './admin-responsive-tables.js';
 import './publication-pdf-upload.js';
 import './navigation-editor.js';
 import './footer-editor.js';

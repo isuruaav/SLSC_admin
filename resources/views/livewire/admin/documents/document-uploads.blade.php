@@ -25,6 +25,8 @@
             <button
                 type="button"
                 wire:click="create"
+                wire:loading.attr="disabled"
+                wire:target="create"
                 class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800"
             >
                 + Add Document
@@ -58,7 +60,7 @@
         </section>
     @endif
 
-    @if ($errors->any())
+    @if ($errors->any() && !$showEditor)
         <div
             role="alert"
             class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
@@ -71,13 +73,7 @@
         </div>
     @endif
 
-    <div
-        @class([
-            'grid min-w-0 items-start gap-6',
-            'min-[1800px]:grid-cols-[minmax(0,1fr)_420px]' =>
-                $canCreate || $canUpdate,
-        ])
-    >
+    <div class="min-w-0">
         <section class="min-w-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div class="border-b border-zinc-200 bg-zinc-50 px-5 py-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -129,6 +125,7 @@
                         <option value="published">
                             Published
                         </option>
+                        <option value="trashed">Trash</option>
                         <option value="not_public">
                             Not public
                         </option>
@@ -154,7 +151,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-[1180px] w-full text-left">
+                <table role="table" aria-label="Documents" class="admin-responsive-table w-full text-left">
                     <thead class="border-b border-zinc-200 bg-white">
                         <tr class="text-[11px] font-black uppercase tracking-wider text-zinc-500">
                             <th class="px-4 py-3">
@@ -251,7 +248,7 @@
                             >
                                 <td class="px-4 py-4 align-top">
                                     <div class="min-w-[250px] max-w-sm">
-                                        @if ($canUpdate)
+                                        @if ($canUpdate && !$document->trashed())
                                             <button
                                                 type="button"
                                                 wire:click="edit({{ $document->id }})"
@@ -357,6 +354,10 @@
                                 @if ($canUpdate || $canDelete)
                                     <td class="px-4 py-4 text-right align-top">
                                         <div class="flex flex-wrap justify-end gap-2">
+                                            @if ($document->trashed())
+                                                @if ($canDelete)<x-admin.icon-action label="Restore as draft" icon="arrow-uturn-left" tone="success" wire:click="restore({{ $document->id }})" />@endif
+                                            @else
+                                            @if ($canPublish)<x-admin.icon-action :label="$document->isPublished() ? 'Unpublish' : 'Publish'" icon="eye" wire:click="{{ $document->isPublished() ? 'unpublish' : 'publish' }}({{ $document->id }})" />@endif
                                             @if ($canUpdate)
                                                 <x-admin.icon-action label="Edit" icon="pencil-square" tone="info"
                                                     type="button"
@@ -372,6 +373,7 @@
                                                     wire:loading.attr="disabled"
                                                     wire:target="delete({{ $document->id }})"
                                                 />
+                                            @endif
                                             @endif
                                         </div>
                                     </td>
@@ -421,174 +423,187 @@
                 </div>
             </div>
         </section>
-
-        @if (
-            ($editingId === null && $canCreate)
-            || ($editingId !== null && $canUpdate)
-        )
-            <form
-                wire:submit="save"
-                class="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm min-[1800px]:sticky min-[1800px]:top-6 min-[1800px]:mx-0 min-[1800px]:max-w-none"
-            >
-                <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                    <h2 class="text-lg font-bold text-zinc-950">
-                        {{ $editingId
-                            ? 'Edit Document'
-                            : 'Add Document' }}
-                    </h2>
-
-                    <p class="mt-1 text-xs leading-5 text-zinc-500">
-                        PDF, Word or Excel. Maximum 10 MB per file.
-                    </p>
-                </div>
-
-                <div class="space-y-5 p-6">
-                    <div>
-                        <label
-                            for="upload-title"
-                            class="mb-2 block text-sm font-semibold"
-                        >
-                            English title
-                            <span class="text-red-600">*</span>
-                        </label>
-
-                        <input
-                            id="upload-title"
-                            type="text"
-                            wire:model="title"
-                            maxlength="255"
-                            required
-                            class="w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm"
-                        >
-
-                        @error('title')
-                            <p class="mt-1 text-xs font-semibold text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label
-                            for="upload-title-si"
-                            class="mb-2 block text-sm font-semibold"
-                        >
-                            සිංහල මාතෘකාව
-                        </label>
-
-                        <input
-                            id="upload-title-si"
-                            type="text"
-                            lang="si"
-                            wire:model="titleSi"
-                            maxlength="255"
-                            class="w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm"
-                        >
-
-                        @error('titleSi')
-                            <p class="mt-1 text-xs font-semibold text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    <div class="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 p-4">
-                        <label
-                            for="upload-english"
-                            class="mb-3 block text-sm font-bold text-emerald-900"
-                        >
-                            English / shared file
-                        </label>
-
-                        <input
-                            id="upload-english"
-                            type="file"
-                            wire:model="englishFile"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx"
-                            class="block w-full text-sm"
-                        >
-
-                        @error('englishFile')
-                            <p class="mt-2 text-xs font-semibold text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    <div class="rounded-xl border border-dashed border-sky-300 bg-sky-50 p-4">
-                        <label
-                            for="upload-sinhala"
-                            class="mb-3 block text-sm font-bold text-sky-900"
-                        >
-                            Sinhala file — optional
-                        </label>
-
-                        <input
-                            id="upload-sinhala"
-                            type="file"
-                            wire:model="sinhalaFile"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx"
-                            class="block w-full text-sm"
-                        >
-
-                        @error('sinhalaFile')
-                            <p class="mt-2 text-xs font-semibold text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    <p class="text-xs leading-6 text-zinc-500">
-                        Upload at least one file. When only one language file exists,
-                        both language links use that file.
-
-                        @if ($editingId)
-                            Leave an upload field empty to keep its existing file.
-                        @endif
-                    </p>
-
-                    <p
-                        wire:loading
-                        wire:target="englishFile,sinhalaFile"
-                        class="text-sm font-semibold text-sky-700"
-                    >
-                        Uploading file...
-                    </p>
-
-                    @if ($canPublish)
-                        <button
-                            type="submit"
-                            wire:loading.attr="disabled"
-                            wire:target="save,englishFile,sinhalaFile"
-                            class="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50"
-                        >
-                            <span wire:loading.remove wire:target="save">
-                                {{ $editingId
-                                    ? 'Update & Publish'
-                                    : 'Save & Publish' }}
-                            </span>
-
-                            <span wire:loading wire:target="save">
-                                Saving...
-                            </span>
-                        </button>
-                    @else
-                        <p class="text-sm text-amber-800">
-                            Publishing permission is required to save public document uploads.
-                        </p>
-                    @endif
-
-                    @if ($editingId)
-                        <button
-                            type="button"
-                            wire:click="cancel"
-                            class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
-                        >
-                            Cancel Editing
-                        </button>
-                    @endif
-                </div>
-            </form>
-        @endif
     </div>
+
+    @if ($canCreate || $canUpdate)
+        <flux:modal name="document-upload-editor" wire:model="showEditor" @close="cancel"
+            class="w-[calc(100%-2rem)] min-w-0 max-w-3xl max-h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl p-0!">
+            @if (
+                ($editingId === null && $canCreate)
+                || ($editingId !== null && $canUpdate)
+            )
+                <form
+                    wire:submit="save" data-unsaved-form data-draft-key="document-{{ $editingId ?? 'new' }}"
+                    wire:key="document-upload-form-{{ $formVersion }}"
+                    x-init="$el.closest('dialog').setAttribute('aria-labelledby', 'document-upload-editor-title'); $el.closest('dialog').setAttribute('aria-describedby', 'document-upload-editor-description')"
+                    class="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden bg-white"
+                >
+                    <div class="shrink-0 border-b border-zinc-200 bg-zinc-50 px-6 py-4 pr-16">
+                        <h2 id="document-upload-editor-title" class="text-lg font-bold text-zinc-950">
+                            {{ $editingId
+                                ? 'Edit Document'
+                                : 'Add Document' }}
+                        </h2>
+
+                        <p id="document-upload-editor-description" class="mt-1 text-xs leading-5 text-zinc-500">
+                            PDF, Word or Excel. Maximum 10 MB per file.
+                        </p>
+                    </div>
+
+                    <div data-draft-feedback-container class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-6">
+                        <x-admin.editor-status />
+                        @if ($errors->any())
+                            <div role="alert" tabindex="-1" x-init="$el.focus()" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                                <p class="font-semibold">Please correct the following errors:</p>
+                                <ul class="mt-2 list-disc space-y-1 pl-5">
+                                    @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label
+                                    for="upload-title"
+                                    class="mb-2 block text-sm font-semibold"
+                                >
+                                    English title
+                                    <span class="text-red-600">*</span>
+                                </label>
+
+                                <input
+                                    id="upload-title"
+                                    type="text"
+                                    wire:model="title"
+                                    autofocus
+                                    maxlength="255"
+                                    required
+                                    class="w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm"
+                                >
+
+                                @error('title')
+                                    <p class="mt-1 text-xs font-semibold text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label
+                                    for="upload-title-si"
+                                    class="mb-2 block text-sm font-semibold"
+                                >
+                                    සිංහල මාතෘකාව
+                                </label>
+
+                                <input
+                                    id="upload-title-si"
+                                    type="text"
+                                    lang="si"
+                                    wire:model="titleSi"
+                                    maxlength="255"
+                                    class="w-full rounded-xl border border-zinc-300 px-3 py-3 text-sm"
+                                >
+
+                                @error('titleSi')
+                                    <p class="mt-1 text-xs font-semibold text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+
+                        </div>
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <div class="min-w-0 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 p-4">
+                                <label
+                                    for="upload-english"
+                                    class="mb-3 block text-sm font-bold text-emerald-900"
+                                >
+                                    English / shared file
+                                </label>
+
+                                <input
+                                    id="upload-english"
+                                    type="file"
+                                    wire:model="englishFile"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                                    class="block w-full min-w-0 text-sm"
+                                >
+
+                                @error('englishFile')
+                                    <p class="mt-2 text-xs font-semibold text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+
+                            <div class="min-w-0 rounded-xl border border-dashed border-sky-300 bg-sky-50 p-4">
+                                <label
+                                    for="upload-sinhala"
+                                    class="mb-3 block text-sm font-bold text-sky-900"
+                                >
+                                    Sinhala file — optional
+                                </label>
+
+                                <input
+                                    id="upload-sinhala"
+                                    type="file"
+                                    wire:model="sinhalaFile"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                                    class="block w-full min-w-0 text-sm"
+                                >
+
+                                @error('sinhalaFile')
+                                    <p class="mt-2 text-xs font-semibold text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+
+                        </div>
+                        <p class="text-xs leading-6 text-zinc-500">
+                            Upload at least one file. When only one language file exists,
+                            both language links use that file.
+
+                            @if ($editingId)
+                                Leave an upload field empty to keep its existing file.
+                            @endif
+                        </p>
+
+                        <p
+                            wire:loading
+                            wire:target="englishFile,sinhalaFile"
+                            class="text-sm font-semibold text-sky-700"
+                        >
+                            Uploading file...
+                        </p>
+
+                        @if ($versions->isNotEmpty())
+                            <section class="space-y-3 rounded-xl border p-4"><h3 class="font-semibold">File version history</h3>
+                                @foreach ($versions as $version)
+                                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                        <a href="{{ route('admin.documents.version-file', ['document' => $editingId, 'version' => $version->id]) }}" target="_blank" rel="noopener">{{ $version->version_label }} · Version {{ $version->version }} ↗</a>
+                                        @if ($canUpdate)<button type="button" wire:click="restoreVersion({{ $version->id }})" wire:confirm="Use this file version as the current version?" class="font-semibold text-emerald-800 underline">Restore version</button>@endif
+                                    </div>
+                                @endforeach
+                            </section>
+                        @endif
+                    </div>
+                    <div class="flex shrink-0 flex-col-reverse gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 sm:flex-row sm:justify-end">
+                        <button type="button" wire:click="cancel" wire:loading.attr="disabled" wire:target="save,saveAndPublish,englishFile,sinhalaFile"
+                            class="rounded-xl border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-600 hover:bg-zinc-100">Cancel</button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="save,saveAndPublish,englishFile,sinhalaFile"
+                            class="rounded-xl border border-emerald-700 bg-white px-5 py-3 text-sm font-bold text-emerald-800">
+                            <span wire:loading.remove wire:target="save">Save Draft</span><span wire:loading wire:target="save">Saving draft…</span>
+                        </button>
+                        @if ($canPublish)
+                            <button type="button" wire:click="saveAndPublish" wire:loading.attr="disabled" wire:target="save,saveAndPublish,englishFile,sinhalaFile"
+                                class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800">
+                                <span wire:loading.remove wire:target="saveAndPublish">Save &amp; Publish</span><span wire:loading wire:target="saveAndPublish">Publishing…</span>
+                            </button>
+                        @endif
+                    </div>
+                </form>
+            @endif
+        </flux:modal>
+    @endif
 </div>

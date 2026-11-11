@@ -84,3 +84,30 @@ it('returns 404 when a publication file has been removed from storage', function
     Storage::disk('local')->delete($record->pdf_path);
     $this->get(route('publications.pdf', ['publication' => $record->uuid]))->assertNotFound();
 });
+
+it('filters publications by title and year and preserves filters when paginating', function (): void {
+    for ($number = 1; $number <= 6; $number++) {
+        publicTestPublication(['title' => 'Archive '.$number, 'published_at' => '2024-06-'.sprintf('%02d', $number)]);
+    }
+    publicTestPublication(['title' => 'Other title', 'published_at' => '2024-01-01']);
+    publicTestPublication(['title' => 'Archive from 2023', 'published_at' => '2023-01-01']);
+    $this->get('/publications?q=Archive&year=2024&sort=oldest')->assertOk()
+        ->assertViewHas('publications', fn ($items) => $items->total() === 6 && $items->first()->title === 'Archive 1')
+        ->assertDontSeeText('Other title')->assertDontSeeText('Archive from 2023')
+        ->assertSee('q=Archive&amp;year=2024&amp;sort=oldest&amp;page=2', false);
+    $this->get('/publications?q=Archive&year=2024&sort=oldest&page=2')->assertOk()->assertSeeText('Archive 6')->assertDontSeeText('Archive 1');
+});
+
+it('downloads published PDFs as attachments and hides drafts, deleted records and missing files', function (): void {
+    $published = publicTestPublication(['title' => 'Download journal']);
+    $this->get(route('publications.download', ['publication' => $published->uuid]))->assertOk()
+        ->assertHeader('Content-Disposition', 'attachment; filename=download-journal.pdf')
+        ->assertStreamedContent("%PDF-1.4\npublication test");
+    $published->delete();
+    $this->get(route('publications.download', ['publication' => $published->uuid]))->assertNotFound();
+    $draft = publicTestPublication(['is_published' => false, 'published_at' => null]);
+    $this->get(route('publications.download', ['publication' => $draft->uuid]))->assertNotFound();
+    $missing = publicTestPublication();
+    Storage::disk('local')->delete($missing->pdf_path);
+    $this->get(route('publications.download', ['publication' => $missing->uuid]))->assertNotFound();
+});

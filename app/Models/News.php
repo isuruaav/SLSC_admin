@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\NewsEditorMode;
 use App\Enums\NewsLocale;
 use App\Enums\NewsStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\NewsFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @property CarbonInterface|null $published_at
+ * @property NewsLocale $locale
+ */
 final class News extends Model
 {
     /** @use HasFactory<NewsFactory> */

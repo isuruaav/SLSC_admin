@@ -1,0 +1,13 @@
+@media (max-width: 767px) {
+    .admin-responsive-table { display:block; width:100%; min-width:0!important; }
+    .admin-responsive-table thead { display:none; }
+    .admin-responsive-table tbody { display:grid; gap:12px; padding:12px; }
+    .admin-responsive-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; border:1px solid #e4e4e7; border-radius:14px; padding:8px; }
+    .admin-responsive-table td { display:block; min-width:0; white-space:normal; padding:8px; border:0; overflow-wrap:anywhere; }
+    .admin-responsive-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:6px; color:#71717a; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .admin-responsive-table td[data-card-title] { grid-column:1/-1; order:-1; font-size:14px; }
+    .admin-responsive-table td:last-child,.admin-responsive-table td[colspan] { grid-column:1/-1; }
+    .admin-responsive-table td:last-child button,.admin-responsive-table td:last-child a { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+    .admin-responsive-table td[data-card-title] a,.admin-responsive-table td>div { min-width:0!important; max-width:100%; }
+    .admin-responsive-table td[data-card-title] strong { overflow-wrap:anywhere; }
+}

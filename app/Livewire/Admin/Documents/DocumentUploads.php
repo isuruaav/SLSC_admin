@@ -32,6 +32,11 @@ final class DocumentUploads extends Component
     #[Locked]
     public ?int $savedDocumentId = null;
 
+    public bool $showEditor = false;
+
+    #[Locked]
+    public int $formVersion = 0;
+
     public string $title = '';
 
     public string $titleSi = '';
@@ -56,6 +61,8 @@ final class DocumentUploads extends Component
 
         if ($document !== null && $document->exists) {
             $this->edit((int) $document->getKey());
+        } elseif (request()->routeIs('admin.documents.create')) {
+            $this->create();
         }
     }
 
@@ -71,7 +78,7 @@ final class DocumentUploads extends Component
             [
                 'all',
                 'published',
-                'not_public',
+                'not_public', 'trashed',
             ],
             true,
         )) {
@@ -136,9 +143,11 @@ final class DocumentUploads extends Component
 
     public function create(): void
     {
+        Gate::authorize('documents.view');
         Gate::authorize('documents.create');
 
         $this->clearForm();
+        $this->showEditor = true;
     }
 
     public function edit(int $id): void
@@ -163,6 +172,8 @@ final class DocumentUploads extends Component
         $this->sinhalaFile = null;
 
         $this->resetValidation();
+        $this->formVersion++;
+        $this->showEditor = true;
     }
 
     public function cancel(): void
@@ -174,6 +185,17 @@ final class DocumentUploads extends Component
 
     public function save(): void
     {
+        $this->persist(false);
+    }
+
+    public function saveAndPublish(): void
+    {
+        Gate::authorize('documents.publish');
+        $this->persist(true);
+    }
+
+    private function persist(bool $publish): void
+    {
         Gate::authorize('documents.view');
 
         Gate::authorize(
@@ -181,8 +203,6 @@ final class DocumentUploads extends Component
                 ? 'documents.create'
                 : 'documents.update',
         );
-
-        Gate::authorize('documents.publish');
 
         $this->title = trim($this->title);
         $this->titleSi = trim($this->titleSi);
@@ -243,6 +263,7 @@ final class DocumentUploads extends Component
             titleSi: $this->titleSi,
             englishFile: $english,
             sinhalaFile: $sinhala,
+            publish: $publish,
         );
 
         $this->savedDocumentId = (int) $document->getKey();
@@ -252,7 +273,7 @@ final class DocumentUploads extends Component
 
         session()->flash(
             'status',
-            'Document saved and published successfully.',
+            $publish ? 'Document saved and published successfully.' : 'Document saved as a private draft.',
         );
     }
 
@@ -273,7 +294,7 @@ final class DocumentUploads extends Component
 
         session()->flash(
             'status',
-            'Document deleted successfully.',
+            'Document moved to Trash. You can restore it as a draft.',
         );
     }
 
@@ -288,6 +309,7 @@ final class DocumentUploads extends Component
         );
 
         $query = Document::query()
+            ->when($this->statusFilter === 'trashed', fn (Builder $query) => $query->onlyTrashed())
             ->when(
                 $search !== '',
                 function (Builder $query) use ($search): void {
@@ -368,6 +390,7 @@ final class DocumentUploads extends Component
                 'documents' => $query->paginate(
                     $this->perPage,
                 ),
+                'versions' => $this->editingId !== null ? Document::query()->findOrFail($this->editingId)->versions()->with('media')->latest('version')->get() : collect(),
                 'savedDocument' => $this->savedDocumentId !== null
                     ? Document::query()->published()->find($this->savedDocumentId)
                     : null,
@@ -394,6 +417,7 @@ final class DocumentUploads extends Component
         try {
             return app(MediaUploadService::class)->upload(
                 file: $file,
+                privateStorage: true,
                 type: MediaType::Document,
                 visibility: MediaVisibility::Public,
                 actor: $actor,
@@ -416,6 +440,7 @@ final class DocumentUploads extends Component
     private function clearForm(): void
     {
         $this->reset([
+            'showEditor',
             'editingId',
             'title',
             'titleSi',
@@ -423,6 +448,7 @@ final class DocumentUploads extends Component
             'sinhalaFile',
         ]);
 
+        $this->formVersion++;
         $this->resetValidation();
     }
 
@@ -436,5 +462,40 @@ final class DocumentUploads extends Component
         );
 
         return $actor;
+    }
+
+    public function restore(int $id): void
+    {
+        Gate::authorize('documents.view');
+        app(DocumentUploadManager::class)->restore($id, $this->actor());
+        session()->flash('status', 'Document restored as a draft.');
+        $this->resetPage();
+    }
+
+    public function publish(int $id): void
+    {
+        $this->setPublished($id, true);
+    }
+
+    public function unpublish(int $id): void
+    {
+        $this->setPublished($id, false);
+    }
+
+    private function setPublished(int $id, bool $publish): void
+    {
+        Gate::authorize('documents.view');
+        Gate::authorize('documents.publish');
+        $record = Document::query()->whereKey($id)->firstOrFail();
+        app(DocumentUploadManager::class)->save($this->actor(), $id, (string) $record->title, (string) $record->title_si, null, null, $publish);
+        session()->flash('status', $publish ? 'Document published.' : 'Document returned to draft.');
+    }
+
+    public function restoreVersion(int $id): void
+    {
+        Gate::authorize('documents.view');
+        abort_unless($this->editingId !== null, 404);
+        app(DocumentUploadManager::class)->restoreUploadVersion(Document::query()->findOrFail($this->editingId), $id, $this->actor());
+        session()->flash('status', 'Document version restored.');
     }
 }

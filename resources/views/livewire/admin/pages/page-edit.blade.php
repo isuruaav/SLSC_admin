@@ -31,7 +31,9 @@
         </div>
     @endif
 
-    <form wire:submit="save" wire:confirm="Save changes to this page?" class="space-y-6">
+    <form wire:submit="save" data-unsaved-form data-draft-key="pages-edit" class="space-y-6">
+            <x-admin.publishing-checklist :title="$title" :content="$content" :translated-title="$sinhalaTitle ?? ''" :blocks="$blocks ?? []" />
+        <x-admin.editor-status />
         <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>

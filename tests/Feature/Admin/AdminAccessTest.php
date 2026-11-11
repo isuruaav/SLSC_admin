@@ -37,5 +37,6 @@ test('super administrators can access the admin dashboard', function (): void {
     $this->actingAs($user)
         ->get('/admin')
         ->assertOk()
-        ->assertSee('AWCMS Foundation Ready');
+        ->assertSee('AWCMS Dashboard')
+        ->assertSee('Content to Review');
 });

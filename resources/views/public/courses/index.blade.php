@@ -42,12 +42,15 @@
                 <h1>{{ $title }}</h1>
             </div>
         </header>
-        <main class="aw-courses-main">
+        <div class="aw-courses-main">
             <div class="aw-courses-container">
+                @include('public.courses.filters')
                 @if ($courses->isNotEmpty())
                     <div class="aw-courses-grid">
                         @foreach ($courses as $course)
                             <article class="aw-course-card">
+                                @php($courseState = $course->end_date?->isPast() && !$course->end_date?->isToday() ? 'completed' : ($course->start_date?->isFuture() ? 'upcoming' : ($course->start_date ? 'ongoing' : 'available')))
+                                <span class="course-status">{{ ['completed' => ['Completed','අවසන් වූ'], 'upcoming' => ['Upcoming','ඉදිරියේදී'], 'ongoing' => ['Ongoing','දැනට පැවැත්වෙන'], 'available' => ['Available','තොරතුරු ලබාගත හැක']][$courseState][$isSinhala ? 1 : 0] }}</span>
                                 <h2 lang="{{ $isSinhala ? 'si' : 'en' }}">{{ $isSinhala ? ($course->name_si ?: $course->name) : $course->name }}</h2>
                                 @if ($course->start_date || $course->end_date)
                                     <div class="aw-course-dates">
@@ -68,7 +71,7 @@
                                         <h3>{{ $isSinhala ? 'සුදුසුකම්' : 'Qualifications' }}</h3>
                                         <ul>
                                             @foreach ($course->qualifications as $qualification)
-                                                <li>{{ $qualification->qualification }}</li>
+                                                <li>{{ $isSinhala ? ($qualification->qualification_si ?: $qualification->qualification) : $qualification->qualification }}</li>
                                             @endforeach
                                         </ul>
                                     </section>
@@ -82,7 +85,8 @@
                         <p>{{ $isSinhala ? 'නව පාඨමාලා තොරතුරු සඳහා පසුව නැවත බලන්න.' : 'Please check back later for course updates.' }}</p>
                     </div>
                 @endif
+                @if ($courses->hasPages())<nav class="course-public-filters" aria-label="Course pages">@if ($courses->previousPageUrl())<a href="{{ $courses->previousPageUrl() }}">← {{ $isSinhala ? 'පෙර' : 'Previous' }}</a>@endif<span>{{ $courses->currentPage() }} / {{ $courses->lastPage() }}</span>@if ($courses->nextPageUrl())<a href="{{ $courses->nextPageUrl() }}">{{ $isSinhala ? 'ඊළඟ' : 'Next' }} →</a>@endif</nav>@endif
             </div>
-        </main>
+        </div>
     </div>
 @endsection

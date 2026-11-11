@@ -923,6 +923,40 @@
 
                         @enderror
 
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label for="secondaryTenureEn" class="block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                                    Additional Tenure Note (English - Optional)
+                                </label>
+                                <textarea
+                                    id="secondaryTenureEn"
+                                    wire:model="secondaryTenureEn"
+                                    rows="2"
+                                    placeholder="Brig KA Gnanaweera&#10;1992 - 10 - 01 to 1993 - 06 - 27"
+                                    class="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                                ></textarea>
+                                @error('secondaryTenureEn')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="secondaryTenureSi" class="block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                                    Additional Tenure Note (Sinhala - Optional)
+                                </label>
+                                <textarea
+                                    id="secondaryTenureSi"
+                                    wire:model="secondaryTenureSi"
+                                    rows="2"
+                                    placeholder="බ්‍රිගේඩියර් කේඒ ඥානවීර&#10;1992 - 10 - 01 සිට 1993 - 06 - 27 දක්වා"
+                                    class="mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                                ></textarea>
+                                @error('secondaryTenureSi')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
                         <div>
 
                             <p class="text-sm font-black text-zinc-900">

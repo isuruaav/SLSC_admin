@@ -33,6 +33,8 @@ final class MediaUploadService
         ?string $title = null,
         ?string $altText = null,
         ?string $caption = null,
+        bool $privateStorage = false,
+        bool $reuseExisting = false,
     ): MediaAsset {
         Gate::forUser($actor)->authorize(
             'media.upload',
@@ -179,9 +181,7 @@ final class MediaUploadService
             path: $realPath,
         );
 
-        $disk = $this->diskFor(
-            $visibility,
-        );
+        $disk = $this->diskFor($privateStorage ? MediaVisibility::Internal : $visibility);
 
         $directory = $this->directoryFor(
             $type,
@@ -221,6 +221,13 @@ final class MediaUploadService
          */
         if ($type !== MediaType::Image) {
             $safeAltText = '';
+        }
+
+        if ($reuseExisting && ! $privateStorage) {
+            $existing = app(MediaDuplicateFinder::class)->find($file, $visibility->value, $actor);
+            if ($existing !== null && $existing->getAttribute('type') === $type && $existing->disk === $disk) {
+                return $existing;
+            }
         }
 
         /*

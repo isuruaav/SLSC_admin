@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Local header layout verification</title>
+<style>body{margin:0;background:#eef2f6}iframe{display:block;width:390px;height:844px;border:0;background:white}pre{white-space:pre-wrap}</style>
+</head><body><iframe id="preview" src="./" title="Mobile site preview"></iframe>
+<pre id="checks">{
+  "viewport": 390,
+  "header": {
+    "left": 0,
+    "right": 375,
+    "width": 375,
+    "height": 79
+  },
+  "brand": {
+    "left": 18,
+    "right": 301,
+    "width": 283,
+    "height": 50
+  },
+  "button": {
+    "left": 313,
+    "right": 357,
+    "width": 44,
+    "height": 44
+  },
+  "buttonVisible": true,
+  "menuExpanded": "false",
+  "menuDisplay": "none",
+  "appointmentLinks": 8
+}</pre>
+<script>
+const preview = document.getElementById('preview');
+preview.addEventListener('load', () => {
+    const doc = preview.contentDocument;
+    const header = doc.querySelector('.aw-header');
+    const button = doc.querySelector('.cms-mobile-menu-toggle');
+    const brand = doc.querySelector('.aw-brand');
+    const bounds = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {left:rect.left,right:rect.right,width:rect.width,height:rect.height};
+    };
+    if (location.hash === '#open') {
+        button.click();
+        doc.querySelector('#mobileMenu details').open = true;
+    }
+    document.getElementById('checks').textContent = JSON.stringify({
+        viewport:preview.contentWindow.innerWidth,
+        header:bounds(header), brand:bounds(brand), button:bounds(button),
+        buttonVisible:preview.contentWindow.getComputedStyle(button).display !== 'none',
+        menuExpanded:button.getAttribute('aria-expanded'),
+        menuDisplay:preview.contentWindow.getComputedStyle(doc.getElementById('mobileMenu')).display,
+        appointmentLinks:doc.querySelectorAll('#mobileMenu a[href*="/school-leadership/"]').length,
+    }, null, 2);
+});
+</script>
+</body></html>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\SchoolLeadershipAppointment;
 use App\Enums\SchoolLeadershipRank;
+use App\Services\MediaUrlService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,11 +17,14 @@ use Illuminate\Support\Carbon;
  * @property string|null $rank
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
+ * @property string|null $secondary_tenure_en
+ * @property string|null $secondary_tenure_si
  * @property string $title_en
  * @property string|null $title_si
  * @property string|null $name_en
  * @property string|null $name_si
  * @property int|null $image_media_id
+ * @property string|null $image_path
  * @property bool $is_active
  * @property bool $profile_enabled
  * @property string|null $profile_html_en
@@ -52,11 +56,14 @@ final class SchoolLeader extends Model
         'rank',
         'start_date',
         'end_date',
+        'secondary_tenure_en',
+        'secondary_tenure_si',
         'title_en',
         'title_si',
         'name_en',
         'name_si',
         'image_media_id',
+        'image_path',
         'is_active',
         'profile_enabled',
         'profile_html_en',
@@ -281,17 +288,87 @@ final class SchoolLeader extends Model
 
     public function hasPublicProfile(): bool
     {
-        return $this->profile_enabled && $this->supportsProfile();
+        return $this->profile_enabled && $this->supportsProfile()
+            && ($this->hasProfileContentForLocale('en') || $this->hasProfileContentForLocale('si'));
+    }
+
+    public function hasProfileContentForLocale(string $locale): bool
+    {
+        return in_array($locale, ['en', 'si'], true)
+            && trim((string) $this->getAttribute('profile_html_'.$locale)) !== '';
     }
 
     public function profileUrlForLocale(string $locale): ?string
     {
-        if (! $this->hasPublicProfile() || ! in_array($locale, ['en', 'si'], true)) {
+        if (! $this->hasPublicProfile() || ! $this->hasProfileContentForLocale($locale)) {
+            return null;
+        }
+
+        return $this->appointmentUrlForLocale($locale);
+    }
+
+    public function appointmentUrlForLocale(string $locale): ?string
+    {
+        if (! $this->supportsProfile() || ! in_array($locale, ['en', 'si'], true)) {
             return null;
         }
 
         return $locale === 'en'
             ? route('school-leadership.show', ['leader' => $this->id])
             : route('school-leadership.show.localized', ['locale' => $locale, 'leader' => $this->id]);
+    }
+
+    public function resolvedImageUrl(): ?string
+    {
+        if ($this->image) {
+            return app(MediaUrlService::class)->mediumOrOriginal($this->image);
+        }
+
+        if (is_string($this->image_path) && trim($this->image_path) !== '') {
+            return asset($this->image_path);
+        }
+
+        return null;
+    }
+
+    public function periodForLocale(string $locale = 'en'): string
+    {
+        if (! $this->start_date && ! $this->end_date) {
+            return '';
+        }
+
+        $start = $this->start_date ? $this->start_date->format('Y - m - d') : '';
+        $end = $this->end_date ? $this->end_date->format('Y - m - d') : ($locale === 'si' ? 'අද දක්වා' : 'Present');
+
+        if ($start !== '') {
+            return $locale === 'si'
+                ? "{$start} සිට {$end} දක්වා"
+                : "{$start} to {$end}";
+        }
+
+        return $end;
+    }
+
+    public function displayNameWithRankForLocale(string $locale = 'en'): string
+    {
+        $name = $this->nameForLocale($locale);
+        $rank = $this->rankLabelForLocale($locale);
+
+        if ($rank !== '' && ! str_starts_with(strtolower($name), strtolower($rank))) {
+            return "{$rank} {$name}";
+        }
+
+        return $name !== '' ? $name : $this->titleForLocale($locale);
+    }
+
+    public function secondaryTenureForLocale(string $locale = 'en'): ?string
+    {
+        if ($locale === 'si' && is_string($this->secondary_tenure_si) && trim($this->secondary_tenure_si) !== '') {
+            return $this->secondary_tenure_si;
+        }
+
+        return is_string($this->secondary_tenure_en) && trim($this->secondary_tenure_en) !== ''
+            ? $this->secondary_tenure_en
+            : null;
     }
 }

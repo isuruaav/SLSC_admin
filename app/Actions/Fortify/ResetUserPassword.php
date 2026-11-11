@@ -22,6 +22,9 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
+        if ($user->getAttribute('invited_at') !== null && $user->getAttribute('invitation_accepted_at') === null) {
+            $user->forceFill(['email_verified_at' => now(), 'invitation_accepted_at' => now()]);
+        }
         $user->forceFill([
             'password' => $input['password'],
         ])->save();

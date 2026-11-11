@@ -2,6 +2,7 @@
 @import '../../vendor/livewire/flux/dist/flux.css';
 @import 'trix/dist/trix.css';
 @import './admin-news.css';
+@import './admin-ux.css';
 
 @source '../views';
 @source '../../themes/**/*.blade.php';
@@ -745,15 +746,96 @@ trix-editor.awcms-editor pre code {
     text-underline-offset: 3px;
 }
 
-.awcms-page-visual-editor img {
-    display: block;
+.awcms-page-visual-editor::after,
+.awcms-content::after {
+    content: "";
+    display: table;
+    clear: both;
+}
 
+.awcms-page-visual-editor img {
+    display: inline-block;
     max-width: 100%;
     height: auto;
-
     margin: 1.25rem 0;
+    border-radius: 0.5rem;
+    cursor: grab;
+    transition: outline 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+}
 
-    border-radius: 0.75rem;
+.awcms-page-visual-editor img:hover {
+    outline: 2px solid #10b981;
+}
+
+.awcms-page-visual-editor img.awcms-image-selected {
+    outline: 3px solid #059669;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+}
+
+.awcms-page-visual-editor img.awcms-image-dragging {
+    opacity: 0.35;
+    outline: 2px dashed #059669;
+    cursor: grabbing;
+}
+
+.awcms-editor-drop-indicator {
+    position: absolute;
+    height: 3px;
+    background: #059669;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 30;
+    box-shadow: 0 0 8px rgba(5, 150, 105, 0.7);
+}
+
+.awcms-image-floating-toolbar {
+    position: absolute;
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    background: #18181b;
+    color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    font-size: 12px;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+
+.awcms-image-floating-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #27272a;
+    color: #f4f4f5;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.awcms-image-floating-toolbar button:hover {
+    background: #3f3f46;
+    color: #ffffff;
+}
+
+.awcms-image-floating-toolbar button.active {
+    background: #059669;
+    color: #ffffff;
+}
+
+.awcms-image-floating-toolbar .toolbar-divider {
+    width: 1px;
+    height: 16px;
+    background: #3f3f46;
+    margin: 0 2px;
 }
 
 .awcms-page-visual-editor table {

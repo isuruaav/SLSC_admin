@@ -57,7 +57,7 @@ it('offers localized safe footer starters and published pages without altering l
     Page::factory()->create(['locale' => 'si', 'title' => 'Draft page']);
     $config = app(FooterEditorService::class)->configuration('si', 'slsc');
 
-    expect($config['defaultHtml'])->toContain('<footer', '[[site_logo]]', '[[contact_details]]', '[[social_links]]', '[[copyright_year]]', '[[site_url:/si/courses]]', __('public.quick_links', [], 'si'))
+    expect($config['defaultHtml'])->toContain('<footer', '[[site_logo]]', '[[contact_details]]', '[[social_links]]', '[[copyright_year]]', '[[site_url:/si]]', __('public.quick_links', [], 'si'))
         ->and($config['pages'])->toBe([['label' => 'Sinhala page', 'href' => '[[site_url:/si/pages/sinhala-page]]']])
         ->and(app(ThemeLayoutSanitizer::class)->sanitizeHtml($config['defaultHtml']))->toContain('aw-footer-grid', '[[social_links]]')
         ->and(app(ThemeLayoutSanitizer::class)->sanitizeCss($config['baseCss']))->toContain('.aw-footer-grid')

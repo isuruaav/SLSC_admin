@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use ZipArchive;
 
@@ -38,12 +39,14 @@ class CreateSiteBackup extends Command
 
         $timestamp = now()->format('Y-m-d_His');
         $backupDir = storage_path('app/backups');
-        $tempDir = storage_path('app/backups/temp_' . $timestamp);
+        $tempDir = storage_path('app/backups/temp_'.$timestamp);
 
         if (! File::isDirectory($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
-            File::put($backupDir . '/.gitignore', "*\n!.gitignore\n");
+            File::put($backupDir.'/.gitignore', "*\n!.gitignore\n");
         }
+        // Keep archives inaccessible when WAMP exposes a parent directory.
+        File::put($backupDir.'/.htaccess', "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order allow,deny\n    Deny from all\n</IfModule>\n");
 
         File::makeDirectory($tempDir, 0755, true);
 
@@ -57,30 +60,32 @@ class CreateSiteBackup extends Command
             // 1. Database Backup
             if (! $filesOnly) {
                 $this->line('Dumping database...');
-                $sqlFile = $tempDir . '/database.sql';
+                $sqlFile = $tempDir.'/database.sql';
                 $dumpSuccess = $this->dumpDatabase($sqlFile);
 
                 if (! $dumpSuccess || ! File::exists($sqlFile)) {
                     $this->error('Failed to create database dump.');
                     File::deleteDirectory($tempDir);
+
                     return self::FAILURE;
                 }
 
-                $this->info('Database dump created: ' . number_format(File::size($sqlFile) / 1024, 2) . ' KB');
+                $this->info('Database dump created: '.number_format(File::size($sqlFile) / 1024, 2).' KB');
             }
 
             // 2. Archive Creation
-            $zipFilename = 'backup_' . config('app.name', 'site') . '_' . $timestamp . '.zip';
-            $zipPath = $backupDir . '/' . $zipFilename;
+            $zipFilename = 'backup_'.(Str::slug((string) config('app.name', 'site')) ?: 'site').'_'.$timestamp.'.zip';
+            $zipPath = $backupDir.'/'.$zipFilename;
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-                $this->error('Failed to create zip archive: ' . $zipPath);
+                $this->error('Failed to create zip archive: '.$zipPath);
                 File::deleteDirectory($tempDir);
+
                 return self::FAILURE;
             }
 
-            if ($sqlFile && File::exists($sqlFile)) {
+            if ($sqlFile !== null) {
                 $zip->addFile($sqlFile, 'database.sql');
             }
 
@@ -94,17 +99,31 @@ class CreateSiteBackup extends Command
                     $fileCount = 0;
 
                     foreach ($files as $file) {
-                        $relativePath = 'storage/' . str_replace('\\', '/', $file->getRelativePathname());
+                        $relativePath = 'storage/'.str_replace('\\', '/', $file->getRelativePathname());
                         $zip->addFile($file->getRealPath(), $relativePath);
                         $fileCount++;
                     }
 
                     $this->info("Added {$fileCount} media files to archive.");
                 } else {
-                    $this->warn('Public storage directory not found: ' . $publicStorageDir);
+                    $this->warn('Public storage directory not found: '.$publicStorageDir);
                 }
             }
 
+            if (! $dbOnly) {
+                $privateDisk = (string) config('media.disks.private', 'local');
+                $privateRoot = config('filesystems.disks.'.$privateDisk.'.root');
+                if (is_string($privateRoot) && is_dir($privateRoot) && realpath($privateRoot) !== realpath(storage_path('app/backups'))) {
+                    foreach (File::allFiles($privateRoot) as $file) {
+                        $backupRoot = realpath(storage_path('app/backups'));
+                        if ($backupRoot && str_starts_with((string) $file->getRealPath(), $backupRoot.DIRECTORY_SEPARATOR)) {
+                            continue;
+                        }
+                        $relativePath = 'private/'.str_replace('\\', '/', $file->getRelativePathname());
+                        $zip->addFile($file->getRealPath(), $relativePath);
+                    }
+                }
+            }
             $zip->close();
 
             // Clean temporary files
@@ -112,7 +131,7 @@ class CreateSiteBackup extends Command
 
             $zipSizeMb = number_format(File::size($zipPath) / (1024 * 1024), 2);
             $this->newLine();
-            $this->info("Backup completed successfully!");
+            $this->info('Backup completed successfully!');
             $this->info("Archive: {$zipPath} ({$zipSizeMb} MB)");
 
             // 4. Prune old backups
@@ -122,10 +141,11 @@ class CreateSiteBackup extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            $this->error('Backup error: ' . $e->getMessage());
+            $this->error('Backup error: '.$e->getMessage());
             if (File::isDirectory($tempDir)) {
                 File::deleteDirectory($tempDir);
             }
+
             return self::FAILURE;
         }
     }
@@ -138,7 +158,7 @@ class CreateSiteBackup extends Command
         $mysqldumpPath = $this->findMysqldump();
 
         if ($mysqldumpPath !== null) {
-            $dbConfig = config('database.connections.' . config('database.default'));
+            $dbConfig = config('database.connections.'.config('database.default'));
             $host = (string) ($dbConfig['host'] ?? '127.0.0.1');
             $port = (string) ($dbConfig['port'] ?? '3306');
             $database = (string) ($dbConfig['database'] ?? '');
@@ -147,13 +167,13 @@ class CreateSiteBackup extends Command
 
             $cmd = [
                 $mysqldumpPath,
-                '--host=' . $host,
-                '--port=' . $port,
-                '--user=' . $username,
+                '--host='.$host,
+                '--port='.$port,
+                '--user='.$username,
             ];
 
             if ($password !== '') {
-                $cmd[] = '--password=' . $password;
+                $cmd[] = '--password='.$password;
             }
 
             $cmd = array_merge($cmd, [
@@ -161,7 +181,7 @@ class CreateSiteBackup extends Command
                 '--quick',
                 '--skip-lock-tables',
                 $database,
-                '--result-file=' . $outputFile,
+                '--result-file='.$outputFile,
             ]);
 
             try {
@@ -192,14 +212,14 @@ class CreateSiteBackup extends Command
         }
 
         fwrite($handle, "-- Site Database Backup\n");
-        fwrite($handle, "-- Generated: " . now()->toIso8601String() . "\n");
+        fwrite($handle, '-- Generated: '.now()->toIso8601String()."\n");
         fwrite($handle, "SET foreign_key_checks = 0;\n\n");
 
         $connection = DB::connection();
         $databaseName = $connection->getDatabaseName();
         $tables = $connection->select('SHOW TABLES');
 
-        $tableKey = 'Tables_in_' . $databaseName;
+        $tableKey = 'Tables_in_'.$databaseName;
 
         foreach ($tables as $tableObj) {
             $tableName = $tableObj->$tableKey ?? current((array) $tableObj);
@@ -213,12 +233,16 @@ class CreateSiteBackup extends Command
             if (! empty($createTable)) {
                 $createSql = ((array) $createTable[0])['Create Table'] ?? null;
                 if ($createSql) {
-                    fwrite($handle, $createSql . ";\n\n");
+                    fwrite($handle, $createSql.";\n\n");
                 }
             }
 
             // Export rows in chunks
-            $rows = $connection->table($tableName)->get();
+            $exportColumns = array_column(array_filter(
+                $connection->getSchemaBuilder()->getColumns($tableName),
+                static fn (array $column): bool => $column['generation'] === null,
+            ), 'name');
+            $rows = $connection->table($tableName)->select($exportColumns)->get();
             if ($rows->isNotEmpty()) {
                 foreach ($rows as $row) {
                     $rowArray = (array) $row;
@@ -229,11 +253,12 @@ class CreateSiteBackup extends Command
                         if (is_numeric($value)) {
                             return $value;
                         }
+
                         return $connection->getPdo()->quote((string) $value);
                     }, $rowArray);
 
                     $columns = array_map(fn ($col) => "`{$col}`", array_keys($rowArray));
-                    $sql = "INSERT INTO `{$tableName}` (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $escapedValues) . ");\n";
+                    $sql = "INSERT INTO `{$tableName}` (".implode(', ', $columns).') VALUES ('.implode(', ', $escapedValues).");\n";
                     fwrite($handle, $sql);
                 }
                 fwrite($handle, "\n");
@@ -278,7 +303,7 @@ class CreateSiteBackup extends Command
      */
     private function pruneOldBackups(string $backupDir, int $keep): void
     {
-        $backups = File::glob($backupDir . '/backup_*.zip');
+        $backups = File::glob($backupDir.'/backup_*.zip');
 
         if (count($backups) > $keep) {
             // Sort by modification time ascending (oldest first)
@@ -287,9 +312,8 @@ class CreateSiteBackup extends Command
             $toDelete = array_slice($backups, 0, count($backups) - $keep);
             foreach ($toDelete as $oldBackup) {
                 File::delete($oldBackup);
-                $this->line('Pruned old backup: ' . basename($oldBackup));
+                $this->line('Pruned old backup: '.basename($oldBackup));
             }
         }
     }
 }
-

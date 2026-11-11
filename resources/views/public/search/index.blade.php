@@ -539,7 +539,7 @@
     </header>
 
     {{-- Main Results Section --}}
-    <main class="aw-search-main">
+    <div class="aw-search-main">
         <div class="aw-search-container">
             @if ($query !== '')
                 {{-- Meta and Category Filters --}}
@@ -604,6 +604,9 @@
                                 <span class="aw-filter-badge">{{ $counts['pages'] }}</span>
                             </a>
                         @endif
+                        @foreach (['organizations' => ['Organizations','ආයතන'], 'leadership' => ['Leadership','නායකත්වය'], 'galleries' => ['Galleries','ඡායාරූප'], 'appointments' => ['First Appointments','පළමු පත්වීම්'], 'commanders' => ['Brigade Commanders','බලසේනාධිපතිවරු']] as $key => $labels)
+                            @if ($counts[$key] > 0 || $category === $key)<a href="{{ route($tabRoute, [...$baseParams, 'type' => $key]) }}" class="aw-filter-tab {{ $category === $key ? 'active' : '' }}">{{ $labels[$isSinhala ? 1 : 0] }} <span class="aw-filter-badge">{{ $counts[$key] }}</span></a>@endif
+                        @endforeach
                     </div>
                 </div>
 
@@ -651,6 +654,13 @@
                         </div>
                     </div>
                 @endif
+                @if ($pagination->hasPages())
+                    <nav class="aw-empty-actions" style="margin-top:28px" aria-label="{{ $isSinhala ? 'සෙවුම් ප්‍රතිඵල පිටු' : 'Search result pages' }}">
+                        @if ($pagination->previousPageUrl())<a class="aw-btn-action" href="{{ $pagination->previousPageUrl() }}" rel="prev">← {{ $isSinhala ? 'පෙර' : 'Previous' }}</a>@endif
+                        <span>{{ $pagination->currentPage() }} / {{ $pagination->lastPage() }}</span>
+                        @if ($pagination->nextPageUrl())<a class="aw-btn-action" href="{{ $pagination->nextPageUrl() }}" rel="next">{{ $isSinhala ? 'ඊළඟ' : 'Next' }} →</a>@endif
+                    </nav>
+                @endif
             @else
                 {{-- Initial Search Prompt (empty query) --}}
                 <div class="aw-search-empty">
@@ -684,6 +694,6 @@
                 </div>
             @endif
         </div>
-    </main>
+    </div>
 </div>
 @endsection

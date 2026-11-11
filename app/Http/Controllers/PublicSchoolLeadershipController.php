@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolLeader;
 use App\Services\LeadershipProfileContent;
+use App\Services\SiteLanguageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -45,8 +46,8 @@ final class PublicSchoolLeadershipController
                     ->get()
                 : collect();
 
-        return view(
-            $this->themeNamespace().'::school-leadership',
+        return $this->themeView(
+            'school-leadership',
             [
                 'leaders' => $leaders,
                 'currentLocale' => $locale,
@@ -83,7 +84,7 @@ final class PublicSchoolLeadershipController
                 ->get()
             : collect();
 
-        return view($this->themeNamespace().'::school-leadership', [
+        return $this->themeView('school-leadership', [
             'leaders' => $leaders,
             'isHistory' => true,
             'currentLocale' => $locale,
@@ -139,13 +140,15 @@ final class PublicSchoolLeadershipController
 
     private function profileView(SchoolLeader $leader, string $locale): View
     {
-        abort_unless($leader->hasPublicProfile(), 404);
+        abort_unless($leader->supportsProfile(), 404);
         $isCommandant = $leader->position->key === SchoolLeader::ROLE_COMMANDANT;
 
-        return view($isCommandant ? $this->themeNamespace().'::commandant' : $this->themeNamespace().'::leader-profile', [
+        return $this->themeView($isCommandant ? 'commandant' : 'leader-profile', [
             'commandant' => $leader,
             'leader' => $leader,
-            'profileDocument' => app(LeadershipProfileContent::class)->forLeader($leader, $locale),
+            'profileDocument' => $leader->profileUrlForLocale($locale)
+                ? app(LeadershipProfileContent::class)->forLeader($leader, $locale)
+                : null,
             'currentLocale' => $locale,
             'languageVersions' => $this->languageVersions('school-leadership.show', ['leader' => (string) $leader->id]),
             'pageTitle' => $leader->appointmentLabelForLocale($locale),
@@ -161,7 +164,7 @@ final class PublicSchoolLeadershipController
             ? strtolower(trim($routeLocale))
             : 'en';
 
-        $allowedLocales = app(\App\Services\SiteLanguageService::class)->codes();
+        $allowedLocales = app(SiteLanguageService::class)->codes();
 
         abort_unless(in_array($locale, $allowedLocales, true), 404);
 
@@ -174,7 +177,7 @@ final class PublicSchoolLeadershipController
      */
     private function languageVersions(string $route = 'school-leadership', array $parameters = []): array
     {
-        $locales = app(\App\Services\SiteLanguageService::class)->codes();
+        $locales = app(SiteLanguageService::class)->codes();
 
         $versions = [];
 
@@ -202,10 +205,15 @@ final class PublicSchoolLeadershipController
             return "theme-{$theme}";
         }
 
-        if (view()->exists('theme-slsc::school-leadership')) {
-            return 'theme-slsc';
-        }
-
         return 'theme-slsc';
+    }
+
+    /** @param array<string, mixed> $data */
+    private function themeView(string $template, array $data): View
+    {
+        $name = $this->themeNamespace().'::'.$template;
+        abort_unless(view()->exists($name), 404);
+
+        return view($name, $data);
     }
 }

@@ -1,0 +1,235 @@
+[
+  {
+    "name": "closed",
+    "screenshot": "document-modal-closed-390.png",
+    "width": 390,
+    "overflow": false,
+    "modalOpen": false,
+    "focus": "",
+    "bodyScrollable": false,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Cancel",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Save DraftSaving draft…",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Save & PublishPublishing…",
+        "top": 0,
+        "bottom": 0
+      }
+    ],
+    "livewire": "object"
+  },
+  {
+    "name": "add",
+    "screenshot": "document-modal-add-1440.png",
+    "width": 1440,
+    "overflow": false,
+    "modalOpen": true,
+    "focus": "upload-title",
+    "bodyScrollable": false,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Cancel",
+        "top": 695,
+        "bottom": 741
+      },
+      {
+        "text": "Save Draft",
+        "top": 695,
+        "bottom": 741
+      },
+      {
+        "text": "Save & Publish",
+        "top": 695,
+        "bottom": 741
+      }
+    ],
+    "livewire": "object"
+  },
+  {
+    "name": "add",
+    "screenshot": "document-modal-add-390.png",
+    "width": 390,
+    "overflow": false,
+    "modalOpen": true,
+    "focus": "upload-title",
+    "bodyScrollable": true,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Cancel",
+        "top": 766,
+        "bottom": 812
+      },
+      {
+        "text": "Save Draft",
+        "top": 708,
+        "bottom": 754
+      },
+      {
+        "text": "Save & Publish",
+        "top": 652,
+        "bottom": 696
+      }
+    ],
+    "livewire": "object"
+  },
+  {
+    "name": "add",
+    "screenshot": "document-modal-add-320.png",
+    "width": 320,
+    "overflow": false,
+    "modalOpen": true,
+    "focus": "upload-title",
+    "bodyScrollable": true,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Cancel",
+        "top": 662,
+        "bottom": 708
+      },
+      {
+        "text": "Save Draft",
+        "top": 604,
+        "bottom": 650
+      },
+      {
+        "text": "Save & Publish",
+        "top": 548,
+        "bottom": 592
+      }
+    ],
+    "livewire": "object"
+  },
+  {
+    "name": "errors",
+    "screenshot": "document-modal-errors-390.png",
+    "width": 390,
+    "overflow": false,
+    "modalOpen": true,
+    "focus": "",
+    "bodyScrollable": true,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Cancel",
+        "top": 766,
+        "bottom": 812
+      },
+      {
+        "text": "Save Draft",
+        "top": 708,
+        "bottom": 754
+      },
+      {
+        "text": "Save & Publish",
+        "top": 652,
+        "bottom": 696
+      }
+    ],
+    "livewire": "object"
+  },
+  {
+    "name": "edit",
+    "screenshot": "document-modal-edit-390.png",
+    "width": 390,
+    "overflow": false,
+    "modalOpen": true,
+    "focus": "upload-title",
+    "bodyScrollable": true,
+    "dialogTitle": "document-upload-editor-title",
+    "buttons": [
+      {
+        "text": "Recover text",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Discard recovery copy",
+        "top": 0,
+        "bottom": 0
+      },
+      {
+        "text": "Restore version",
+        "top": 760,
+        "bottom": 776
+      },
+      {
+        "text": "Cancel",
+        "top": 766,
+        "bottom": 812
+      },
+      {
+        "text": "Save Draft",
+        "top": 708,
+        "bottom": 754
+      },
+      {
+        "text": "Save & Publish",
+        "top": 652,
+        "bottom": 696
+      }
+    ],
+    "livewire": "object"
+  }
+]

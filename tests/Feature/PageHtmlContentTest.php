@@ -117,3 +117,17 @@ it('visual page model keeps safe visual styles after saving', function (): void 
         ->toContain('background-color:')
         ->toContain('text-align:');
 });
+
+it('preserves image layout and alignment styles in visual editor', function (): void {
+    $html = '<p><img src="/media-files/slsc.jpg" alt="flag" style="float: left; margin: 0 1rem 1rem 0; max-width: 50%;" />Signal Corps Flag</p>';
+
+    $cleanHtml = app(
+        PageHtmlSanitizer::class,
+    )->sanitizeVisual($html);
+
+    expect($cleanHtml)
+        ->toContain('/media-files/slsc.jpg')
+        ->toContain('float:left')
+        ->toContain('margin:0 1rem 1rem 0')
+        ->toContain('max-width:50%');
+});

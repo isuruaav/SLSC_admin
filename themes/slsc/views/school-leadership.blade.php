@@ -7,29 +7,17 @@
     @php
         $isHistory = $isHistory ?? false;
     @endphp
-    <main class="section section-soft">
+    <div class="section section-soft school-leadership-page">
         <div class="container">
-            <header class="section-head">
-                <div>
-                    <p class="kicker">
-                        {{ $currentLocale === 'si' ? 'සංඥා පාසල' : 'School of Signals' }}
-                    </p>
-
-                    <h1 class="title-lg">
-                        {{ $pageTitle }}
-                    </h1>
-
-                    <p class="lead">
-                        {{ __('theme-slsc::home.leadership.'.($isHistory ? 'past_description' : 'description')) }}
-                    </p>
-                </div>
-                <a class="btn btn-white" href="{{ $isHistory
+            @include('theme-slsc::partials.page-heading', [
+                'headingClass' => 'section-head school-leadership-head',
+                'heading' => $pageTitle,
+                'headingIntro' => __('theme-slsc::home.leadership.'.($isHistory ? 'past_description' : 'description')),
+                'headingActionUrl' => $isHistory
                     ? ($currentLocale === 'en' ? route('school-leadership.index') : route('school-leadership.localized', ['locale' => $currentLocale]))
-                    : ($currentLocale === 'en' ? route('school-leadership.history') : route('school-leadership.history.localized', ['locale' => $currentLocale])) }}">
-                    <span>{{ __('theme-slsc::home.leadership.'.($isHistory ? 'current_leadership' : 'past_leadership')) }}</span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </a>
-            </header>
+                    : ($currentLocale === 'en' ? route('school-leadership.history') : route('school-leadership.history.localized', ['locale' => $currentLocale])),
+                'headingActionLabel' => __('theme-slsc::home.leadership.'.($isHistory ? 'current_leadership' : 'past_leadership')),
+            ])
 
             @if ($leaders->isNotEmpty())
                 <div class="leadership-grid school-leadership-grid">
@@ -44,17 +32,19 @@
                         @endphp
 
                         <article class="card leader-card">
-                            @if ($leaderImage)
-                                <img
-                                    src="{{ $leaderImage }}"
-                                    alt="{{ $leaderName !== '' ? $leaderName : $leaderTitle }}"
-                                    loading="lazy"
-                                >
-                            @else
-                                <div class="leader-placeholder" aria-hidden="true">
-                                    <i class="fa-solid fa-user-tie"></i>
-                                </div>
-                            @endif
+                            <div class="leader-card-image-wrap">
+                                @if ($leaderImage)
+                                    <img
+                                        src="{{ $leaderImage }}"
+                                        alt="{{ $leaderName !== '' ? $leaderName : $leaderTitle }}"
+                                        loading="lazy"
+                                    >
+                                @else
+                                    <div class="leader-placeholder" aria-hidden="true">
+                                        <i class="fa-solid fa-user-tie"></i>
+                                    </div>
+                                @endif
+                            </div>
 
                             <div class="leader-body">
                                 <p class="role">{{ $leaderTitle }}</p>
@@ -90,7 +80,7 @@
                     @endforeach
                 </div>
             @else
-                <div class="card" style="padding: 2rem; text-align: center">
+                <div class="card empty-leadership-card">
                     <p>
                         {{ $currentLocale === 'si'
                             ? 'දැනට පෙන්වීමට නායකත්ව තොරතුරු නොමැත.'
@@ -99,15 +89,15 @@
                 </div>
             @endif
 
-            <p style="margin-top: 2rem">
+            <div class="leadership-bottom-actions">
                 <a
                     class="btn btn-green"
                     href="{{ $currentLocale === 'en' ? route('home') : route('home.localized', ['locale' => $currentLocale]) }}"
                 >
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-                    {{ $currentLocale === 'si' ? 'මුල් පිටුවට' : 'Back to Home' }}
+                    <span>{{ $currentLocale === 'si' ? 'මුල් පිටුවට' : 'Back to Home' }}</span>
                 </a>
-            </p>
+            </div>
         </div>
-    </main>
+    </div>
 @endsection

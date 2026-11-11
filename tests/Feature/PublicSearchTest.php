@@ -149,6 +149,33 @@ it('filters search results by category tab', function (): void {
     $courseResponse->assertDontSeeText('Technology Seminar 2026');
 });
 
+it('reports the full match count and paginates beyond twenty results', function (): void {
+    News::factory()->published()->count(23)->create(['title' => 'PaginationMatch story', 'locale' => 'en']);
+    $this->get('/search?q=PaginationMatch&type=news')->assertOk()
+        ->assertViewHas('counts', fn ($counts) => $counts['news'] === 23 && $counts['all'] === 23)
+        ->assertViewHas('results', fn ($items) => $items->count() === 20);
+    $this->get('/search?q=PaginationMatch&type=news&page=2')->assertOk()
+        ->assertViewHas('results', fn ($items) => $items->count() === 3);
+    $this->getJson('/search/suggest?q=PaginationMatch')->assertOk()->assertJsonPath('total', 23)->assertJsonCount(6, 'results');
+});
+
+it('paginates all search categories without gaps or duplicates at category boundaries', function (): void {
+    News::factory()->published()->count(18)->create(['title' => 'BoundaryMatch story', 'locale' => 'en']);
+    for ($i = 0; $i < 5; $i++) {
+        Course::query()->create(['name' => 'BoundaryMatch '.$i, 'is_active' => true, 'sort_order' => $i]);
+    }
+    $this->get('/search?q=BoundaryMatch')->assertOk()->assertViewHas('results', fn ($items) => $items->count() === 20 && $items->where('type', 'courses')->count() === 2);
+    $this->get('/search?q=BoundaryMatch&page=2')->assertOk()->assertViewHas('results', fn ($items) => $items->count() === 3 && $items->first()['title'] === 'BoundaryMatch 2');
+});
+
+it('only returns publications in the selected search language', function (): void {
+    foreach (['en', 'si'] as $locale) {
+        Publication::query()->create(['title' => 'LocaleMatch '.$locale, 'locale' => $locale, 'disk' => 'local', 'pdf_path' => 'publications/test.pdf', 'cover_path' => 'publications/test.jpg', 'original_name' => 'test.pdf', 'size_bytes' => 10, 'cover_width' => 600, 'cover_height' => 800, 'is_published' => true, 'published_at' => now()->subDay()]);
+    }
+    $this->get('/search?q=LocaleMatch')->assertOk()->assertSeeText('LocaleMatch en')->assertDontSeeText('LocaleMatch si');
+    $this->get('/si/search?q=LocaleMatch')->assertOk()->assertSeeText('LocaleMatch si')->assertDontSeeText('LocaleMatch en');
+});
+
 it('does not display unpublished or draft records in search results', function (): void {
     News::factory()->create([
         'title' => 'Secret Draft Project',

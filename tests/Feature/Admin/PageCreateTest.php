@@ -82,6 +82,33 @@ test('duplicate page slugs receive a numeric suffix', function (): void {
     ]);
 });
 
+test('new pages can reuse a slug from trash without removing deleted pages', function (): void {
+    $editor = User::factory()->create();
+    $editor->assignRole('Content Editor');
+
+    $deletedPage = Page::factory()->create([
+        'slug' => 'slsc-flag',
+    ]);
+    $deletedPage->delete();
+
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        Livewire::actingAs($editor)
+            ->test(PageCreate::class)
+            ->set('title', 'SLSC Flag')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $replacement = Page::query()->where('title', 'SLSC Flag')->firstOrFail();
+
+        expect($replacement->slug)->toBe('slsc-flag');
+
+        $replacement->delete();
+    }
+
+    expect(Page::onlyTrashed()->where('slug', 'slsc-flag')->count())->toBe(3)
+        ->and($deletedPage->fresh()->trashed())->toBeTrue();
+});
+
 test('creating a page creates a safe audit record', function (): void {
     $editor = User::factory()->create();
     $editor->assignRole('Content Editor');

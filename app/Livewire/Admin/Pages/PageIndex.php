@@ -8,6 +8,7 @@ use App\Models\Page;
 use App\Models\User;
 use App\Services\PageDeletionService;
 use App\Services\PageWorkflowService;
+use App\Services\SiteLanguageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -230,15 +231,24 @@ final class PageIndex extends Component
             ->findOrFail($pageId);
 
         $title = $page->title;
+        $oldSlug = $page->slug;
 
         app(PageDeletionService::class)->restore(
             $pageId,
             $this->actor(),
         );
 
+        $page->refresh();
+        $message = "{$title} was restored successfully.";
+
+        if ($page->slug !== $oldSlug) {
+            $restoredPath = '/'.$page->getRawOriginal('locale').'/pages/'.$page->slug;
+            $message .= " Its previous URL was reused. The restored page URL is {$restoredPath}.";
+        }
+
         session()->flash(
             'status',
-            "{$title} was restored successfully.",
+            $message,
         );
     }
 
@@ -306,7 +316,7 @@ final class PageIndex extends Component
             ->paginate($this->perPage);
 
         $statuses = PageStatus::cases();
-        $locales = app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases());
+        $locales = app(SiteLanguageService::class)->choices(PageLocale::cases());
 
         return view(
             'livewire.admin.pages.page-index',

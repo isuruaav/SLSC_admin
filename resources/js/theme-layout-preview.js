@@ -2,7 +2,7 @@ export function layoutPreview(wire, method = 'previewNavigation') {
     return {
         previewError: '', previewBusy: false, previewWidth: 'desktop',
         timer: null, previewSequence: 0, alive: true,
-        previewHeight: 300, previewScale: 1, previewMenuExpanded: true, previewObserver: null, stageObserver: null,
+        previewHeight: 300, previewScale: 1, previewMenuExpanded: false, previewObserver: null, stageObserver: null,
         previewCleanup: null, previewMeasureTimer: null,
 
         initPreview() {
@@ -34,6 +34,7 @@ export function layoutPreview(wire, method = 'previewNavigation') {
         setPreviewWidth(width) {
             this.previewWidth = width;
             this.fitPreview();
+            this.setPreviewMenu(this.previewMenuExpanded);
         },
 
         fitPreview() {
@@ -47,6 +48,7 @@ export function layoutPreview(wire, method = 'previewNavigation') {
             clearTimeout(this.previewMeasureTimer);
             const doc = this.$refs.preview?.contentDocument;
             if (!doc?.body) return;
+            this.highlightPreviewLinks(doc);
             const listeners = [];
             const listen = (target, name, handler, capture = false) => {
                 if (!target?.addEventListener) return;
@@ -90,12 +92,29 @@ export function layoutPreview(wire, method = 'previewNavigation') {
             const doc = this.$refs.preview?.contentDocument;
             const menu = doc?.querySelector('#mobileMenu');
             const toggle = doc?.querySelector('#mobileToggle, [data-mobile-toggle]');
-            menu?.classList.toggle('open', open);
-            toggle?.setAttribute('aria-expanded', String(open));
+            const expanded = Boolean(open && this.frameWidth() <= 1120);
+            menu?.classList.toggle('open', expanded);
+            toggle?.setAttribute('aria-expanded', String(expanded));
             const icon = toggle?.querySelector('i');
-            icon?.classList.toggle('fa-bars', !open);
-            icon?.classList.toggle('fa-xmark', open);
+            icon?.classList.toggle('fa-bars', !expanded);
+            icon?.classList.toggle('fa-xmark', expanded);
             this.measurePreview();
+        },
+
+        highlightPreviewLinks(doc) {
+            const currentUrl = doc.body.dataset?.previewCurrentUrl;
+            if (!currentUrl) return;
+            const current = new URL(currentUrl, doc.baseURI);
+            for (const link of doc.querySelectorAll('.aw-navigation a, .desktop-nav a, .mobile-menu a')) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) continue;
+                let target;
+                try { target = new URL(href, doc.baseURI); } catch { continue; }
+                const active = target.origin === current.origin && target.pathname.replace(/\/+$/, '') === current.pathname.replace(/\/+$/, '');
+                link.classList.toggle('active', active);
+                if (active) link.setAttribute('aria-current', 'page');
+                else link.removeAttribute('aria-current');
+            }
         },
 
         schedulePreviewMeasure() {

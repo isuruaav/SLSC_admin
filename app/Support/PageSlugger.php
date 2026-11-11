@@ -50,7 +50,7 @@ final class PageSlugger
         ?int $ignorePageId,
         string $locale,
     ): bool {
-        $query = Page::withTrashed()
+        $query = Page::query()
             ->where('slug', $slug)
             ->where('locale', $locale);
 

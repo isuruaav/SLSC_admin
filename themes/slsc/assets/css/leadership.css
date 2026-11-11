@@ -1,0 +1,647 @@
+/* ==========================================================================
+   Sri Lanka Signal Corps (SLSC) - Leadership & School Leadership Styles
+   File: assets/css/leadership.css
+   ========================================================================== */
+
+/* Main Section Wrapper */
+.school-leadership-page,
+.section-soft {
+    background: linear-gradient(180deg, #f3f6fa 0%, #ffffff 40%, #f7f9fc 100%);
+    padding: 56px 0 80px;
+    min-height: calc(100vh - 400px);
+}
+
+/* Page Header */
+.school-leadership-head,
+.section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line, #dfe6ed);
+}
+
+.school-leadership-head > div,
+.section-head > div {
+    max-width: 720px;
+}
+
+/* Kicker / Eyebrow Badge */
+.school-leadership-head .kicker,
+.section-head .kicker,
+.sos-leader-profile-header .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--green, #16854b);
+    background: rgba(22, 133, 75, 0.08);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+    line-height: 1.3;
+}
+
+.kicker-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green-bright, #24ad62);
+    box-shadow: 0 0 0 4px rgba(36, 173, 98, 0.2);
+    display: inline-block;
+}
+
+/* Page Title */
+.school-leadership-head .title-lg,
+.section-head .title-lg,
+.sos-leader-profile-header .title-lg {
+    font-size: clamp(28px, 3.6vw, 44px);
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+    letter-spacing: -0.025em;
+    line-height: 1.16;
+    margin: 0 0 12px;
+}
+
+/* Lead Description */
+.school-leadership-head .lead,
+.section-head .lead {
+    font-size: 15px;
+    color: var(--muted, #607087);
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn-white {
+    background: #ffffff;
+    border: 1.5px solid var(--line, #dfe6ed);
+    color: var(--navy, #071b3a);
+    box-shadow: 0 4px 14px rgba(7, 27, 58, 0.05);
+}
+
+.btn-white:hover {
+    background: var(--navy, #071b3a);
+    color: #ffffff;
+    border-color: var(--navy, #071b3a);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(7, 27, 58, 0.15);
+}
+
+.btn-green {
+    background: var(--green, #16854b);
+    border: 1.5px solid var(--green, #16854b);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(22, 133, 75, 0.25);
+}
+
+.btn-green:hover {
+    background: #11683b;
+    border-color: #11683b;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(22, 133, 75, 0.35);
+}
+
+/* Leadership Grid */
+.leadership-grid,
+.school-leadership-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+    align-items: stretch;
+    margin-top: 36px;
+}
+
+/* Leader Card */
+.leader-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid var(--line, #dfe6ed);
+    box-shadow: 0 8px 28px rgba(7, 27, 58, 0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.leader-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--green, #16854b), var(--green-bright, #24ad62), var(--sky, #65c8ed));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 3;
+}
+
+.leader-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 48px rgba(7, 27, 58, 0.12);
+    border-color: #b0c9e2;
+}
+
+.leader-card:hover::after {
+    opacity: 1;
+}
+
+/* Image Wrapper */
+.leader-card-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 4.6;
+    overflow: hidden;
+    background: #f0f4f9;
+}
+
+.leader-card img,
+.school-leadership-grid .leader-card > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    background: #f0f4f9;
+    border-bottom: 1px solid #eef2f6;
+    transition: transform 0.4s ease;
+}
+
+.leader-card:hover img {
+    transform: scale(1.03);
+}
+
+/* Placeholder */
+.leader-placeholder,
+.school-leadership-grid .leader-placeholder {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 4 / 4.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f0f4f9 0%, #e1eaf3 100%);
+    color: #9bb0c8;
+    font-size: 58px;
+    border-bottom: 1px solid #eef2f6;
+}
+
+/* Card Body */
+.leader-body,
+.school-leadership-grid .leader-body {
+    padding: 20px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background: #ffffff;
+}
+
+/* Role / Appointment */
+.leader-body .role,
+.leader-card .role {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--green, #16854b);
+    background: rgba(22, 133, 75, 0.08);
+    padding: 4px 10px;
+    border-radius: 6px;
+    width: fit-content;
+    margin: 0 0 8px;
+    line-height: 1.4;
+}
+
+/* Military Rank */
+.leader-rank {
+    font-size: 11px;
+    font-weight: 700;
+    color: #607087;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 3px;
+}
+
+/* Leader Name */
+.leader-body h2,
+.school-leadership-grid .leader-body h2 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+    line-height: 1.32;
+    margin: 0 0 10px;
+}
+
+/* Period / Service Dates */
+.leader-period {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #607087;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--line, #dfe6ed);
+}
+
+.leader-period i {
+    color: var(--green, #16854b);
+    font-size: 13px;
+}
+
+/* Read More Profile Link Button */
+.read-more-btn,
+.school-leader-profile-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 11px 18px;
+    border-radius: 10px;
+    background: #f3f6f9;
+    border: 1px solid var(--line, #dfe6ed);
+    color: var(--navy, #071b3a);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.read-more-btn i,
+.school-leader-profile-link i {
+    font-size: 11px;
+    transition: transform 0.2s ease;
+}
+
+.read-more-btn:hover,
+.school-leader-profile-link:hover {
+    background: var(--navy, #071b3a);
+    color: #ffffff;
+    border-color: var(--navy, #071b3a);
+    box-shadow: 0 4px 14px rgba(7, 27, 58, 0.15);
+}
+
+.read-more-btn:hover i,
+.school-leader-profile-link:hover i {
+    transform: translateX(3px);
+}
+
+/* Bottom Actions */
+.leadership-bottom-actions {
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line, #dfe6ed);
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* Empty State Card */
+.empty-leadership-card {
+    padding: 48px 24px;
+    text-align: center;
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px dashed var(--line, #dfe6ed);
+    color: var(--muted, #607087);
+}
+
+.empty-leadership-card .empty-icon {
+    font-size: 48px;
+    color: #9bb0c8;
+    margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   Leader Individual Profile Page Styles (.sos-leader-profile-page)
+   ========================================================================== */
+.sos-leader-profile-page {
+    background: #ffffff;
+    padding: 56px 0 80px;
+}
+
+.sos-leader-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    padding: 36px;
+    background: #ffffff;
+    border: 1px solid var(--line, #dfe6ed);
+    border-radius: 24px;
+    box-shadow: 0 10px 32px rgba(7, 27, 58, 0.06);
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+.sos-leader-profile-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(180deg, var(--green, #16854b), var(--navy, #071b3a));
+}
+
+.sos-leader-profile-header > img {
+    width: 220px;
+    height: 275px;
+    object-fit: cover;
+    object-position: top center;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(7, 27, 58, 0.12);
+    border: 3px solid #ffffff;
+    flex-shrink: 0;
+}
+
+.sos-leader-profile-header > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.sos-leader-profile-content {
+    background: #ffffff;
+    border: 1px solid var(--line, #dfe6ed);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 6px 24px rgba(7, 27, 58, 0.04);
+}
+
+.sos-leader-profile-frame {
+    width: 100%;
+    min-height: 500px;
+    border: none;
+    display: block;
+}
+
+.sos-leadership-link {
+    margin-top: 36px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* ==========================================================================
+   Commandant Profile Section & Card (.sos-commandant-section)
+   ========================================================================== */
+.sos-commandant-section {
+    padding: 56px 0 80px;
+    background: linear-gradient(180deg, #f3f6fa 0%, #ffffff 100%);
+}
+
+.sos-commandant-card {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 48px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--line, #dfe6ed);
+    border-radius: 24px;
+    padding: 44px;
+    box-shadow: 0 12px 36px rgba(7, 27, 58, 0.08);
+}
+
+.sos-commandant-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.sos-commandant-mark {
+    width: 56px;
+    height: auto;
+    object-fit: contain;
+}
+
+.sos-commandant-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--green, #16854b);
+}
+
+.sos-commandant-role {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+}
+
+.sos-commandant-copy h1,
+.sos-commandant-copy h2 {
+    font-size: clamp(26px, 3vw, 36px);
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+    line-height: 1.2;
+    margin: 12px 0 16px;
+}
+
+.sos-commandant-rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted, #607087);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sos-commandant-rank i {
+    color: var(--green, #16854b);
+}
+
+.sos-commandant-service {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: #f7f9fc;
+    border-radius: 12px;
+    border-left: 3px solid var(--green, #16854b);
+}
+
+.sos-commandant-service-icon {
+    font-size: 22px;
+    color: var(--green, #16854b);
+}
+
+.sos-commandant-service p {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted, #607087);
+    margin: 0;
+}
+
+.sos-commandant-service time {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+}
+
+.sos-commandant-portrait img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(7, 27, 58, 0.12);
+}
+
+.sos-commandant-details {
+    max-width: 1200px;
+    margin: 40px auto 0;
+    padding: 36px;
+    border: 1px solid var(--line, #dfe6ed);
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 8px 28px rgba(7, 27, 58, 0.05);
+}
+
+.sos-commandant-details h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sos-commandant-details h2::before {
+    content: "";
+    width: 4px;
+    height: 24px;
+    background: var(--green, #16854b);
+    border-radius: 4px;
+}
+
+.sos-commandant-details dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 0;
+}
+
+.sos-commandant-details dl > div {
+    padding: 18px 22px;
+    background: #f7f9fc;
+    border-radius: 14px;
+    border: 1px solid #eef2f6;
+}
+
+.sos-commandant-details dt {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted, #607087);
+    margin-bottom: 6px;
+}
+
+.sos-commandant-details dd {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--navy, #071b3a);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 1200px) {
+    .leadership-grid,
+    .school-leadership-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+    }
+}
+
+@media (max-width: 900px) {
+    .leadership-grid,
+    .school-leadership-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+    }
+
+    .sos-commandant-card {
+        grid-template-columns: 1fr 280px;
+        gap: 32px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 768px) {
+    .school-leadership-head,
+    .section-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sos-leader-profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 28px;
+    }
+
+    .sos-leader-profile-header > img {
+        width: 180px;
+        height: 225px;
+    }
+
+    .sos-commandant-card {
+        grid-template-columns: 1fr;
+        padding: 28px;
+    }
+
+    .sos-commandant-portrait {
+        order: -1;
+        max-width: 260px;
+        margin: 0 auto;
+    }
+
+    .sos-commandant-details dl {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .leadership-grid,
+    .school-leadership-grid {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+

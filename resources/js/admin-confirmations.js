@@ -21,9 +21,6 @@ export function confirmationForAction(name = '') {
     if (/^remove(?:[A-Z]|$)/.test(name)) {
         return option('Remove item', 'Are you sure you want to remove this item?', 'Yes, remove', true);
     }
-    if (/^save(?:[A-Z]|$)/.test(name)) {
-        return option('Save changes', name === 'saveDraft' ? 'Save this draft?' : 'Save these changes?', 'Yes, save');
-    }
     if (/^restore(?:[A-Z]|$)/.test(name)) {
         return option('Restore item', 'Are you sure you want to restore this item?', 'Yes, restore');
     }
@@ -132,7 +129,11 @@ export function registerAdminConfirmations(livewire, ask, isAdmin) {
     livewire.interceptAction(({ action }) => {
         if (!isAdmin() || !action.component.name.startsWith('admin.') || action.isCancelled()) return;
         const options = confirmationForAction(action.name);
-        if (!options || !reserve(action)) return;
+        if (!options) {
+            if (/^save(?:[A-Z]|$)/.test(action.name)) reserve(action);
+            return;
+        }
+        if (!reserve(action)) return;
         // An existing wire:confirm has already asked before constructing this action.
         if (wireConfirmation(action.origin?.el)) return;
 

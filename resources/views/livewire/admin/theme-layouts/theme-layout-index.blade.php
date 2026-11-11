@@ -109,7 +109,6 @@
                     @foreach ($locales as $localeOption)
                         <button type="button" wire:key="theme-layout-locale-{{ $localeOption->value }}"
                             wire:click="selectLocale('{{ $localeOption->value }}')"
-                            wire:confirm="Switch to {{ $localeOption->label() }}? Any unsaved editor changes will be discarded."
                             class="rounded-t-xl border border-b-0 px-5 py-3 text-sm font-bold
                                 {{ $locale === $localeOption->value
                                     ? 'border-zinc-300 bg-zinc-50 text-emerald-700'
@@ -133,7 +132,6 @@
 
                 <div class="flex flex-wrap gap-2" role="tablist" aria-label="Theme layout region">
                     <button type="button" wire:click="selectRegion('header')"
-                        wire:confirm="Switch to Header? Any unsaved editor changes will be discarded."
                         class="rounded-t-xl border border-b-0 px-5 py-3 text-sm font-bold
                             {{ $region === 'header'
                                 ? 'border-zinc-300 bg-white text-emerald-700'
@@ -143,7 +141,6 @@
                     </button>
 
                     <button type="button" wire:click="selectRegion('footer')"
-                        wire:confirm="Switch to Footer? Any unsaved editor changes will be discarded."
                         class="rounded-t-xl border border-b-0 px-5 py-3 text-sm font-bold
                             {{ $region === 'footer'
                                 ? 'border-zinc-300 bg-white text-emerald-700'
@@ -154,7 +151,7 @@
                 </div>
             </div>
 
-            <form wire:submit="saveDraft" @submit.capture="if (!$dispatch('navigation-editor-sync') || !$dispatch('footer-editor-sync')) { $event.preventDefault(); $event.stopImmediatePropagation(); }" class="space-y-6 p-6">
+            <form wire:submit="saveDraft" data-save-actions="saveDraft,saveAndPublish,restoreRevision" wire:key="layout-{{ $layout?->revision_number ?? 0 }}-{{ $locale }}-{{ $region }}" @submit.capture="if (!$dispatch('navigation-editor-sync') || !$dispatch('footer-editor-sync')) { $event.preventDefault(); $event.stopImmediatePropagation(); }" class="space-y-6 p-6">
                 @if ($region === 'header')
                     @include('admin.theme-layouts.navigation-editor')
                 @else
@@ -178,6 +175,13 @@
             </form>
         </section>
 
+        <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 class="font-bold">Layout recovery &amp; link checks</h2>
+            <button type="button" wire:click="checkLinks" @click.capture="$dispatch('navigation-editor-sync'); $dispatch('footer-editor-sync')" class="mt-3 rounded-xl border border-zinc-300 px-4 py-3 text-sm font-semibold">Check Draft Links</button>
+            <x-admin.link-results :results="$linkResults" />
+            <p class="mt-3 text-xs text-zinc-500">Internal targets are checked against published content. External websites need a manual availability check.</p>
+            <div class="mt-4 divide-y">@forelse ($revisions as $revision)<div class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span>Revision {{ $revision->revision_number }} · {{ $revision->status->label() }} · {{ $revision->created_at->format('d M Y H:i') }}</span><button type="button" wire:click="restoreRevision({{ $revision->id }})" wire:confirm="Restore this revision as a draft?" class="font-semibold text-emerald-800 underline">Restore to Draft</button></div>@empty<p class="text-sm text-zinc-500">Saved revisions will appear here.</p>@endforelse</div>
+        </section>
         <section class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
                 <h2 class="font-bold text-zinc-900">

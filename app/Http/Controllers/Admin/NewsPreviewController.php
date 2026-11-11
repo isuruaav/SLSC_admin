@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\PublicNewsController;
 use App\Models\News;
 use App\Services\PageHtmlSanitizer;
+use App\Services\SiteUrlService;
 use Illuminate\Contracts\View\View;
 
 final class NewsPreviewController extends Controller
@@ -38,6 +39,7 @@ final class NewsPreviewController extends Controller
         $safeContent = $editorMode === NewsEditorMode::Visual
             ? $sanitizer->sanitizeVisual($rawContent)
             : $sanitizer->sanitize($rawContent);
+        $safeContent = app(SiteUrlService::class)->resolveHtml($safeContent);
 
         return view(
             'admin.news.preview',

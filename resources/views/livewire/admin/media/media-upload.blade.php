@@ -1,4 +1,7 @@
-<div class="mx-auto max-w-6xl space-y-6">
+<div data-unsaved-form data-draft-key="media-upload" data-save-actions="save,uploadBatch,retryBatch,useExistingFile" class="mx-auto max-w-6xl space-y-6">
+    @include('livewire.admin.media.batch-upload')
+    @if ($duplicateMediaId)<div role="status" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">This file already exists in the library. <button type="button" wire:click="useExistingFile" class="font-semibold underline">Use Existing File</button></div>@endif
+
     {{-- Page Header --}}
     <div
         class="flex flex-col gap-4
@@ -60,7 +63,7 @@
                     :label="$uploadedMedia->isImage() ? 'Public image path' : 'Public document path'" />
                 <p class="text-sm text-zinc-600">
                     Copy this path, then use the {{ $uploadedMedia->isImage() ? 'Image' : 'Document' }} button
-                    in the page editor to insert it before publishing.
+                    in the page editor to insert it before publishing. The site address is added automatically.
                 </p>
                 <a href="{{ $uploadedMediaUrl }}" target="_blank" rel="noopener noreferrer"
                     class="inline-block text-sm font-semibold text-blue-700 hover:underline">Open uploaded file</a>

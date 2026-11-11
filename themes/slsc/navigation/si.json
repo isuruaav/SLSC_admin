@@ -1,0 +1,168 @@
+[
+    {
+        "label": "මුල් පිටුව",
+        "href": "/si"
+    },
+    {
+        "label": "පත්වීම්",
+        "children": [
+            {
+                "label": "බලකාධිපති",
+                "href": "/si/school-leadership/colonel-commandant"
+            },
+            {
+                "label": "ප්‍රධාන සංඥා නිලධාරී",
+                "href": "/si/school-leadership/chief-signal-officer"
+            },
+            {
+                "label": "අධ්‍යක්ෂක තොරතුරු තාක්ෂණ",
+                "href": "/si/school-leadership/director-it"
+            },
+            {
+                "label": "1 වන සංඥා බලසේනාධිපති",
+                "href": "/si/school-leadership/commander-1-signal-brigade"
+            },
+            {
+                "label": "2 වන සංඥා බලසේනාධිපති",
+                "href": "/si/school-leadership/commander-2-signal-brigade"
+            },
+            {
+                "label": "රෙජිමේන්තු මධ්‍යස්ථාන සේනාවිධායක",
+                "href": "/si/school-leadership/regimental-centre-commandant"
+            },
+            {
+                "label": "රෙජිමේන්තු විධායක අධිකාරී",
+                "href": "/si/school-leadership/regimental-adjutant"
+            },
+            {
+                "label": "රෙජිමේන්තු සැරයන් මේජර්",
+                "href": "/si/school-leadership/regimental-sergeant-major"
+            }
+        ]
+    },
+    {
+        "label": "ඉතිහාසය",
+        "children": [
+            {
+                "label": "සංඥා බලකා ඉතිහාසය",
+                "href": "/si/si-history-sri-lanka-signal-corps"
+            },
+            {
+                "label": "පළමු පත්වීම් හිමියන්",
+                "href": "/si/si-first-appoinment-holders"
+            },
+            {
+                "label": "රෙජිමේන්තු අණදෙන නිලධාරීන් හා බලකාධිපතිවරුන්",
+                "href": "/si/si-regt-comdt-col-comdt"
+            },
+            {
+                "label": "ප්‍රධාන සංඥා නිලධාරීන්",
+                "href": "/si/si-chief-signal-officers"
+            },
+            {
+                "label": "තොරතුරු තාක්ෂණ අධ්‍යක්ෂකවරුන්",
+                "href": "/si/si-directors-of-it"
+            },
+            {
+                "label": "බලසේනාධිපතිවරුන්",
+                "href": "/si/si-brigade-commanders"
+            },
+            {
+                "label": "1 වන බලසේනාධිපතිවරුන්",
+                "href": "/si/1-bde-comds"
+            },
+            {
+                "label": "2 වන බලසේනාධිපතිවරුන්",
+                "href": "/si/2-bde-comds"
+            },
+            {
+                "label": "රෙජිමේන්තු මධ්‍යස්ථාන සේනා විධායකවරුන්",
+                "href": "/si/si-centre-commandants"
+            },
+            {
+                "label": "රෙජිමේන්තු විධායක අධිකාරීවරු",
+                "href": "/si/regimental-adjutants"
+            },
+            {
+                "label": "රෙජිමේන්තු සැරයන් මේජර්වරු",
+                "href": "/si/regimental-sergeant-major"
+            }
+        ]
+    },
+    {
+        "label": "සංවිධානය",
+        "href": "/si/si-organization"
+    },
+    {
+        "label": "සගරාව",
+        "children": [
+            {
+                "label": "සිග්නලර් සගරාව",
+                "href": "/si/si-signaller-magazines"
+            },
+            {
+                "label": "සංඥා සංගමයේ සගරාව",
+                "href": "/si/si-signals-association-magazine"
+            }
+        ]
+    },
+    {
+        "label": "ක්‍රීඩා",
+        "children": [
+            {
+                "label": "ක්‍රීඩා සහ මලල ක්‍රීඩා",
+                "href": "/si/si-sport"
+            },
+            {
+                "label": "සංඥා වරණ",
+                "href": "/2025/slsc_colors_2025/signaller"
+            }
+        ]
+    },
+    {
+        "label": "මාධ්‍ය එකතුව",
+        "children": [
+            {
+                "label": "රූප එකතුව",
+                "href": "/si/si-gallery"
+            },
+            {
+                "label": "ප්‍රසංනි සාකච්ඡා රූප එකතුව",
+                "href": "/si/si-cso-conference-photo-gallery"
+            }
+        ]
+    },
+    {
+        "label": "අමතන්න",
+        "children": [
+            {
+                "label": "බලකාධිපති",
+                "href": "/si/si-contact-commandant"
+            },
+            {
+                "label": "ප්‍රධාන සංඥා නිලධාරී මූලස්ථානය",
+                "href": "/si/si-contact-cso"
+            },
+            {
+                "label": "තොරතුරු තාක්ෂණ අධ්‍යක්ෂක මණ්ඩලය",
+                "href": "/si/si-contact-directorate-of-it"
+            },
+            {
+                "label": "1 වන සංඥා බල සේනා මූලස්ථානය",
+                "href": "/si/si-contact-signal-brigade"
+            },
+            {
+                "label": "2 වන සංඥා බල සේනා මූලස්ථානය",
+                "href": "/si/2-signal-brig/si/contact"
+            },
+            {
+                "label": "රෙජිමේන්තු මධ්‍යස්ථානය",
+                "href": "/si/si-contact-regimental-headquarters"
+            },
+            {
+                "label": "ඒකක",
+                "href": "/si/si-contact-signal-units"
+            }
+        ]
+    }
+]

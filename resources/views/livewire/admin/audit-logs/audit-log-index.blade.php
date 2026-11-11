@@ -4,6 +4,7 @@
         description="Review authentication activity, administrator actions and security-sensitive account changes."
     />
 
+    <button type="button" wire:click="exportCsv" wire:loading.attr="disabled" class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white">Export Filtered CSV</button>
     <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div class="md:col-span-2">
@@ -233,7 +234,8 @@
                 </div>
             </dl>
 
-            <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div class="mt-6"><x-admin.field-diff :before="$selectedLog->old_values ?? []" :after="$selectedLog->new_values ?? []" /></div>
+            <details class="mt-4"><summary class="text-sm font-semibold">Raw event data</summary><div class="mt-6 grid gap-5 lg:grid-cols-2">
                 <div>
                     <h3 class="text-sm font-semibold text-zinc-900">Old values</h3>
                     <pre class="mt-2 max-h-96 overflow-auto rounded-xl bg-zinc-950 p-4 text-xs leading-6 text-zinc-100">{{ json_encode($selectedLog->old_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'No old values' }}</pre>
@@ -243,7 +245,7 @@
                     <h3 class="text-sm font-semibold text-zinc-900">New values</h3>
                     <pre class="mt-2 max-h-96 overflow-auto rounded-xl bg-zinc-950 p-4 text-xs leading-6 text-zinc-100">{{ json_encode($selectedLog->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'No new values' }}</pre>
                 </div>
-            </div>
+            </div></details>
         </section>
     @endif
 </div>

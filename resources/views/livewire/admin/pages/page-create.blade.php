@@ -19,7 +19,9 @@
         </a>
     </div>
 
-    <form wire:submit="save" wire:confirm="Create this page as a draft?" class="space-y-6">
+    <form wire:submit="save" data-unsaved-form data-draft-key="pages-create" class="space-y-6">
+            <x-admin.publishing-checklist :title="$title" :content="$content" :translated-title="$sinhalaTitle ?? ''" :blocks="$blocks ?? []" />
+        <x-admin.editor-status />
         <section class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div class="space-y-5">
                 <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4">

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\HeroSlides;
 use App\Enums\MediaType;
 use App\Enums\MediaVisibility;
 use App\Enums\PageLocale;
+use App\Livewire\Admin\Concerns\EditsVisibilitySchedule;
 use App\Models\HeroSlide;
 use App\Models\HeroSlideTranslation;
 use App\Models\MediaAsset;
@@ -23,6 +24,7 @@ use Livewire\WithFileUploads;
 
 final class HeroSlideIndex extends Component
 {
+    use EditsVisibilitySchedule;
     use WithFileUploads;
 
     #[Locked]
@@ -67,6 +69,7 @@ final class HeroSlideIndex extends Component
 
     public function startCreate(): void
     {
+        $this->reset(['startsAt', 'endsAt']);
         Gate::authorize('hero-slides.view');
         Gate::authorize('hero-slides.create');
 
@@ -83,6 +86,7 @@ final class HeroSlideIndex extends Component
                 : 'hero-slides.update',
         );
 
+        $this->scheduleAttributes();
         $validated = $this->validate([
             'imageMediaId' => [
                 'nullable',
@@ -199,6 +203,7 @@ final class HeroSlideIndex extends Component
              * compatibility with existing public views.
              */
             $slide->fill([
+                ...$this->scheduleAttributes(),
                 'title' => $this->cleanRequired($this->englishTitle),
                 'subtitle' => $this->cleanNullable($this->englishSubtitle),
                 'image_media_id' => $imageMediaId,
@@ -327,6 +332,7 @@ final class HeroSlideIndex extends Component
         $this->newImageTitle = '';
         $this->newImageAltText = '';
         $this->isActive = $slide->is_active;
+        $this->loadSchedule($slide);
 
         $this->resetValidation();
         $this->showEditor = true;

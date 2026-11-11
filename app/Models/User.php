@@ -70,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'invited_at' => 'datetime', 'invitation_accepted_at' => 'datetime',
         ];
     }
 

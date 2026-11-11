@@ -1203,19 +1203,27 @@
     }
 
     .programs-grid {
-        grid-template-columns:minmax(0,1fr);
-        gap:12px
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
     }
 
-    .program-card {
-        min-height:104px;
-        padding:16px;
-        gap:10px
+    .program-card.program-card-compact {
+        height: 76px;
+        min-height: 76px;
+        max-height: 76px;
     }
 
-    .program-arrow {
-        top:16px;
-        right:16px
+    .program-filters-slim {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .program-filters-slim .program-search-wrap,
+    .program-filters-slim .program-select-wrap {
+        width: 100%;
+        min-width: 0;
     }
 
     .program-card h3 {

@@ -3,7 +3,7 @@ const previewUrls = new WeakMap();
 
 export function validatePublicationPdf(file) {
     if (!file || !/\.pdf$/i.test(file.name)) throw new Error('Select a PDF file.');
-    if (file.size > 20 * 1024 * 1024) throw new Error('The PDF must be 20 MB or smaller.');
+    if (file.size > 50 * 1024 * 1024) throw new Error('The PDF must be 50 MB or smaller.');
     if (file.size === 0) throw new Error('The selected PDF is empty.');
 }
 
@@ -22,7 +22,7 @@ export function uploadPublicationFile(wire, property, file, progress = () => {})
     });
 }
 
-export async function preparePublicationUpload(input, type) {
+export async function preparePublicationUpload(input, type, renderCover = async (file) => (await import('./publication-pdf-renderer.js')).firstPageCover(file)) {
     const form = input.closest('[data-publication-upload]');
     const component = input.closest('[wire\\:id]');
     const file = input.files?.[0];
@@ -57,15 +57,22 @@ export async function preparePublicationUpload(input, type) {
             status.textContent = `Uploading ${label}… ${Math.round(event.detail.progress)}%`;
         });
         if (type === 'cover') {
-            const preview = form.querySelector('[data-publication-cover-preview]');
-            const oldUrl = previewUrls.get(preview);
-            if (oldUrl) URL.revokeObjectURL(oldUrl);
-            const previewUrl = URL.createObjectURL(file);
-            previewUrls.set(preview, previewUrl);
-            preview.src = previewUrl;
-            preview.hidden = false;
-            form.querySelector('[data-publication-cover-placeholder]').hidden = true;
+            showCover(form, file);
             status.textContent = 'PDF and cover image are ready. Save the publication below.';
+        } else if (form.querySelector('[data-publication-auto-cover]')?.checked) {
+            try {
+                status.textContent = 'PDF uploaded. Generating its first-page cover…';
+                const cover = await renderCover(file);
+                validatePublicationCover(cover);
+                await uploadPublicationFile(wire, 'cover', cover, (event) => {
+                    status.textContent = `Uploading generated cover… ${Math.round(event.detail.progress)}%`;
+                });
+                showCover(form, cover);
+                status.textContent = 'PDF and generated cover are ready. Save a draft or publish below.';
+            } catch {
+                await wire.set('cover', null, false);
+                status.textContent = 'PDF uploaded. We could not generate its cover. Select a JPG/JPEG cover below to continue.';
+            }
         } else {
             status.textContent = 'PDF uploaded. Now upload its first-page cover image.';
         }
@@ -83,6 +90,17 @@ export async function preparePublicationUpload(input, type) {
         input.disabled = false;
         form.dispatchEvent(new CustomEvent('publication-upload-end', { bubbles: true }));
     }
+}
+
+function showCover(form, file) {
+    const preview = form.querySelector('[data-publication-cover-preview]');
+    const oldUrl = previewUrls.get(preview);
+    if (oldUrl) URL.revokeObjectURL(oldUrl);
+    const previewUrl = URL.createObjectURL(file);
+    previewUrls.set(preview, previewUrl);
+    preview.src = previewUrl;
+    preview.hidden = false;
+    form.querySelector('[data-publication-cover-placeholder]').hidden = true;
 }
 
 if (typeof document !== 'undefined') {

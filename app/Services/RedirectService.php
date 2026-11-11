@@ -57,6 +57,29 @@ final class RedirectService
             throw ValidationException::withMessages(['sourcePath' => 'A redirect already exists for this path.']);
         }
 
+        if ($isActive) {
+            $links = Redirect::query()->where('is_active', true)->when($redirect !== null, fn ($query) => $query->whereKeyNot($redirect->id))->pluck('destination_url', 'source_path')->all();
+            $links[$sourcePath] = $destinationUrl;
+            $seen = [];
+            $path = $sourcePath;
+            while (isset($links[$path])) {
+                if (isset($seen[$path])) {
+                    throw ValidationException::withMessages(['destinationUrl' => 'This redirect would create a loop. Choose a destination outside the redirect chain.']);
+                }
+                $seen[$path] = true;
+                $target = $links[$path];
+                $host = parse_url($target, PHP_URL_HOST);
+                if ($host && strcasecmp($host, (string) parse_url(config('app.url'), PHP_URL_HOST)) !== 0) {
+                    break;
+                }
+                $path = (string) (parse_url($target, PHP_URL_PATH) ?: '/');
+                $base = rtrim((string) parse_url(config('app.url'), PHP_URL_PATH), '/');
+                if ($base !== '' && str_starts_with($path, $base.'/')) {
+                    $path = substr($path, strlen($base));
+                }
+            }
+        }
+
         return DB::transaction(function () use ($redirect, $actor, $sourcePath, $destinationUrl, $status, $isActive): Redirect {
             $model = $redirect instanceof Redirect
                 ? Redirect::query()->lockForUpdate()->findOrFail($redirect->id)

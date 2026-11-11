@@ -89,18 +89,7 @@
     <link rel="preload" as="font" type="font/woff2" href="{{ $themeAssetBase }}/fonts/inter-latin.woff2" crossorigin>
     <link rel="preload" as="font" type="font/woff2" href="{{ $themeAssetBase }}/fonts/noto-sinhala.woff2" crossorigin>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,100..900;1,100..900&family=Maname&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/fonts/fontawesome-7/css/all.min.css?v=7.0.0">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/fonts.css?v={{ file_exists(public_path('themes/slsc/assets/css/fonts.css')) ? filemtime(public_path('themes/slsc/assets/css/fonts.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/base.css?v={{ file_exists(public_path('themes/slsc/assets/css/base.css')) ? filemtime(public_path('themes/slsc/assets/css/base.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/navbar.css?v={{ file_exists(public_path('themes/slsc/assets/css/navbar.css')) ? filemtime(public_path('themes/slsc/assets/css/navbar.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/news.css?v={{ file_exists(public_path('themes/slsc/assets/css/news.css')) ? filemtime(public_path('themes/slsc/assets/css/news.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/registration.css?v={{ file_exists(public_path('themes/slsc/assets/css/registration.css')) ? filemtime(public_path('themes/slsc/assets/css/registration.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/responsive.css?v={{ file_exists(public_path('themes/slsc/assets/css/responsive.css')) ? filemtime(public_path('themes/slsc/assets/css/responsive.css')) : time() }}">
-    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/style.css?v={{ file_exists(public_path('themes/slsc/assets/css/style.css')) ? filemtime(public_path('themes/slsc/assets/css/style.css')) : time() }}">
+    @include('theme-slsc::partials.stylesheets')
     <script type="module" src="{{ $themeAssetBase }}/js/script.js?v={{ file_exists(public_path('themes/slsc/assets/js/script.js')) ? filemtime(public_path('themes/slsc/assets/js/script.js')) : time() }}"></script>
     <script type="module" src="{{ $themeAssetBase }}/js/search.js?v={{ file_exists(public_path('themes/slsc/assets/js/search.js')) ? filemtime(public_path('themes/slsc/assets/js/search.js')) : time() }}"></script>
 
@@ -116,8 +105,9 @@
     @endif
 
     @stack('styles')
+    <link rel="stylesheet" href="{{ $themeAssetBase }}/css/inner-pages.css?v={{ is_file(public_path('themes/slsc/assets/css/inner-pages.css')) ? filemtime(public_path('themes/slsc/assets/css/inner-pages.css')) : 1 }}">
 </head>
-<body id="top" class="{{ $currentLocale === 'si' ? 'is-si' : '' }}">
+<body id="top" class="{{ $currentLocale === 'si' ? 'is-si' : '' }} {{ request()->routeIs('home', 'home.localized') ? 'slsc-home' : 'slsc-inner-page' }}">
     @include('theme-slsc::partials.icons')
 
     <a class="skip-link" href="#mainContent" data-i18n="skipContent">{{ __('theme-slsc::interface.skipContent') }}</a>
@@ -173,7 +163,10 @@
         </div>
         <nav class="main-nav" aria-label="{{ __('theme-slsc::interface.mainNavigation') }}" data-i18n-aria="mainNavigation">
             <div class="container nav-shell">
-                <div id="navPanel" class="nav-panel">
+                <div id="navPanel" class="nav-panel {{ in_array($currentLocale, ['en', 'si'], true) ? 'slsc-nav-panel' : '' }}">
+                    @if (in_array($currentLocale, ['en', 'si'], true))
+                        @include('theme-slsc::partials.corps-navigation')
+                    @else
                     @foreach ($navItems as [$id, $key, $label, $url])
                         <a class="nav-link {{ request()->is('/') && $id === 'top' ? 'current' : '' }}"
                            href="{{ $url }}"
@@ -183,6 +176,7 @@
                             {{ __('theme-slsc::interface.'.$key) }}
                         </a>
                     @endforeach
+                    @endif
                 </div>
 
             </div>
@@ -193,6 +187,9 @@
 
     {{-- Main Content --}}
     <main id="mainContent" tabindex="-1">
+        @unless (request()->routeIs('home', 'home.localized'))
+            @include('theme-slsc::partials.page-breadcrumbs')
+        @endunless
         @yield('content')
     </main>
 
@@ -326,6 +323,7 @@
     </div>
 
     {{-- Interactive Registration Dialog --}}
+    @unless($standaloneRegistration ?? false)
     <dialog id="registrationDialog" class="registration-dialog" aria-labelledby="registrationTitle" aria-describedby="registrationIntro">
         <div class="registration-dialog-top">
             <span class="registration-brand-mark">
@@ -346,6 +344,7 @@
         </div>
     </dialog>
 
+    @endunless
     @stack('scripts')
 </body>
 </html>

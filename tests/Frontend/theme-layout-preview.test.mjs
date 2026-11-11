@@ -80,16 +80,42 @@ test('updates after hover, keyboard focus, disclosure, animation and asset loadi
 
 test('links stay in the editor while mobile controls remain interactive', () => {
     const { value, doc } = fixture();
+    value.setPreviewWidth('mobile');
     const classes = new Set();
     const menu = { classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) } };
     doc.querySelector = (selector) => selector === '#mobileMenu' ? menu : null;
     value.previewLoaded();
-    assert.ok(classes.has('open'));
+    assert.ok(!classes.has('open'));
     const target = { closest: (selector) => selector === 'a' || selector.includes('#mobileToggle') ? {} : null };
     const click = new Event('click', { cancelable: true });
     Object.defineProperty(click, 'target', { value: target });
     doc.dispatchEvent(click);
     assert.ok(click.defaultPrevented);
+    assert.ok(classes.has('open'));
+    value.destroyPreview();
+});
+
+test('desktop never expands the mobile menu and mobile expansion survives viewport changes', () => {
+    const { value, doc } = fixture();
+    const classes = new Set();
+    const attributes = {};
+    const menu = { classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) } };
+    const toggle = { setAttribute: (name, value) => { attributes[name] = value; }, querySelector: () => null };
+    doc.querySelector = (selector) => selector === '#mobileMenu' ? menu : toggle;
+    value.previewLoaded();
+    assert.equal(value.previewMenuExpanded, false);
+    assert.equal(attributes['aria-expanded'], 'false');
+    value.setPreviewWidth('mobile');
+    value.setPreviewMenu(true);
+    assert.ok(classes.has('open'));
+    value.setPreviewWidth('desktop');
+    assert.ok(!classes.has('open'));
+    assert.equal(attributes['aria-expanded'], 'false');
+    value.setPreviewMenu(true);
+    assert.ok(!classes.has('open'));
+    value.setPreviewWidth('tablet');
+    assert.ok(classes.has('open'));
+    value.setPreviewMenu(false);
     assert.ok(!classes.has('open'));
     value.destroyPreview();
 });

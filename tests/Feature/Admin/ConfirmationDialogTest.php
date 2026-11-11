@@ -29,7 +29,7 @@ it('does not add admin confirmation UI to the public website', function (): void
     $this->get(route('home'))->assertOk()->assertDontSee('id="admin-confirmation-dialog"', false);
 });
 
-it('uses explicit context confirmations when creating and saving news and pages', function (): void {
+it('keeps draft saves immediate and confirms publishing news', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
     $administrator = User::factory()->create();
     $administrator->assignRole('Site Administrator');
@@ -37,14 +37,14 @@ it('uses explicit context confirmations when creating and saving news and pages'
     $page = Page::factory()->create();
 
     $this->actingAs($administrator)->get(route('admin.news.create'))->assertOk()
-        ->assertSee('wire:confirm="Save this news article as a draft?"', false)
+        ->assertDontSee('wire:confirm="Save this news article as a draft?"', false)
         ->assertSee('wire:confirm="Save and publish this news article now?"', false);
     $this->get(route('admin.news.edit', $news))->assertOk()
-        ->assertSee('wire:confirm="Save changes to this news draft?"', false);
+        ->assertDontSee('wire:confirm="Save changes to this news draft?"', false);
     $this->get(route('admin.pages.create'))->assertOk()
-        ->assertSee('wire:confirm="Create this page as a draft?"', false);
+        ->assertDontSee('wire:confirm="Create this page as a draft?"', false);
     $this->get(route('admin.pages.edit', $page))->assertOk()
-        ->assertSee('wire:confirm="Save changes to this page?"', false);
+        ->assertDontSee('wire:confirm="Save changes to this page?"', false);
 });
 
 it('prevents repeat clicks on both mobile and desktop news action buttons while loading', function (): void {

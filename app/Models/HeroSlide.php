@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PageLocale;
+use App\Models\Concerns\HasVisibilitySchedule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,8 @@ use Illuminate\Support\Str;
  */
 final class HeroSlide extends Model
 {
+    use HasVisibilitySchedule;
+
     /** @var list<string> */
     protected $fillable = [
         'title',
@@ -34,7 +37,7 @@ final class HeroSlide extends Model
         'image_media_id',
         'button_label',
         'button_url',
-        'is_active',
+        'is_active', 'starts_at', 'ends_at',
         'sort_order',
         'created_by',
         'updated_by',
@@ -60,6 +63,7 @@ final class HeroSlide extends Model
         return [
             'image_media_id' => 'integer',
             'is_active' => 'boolean',
+            'starts_at' => 'immutable_datetime', 'ends_at' => 'immutable_datetime',
             'sort_order' => 'integer',
             'created_by' => 'integer',
             'updated_by' => 'integer',
@@ -158,7 +162,7 @@ final class HeroSlide extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query
-            ->where('is_active', true)
+            ->where('is_active', true)->visibleNow()
             ->orderBy('sort_order')
             ->orderBy('id');
     }

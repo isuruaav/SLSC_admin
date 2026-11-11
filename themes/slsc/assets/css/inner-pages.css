@@ -1,0 +1,301 @@
+/* Shared public page system. Keep these rules scoped away from the home page. */
+body.slsc-inner-page {
+    --page-background: #f4f7fa;
+    --page-surface: #fff;
+    --page-ink: #102b48;
+    --page-muted: #53677d;
+    --page-line: #dce5ed;
+    --page-accent: #147847;
+    --page-radius: 16px;
+    --page-shadow: 0 8px 28px rgb(7 27 58 / 5%);
+    background: var(--page-background);
+}
+
+.slsc-page-trail {
+    background: #fff;
+    border-bottom: 1px solid var(--page-line);
+}
+.slsc-page-trail ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    min-height: 52px;
+    margin: 0;
+    padding: 12px 0;
+    list-style: none;
+    color: var(--page-muted);
+    font-size: 13px;
+}
+.slsc-page-trail li { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.slsc-page-trail li + li::before { content: "/"; color: #8a9bad; }
+.slsc-page-trail a { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; }
+.slsc-page-trail a:hover { color: var(--page-accent); text-decoration: underline; text-underline-offset: 4px; }
+.slsc-page-trail [aria-current] { color: var(--page-ink); overflow-wrap: anywhere; }
+
+/* One heading scale and alignment for CMS, directories and resource pages. */
+body.slsc-inner-page :is(.theme-page, .first-appointments-page, .brigade-commanders-page,
+    .school-leadership-page, .sos-leader-profile-page, .sos-commandant-profile) {
+    padding-block: 40px 72px;
+    min-height: 60vh;
+    background: var(--page-background);
+}
+body.slsc-inner-page :is([data-page-heading], .aw-gallery-hero, .aw-courses-hero,
+    .school-news-index-header, .doc-hero, .document-heading, .aw-contact-hero,
+    .aw-search-hero, .registration-heading, .past-command-page > header) {
+    display: block;
+    max-width: none;
+    min-height: 0;
+    margin: 0 0 32px;
+    padding: 0 0 28px;
+    border: 0;
+    border-bottom: 1px solid var(--page-line);
+    background: transparent;
+    color: var(--page-ink);
+    text-align: left;
+}
+body.slsc-inner-page :is(.aw-gallery-hero, .aw-courses-hero, .school-news-index-header,
+    .doc-hero, .aw-contact-hero, .aw-search-hero, .past-command-page > header) {
+    padding-top: 40px;
+}
+body.slsc-inner-page .past-command-page > header .text-center { text-align: left; }
+body.slsc-inner-page :is([data-page-heading], .aw-gallery-hero, .aw-courses-hero,
+    .school-news-index-header, .doc-hero, .document-heading, .aw-contact-hero,
+    .aw-search-hero, .registration-heading, .past-command-page > header) h1,
+body.slsc-inner-page .sos-leader-profile-header h1,
+body.slsc-inner-page .sos-commandant-profile h1 {
+    margin: 12px 0;
+    max-width: 1000px;
+    color: var(--page-ink);
+    font-size: clamp(28px, 3.3vw, 42px);
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: -.025em;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+body.slsc-inner-page :is([data-page-heading], .aw-gallery-hero, .aw-courses-hero,
+    .school-news-index-header, .doc-hero, .document-heading, .aw-contact-hero,
+    .aw-search-hero, .registration-heading, .past-command-page > header)
+    :is(.lead, .section-subtitle, .aw-gallery-description, p:not([class])) {
+    max-width: 780px;
+    margin: 0;
+    color: var(--page-muted);
+    font-size: 16px;
+    line-height: 1.8;
+}
+body.slsc-inner-page :is(.kicker, .aw-gallery-kicker, .aw-courses-kicker, .aw-contact-kicker,
+    .school-news-section-kicker, .aw-search-kicker, .doc-kicker) {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--page-accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    line-height: 1.7;
+}
+body.slsc-inner-page .kicker-pulse { width: 6px; height: 6px; box-shadow: none; background: var(--page-accent); }
+body.slsc-inner-page [data-page-heading] > .btn { margin-top: 20px; }
+body.slsc-inner-page :is(.aw-gallery-container, .aw-courses-container, .school-news-container,
+    .doc-container, .aw-contact-container, .aw-search-container, .publication-shell) {
+    width: min(calc(100% - 64px), var(--container));
+    max-width: var(--container);
+    margin-inline: auto;
+}
+body.slsc-inner-page :is(.aw-gallery, .aw-courses, .school-news-index-page,
+    .publication-page, .document-public, .aw-search, .past-command-page, .aw-contact) {
+    background: var(--page-background);
+    color: var(--page-ink);
+}
+body.slsc-inner-page :is(.aw-gallery-main, .aw-courses-main, .school-news-listing,
+    .publication-shell, .doc-content) { padding-block: 0 64px; }
+
+/* Cards use a quiet border, readable text and a consistent corner radius. */
+body.slsc-inner-page :is(.first-appointment-card, .brigade-commander-card, .leader-card,
+    .past-command-card, .page-article-card, .org-card, .org-sidebar-card,
+    .aw-gallery-card, .publication-card, .doc-panel, .aw-contact-card) {
+    border: 1px solid var(--page-line);
+    border-radius: var(--page-radius);
+    background: var(--page-surface);
+    box-shadow: var(--page-shadow);
+}
+body.slsc-inner-page :is(.first-appointment-card, .brigade-commander-card, .leader-card, .org-card):hover {
+    transform: translateY(-3px);
+    border-color: #a8c9b7;
+    box-shadow: 0 12px 30px rgb(7 27 58 / 9%);
+}
+body.slsc-inner-page :is(.first-appointments-grid, .brigade-commanders-grid, .school-leadership-grid) { gap: 24px; }
+body.slsc-inner-page :is(.card-name-title, .leader-body h2, .org-card-title) { color: var(--page-ink); line-height: 1.6; }
+body.slsc-inner-page .page-article-card { max-width: 1040px; margin-inline: auto; padding: clamp(24px, 4vw, 52px); overflow: visible; }
+body.slsc-inner-page .awcms-content { color: #33465a; font-size: 16px; line-height: 1.9; overflow-wrap: anywhere; }
+body.slsc-inner-page .awcms-content > :first-child { margin-top: 0; }
+body.slsc-inner-page .awcms-content > :last-child { margin-bottom: 0; }
+body.slsc-inner-page .awcms-content :is(iframe, video, audio) { max-width: 100%; }
+body.slsc-inner-page .awcms-content iframe { border: 0; }
+body.slsc-inner-page .awcms-content a { color: var(--page-accent); }
+body.slsc-inner-page .awcms-content table { display: block; max-width: 100%; overflow-x: auto; }
+body.slsc-inner-page .page-blocks-wrap { max-width: 1040px; margin: 32px auto 0; }
+
+/* Existing CMS articles may supply their own heading instead of a page title. */
+body.slsc-inner-page .awcms-content > :is(.slsc-flag-page, .slsc-directory, .slsc-magazine, .awcms-history-content) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: #33465a;
+    font-family: inherit;
+}
+body.slsc-inner-page .awcms-content :is(.slsc-flag-heading, .slsc-directory-hero, .slsc-magazine-header) {
+    margin: 0 0 28px;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--page-line);
+    background: transparent;
+    text-align: left;
+}
+body.slsc-inner-page .awcms-content :is(.slsc-flag-heading, .slsc-directory-hero, .slsc-magazine-header) :is(h1, h2) {
+    margin: 12px 0;
+    padding: 0;
+    border: 0;
+    color: var(--page-ink);
+    font-size: clamp(28px, 3.3vw, 42px);
+    line-height: 1.4;
+}
+body.slsc-inner-page .awcms-content :is(.slsc-flag-heading, .slsc-directory-hero, .slsc-magazine-header) h2::before { display: none; }
+body.slsc-inner-page .awcms-content :is(.slsc-flag-kicker, .slsc-eyebrow, .awcms-history-kicker) { color: var(--page-accent); font-size: 12px; letter-spacing: .06em; }
+body.slsc-inner-page .awcms-content :is(.slsc-magazine-card, .slsc-accordion-item, .slsc-detail-card, .slsc-flag-colour-card) { border: 1px solid var(--page-line); border-radius: var(--page-radius); box-shadow: none; }
+
+/* History filters are usable with or without JavaScript. */
+body.slsc-inner-page .history-year-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 16px;
+    margin: 0 0 28px;
+    padding: 20px;
+    border: 1px solid var(--page-line);
+    border-radius: var(--page-radius);
+    background: var(--page-surface);
+    font-size: 14px;
+}
+body.slsc-inner-page .history-year-filter label { display: grid; gap: 7px; color: var(--page-ink); font-weight: 600; }
+body.slsc-inner-page .history-year-filter :is(input, select, button) { min-height: 44px; padding: 10px 14px; border: 1px solid #b9c8d5; border-radius: 8px; background: #fff; color: var(--page-ink); font: inherit; }
+body.slsc-inner-page .history-year-filter button { background: var(--page-accent); color: #fff; border-color: var(--page-accent); font-weight: 700; }
+body.slsc-inner-page .history-year-filter a { display: inline-flex; align-items: center; min-height: 44px; color: var(--page-accent); text-decoration: underline; text-underline-offset: 4px; }
+body.slsc-inner-page :is(.first-appointments-grid, .brigade-commanders-grid)[data-history-view="timeline"] {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-left: 2px solid #bfd5c8;
+    margin-left: 8px;
+    padding-left: 24px;
+}
+body.slsc-inner-page [data-history-view="timeline"] > article {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 24px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 20px;
+    overflow: visible;
+    text-align: left;
+}
+body.slsc-inner-page [data-history-view="timeline"] > article::before { content: ""; position: absolute; inset: 34px auto auto -32px; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: var(--page-accent); opacity: 1; }
+body.slsc-inner-page [data-history-view="timeline"] .card-photo-wrap { flex: 0 0 120px; max-width: 120px; margin: 0; aspect-ratio: 4 / 5; height: auto; }
+body.slsc-inner-page [data-history-view="timeline"] .card-photo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+body.slsc-inner-page [data-history-view="timeline"] .card-body { flex: 1; min-width: 0; padding: 0; align-items: flex-start; text-align: left; }
+body.slsc-inner-page [data-history-view="timeline"] .card-period-wrap { align-items: flex-start; }
+
+/* Organization pages share the same light surfaces as all other directories. */
+body.slsc-inner-page .org-page { background: var(--page-background); color: var(--page-ink); padding-top: 40px; }
+body.slsc-inner-page .org-hero { padding: 0; background: transparent; border: 0; text-align: left; }
+body.slsc-inner-page .org-hero-inner { max-width: var(--container); }
+body.slsc-inner-page .org-search-form { max-width: 760px; margin: 0; }
+body.slsc-inner-page .org-search-input { background: #fff; color: var(--page-ink); border-color: #b9c8d5; min-height: 48px; backdrop-filter: none; }
+body.slsc-inner-page .org-search-input:focus { background: #fff; border-color: var(--page-accent); }
+body.slsc-inner-page .org-search-btn { background: var(--page-accent); min-height: 48px; box-shadow: none; }
+body.slsc-inner-page .org-filters { justify-content: flex-start; margin-block: 20px 0; }
+body.slsc-inner-page .org-pill { background: #fff; border-color: var(--page-line); color: var(--page-muted); min-height: 44px; }
+body.slsc-inner-page .org-pill:hover { background: #e9f3ed; border-color: #b4ccbe; color: var(--page-accent); }
+body.slsc-inner-page .org-pill.active { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+body.slsc-inner-page .org-pill-count { background: #e9eef3; color: var(--page-ink); }
+body.slsc-inner-page .org-card:hover { background: #fff; }
+body.slsc-inner-page :is(.org-code-badge, .org-related-link, .org-back-btn) { background: #f1f5f8; color: var(--page-ink); border-color: var(--page-line); }
+body.slsc-inner-page :is(.org-card-desc, .org-card-location, .org-paragraph, .org-fact-label, .org-empty p) { color: var(--page-muted); }
+body.slsc-inner-page :is(.org-card-link, .org-cat-badge, .org-heading-h3, .org-sidebar-heading, .org-summary-box h3) { color: var(--page-accent); }
+body.slsc-inner-page :is(.org-heading-h2, .org-contact-card h4, .org-fact-val, .org-empty h3) { color: var(--page-ink); }
+body.slsc-inner-page :is(.org-card-foot, .org-sidebar-heading, .org-heading-h2, .org-contact-card) { border-color: var(--page-line); }
+body.slsc-inner-page .org-detail-body { padding-top: 0; }
+body.slsc-inner-page .org-detail-main { min-width: 0; padding: clamp(20px, 3vw, 36px); border: 1px solid var(--page-line); border-radius: var(--page-radius); background: #fff; }
+body.slsc-inner-page .org-summary-box { background: #edf6f0; border-color: #bfd9c9; }
+body.slsc-inner-page .org-summary-box p { color: #33465a; }
+body.slsc-inner-page .org-table-container { background: #fff; border-color: var(--page-line); }
+body.slsc-inner-page .org-table th { background: #eef4f8; color: var(--page-ink); border-color: var(--page-line); }
+body.slsc-inner-page .org-table td { color: #33465a; border-color: var(--page-line); }
+body.slsc-inner-page .org-table tr:hover td { background: #f3f7fa; }
+body.slsc-inner-page .org-contact-card { background: #f4f8fa; }
+body.slsc-inner-page .org-contact-item { color: #33465a; }
+body.slsc-inner-page .org-contact-description { margin: 0 0 16px; color: var(--page-muted); font-size: 13px; }
+body.slsc-inner-page .org-related-link:hover { background: #e9f3ed; color: var(--page-accent); }
+body.slsc-inner-page .org-back-btn:hover { background: #e5edf3; color: var(--page-ink); }
+body.slsc-inner-page .org-empty { background: #fff; border-color: var(--page-line); }
+body.slsc-inner-page .org-fact-val a { color: var(--page-accent); overflow-wrap: anywhere; }
+
+/* Profile pages keep the portrait and service dates together. */
+body.slsc-inner-page .sos-leader-profile-header { padding: clamp(24px, 3vw, 40px); margin-bottom: 28px; border: 1px solid var(--page-line); border-radius: var(--page-radius); background: #fff; box-shadow: var(--page-shadow); }
+body.slsc-inner-page .sos-leader-profile-header > div { min-width: 0; }
+body.slsc-inner-page .sos-commandant-profile .sos-commandant-card { border: 1px solid var(--page-line); border-radius: var(--page-radius); background: #fff; color: var(--page-ink); box-shadow: var(--page-shadow); }
+body.slsc-inner-page .sos-commandant-profile :is(.sos-commandant-role, .sos-commandant-rank, .sos-commandant-service) { color: var(--page-muted); }
+body.slsc-inner-page .sos-commandant-profile .sos-commandant-backdrop { display: none; }
+body.slsc-inner-page .registration-heading { padding-top: 0; }
+body.slsc-inner-page .aw-contact { padding: 40px 0 64px; }
+body.slsc-inner-page .aw-contact-layout { width: min(calc(100% - 64px), var(--container)); max-width: var(--container); }
+body.slsc-inner-page .aw-contact h1 { color: var(--page-ink); font-size: clamp(28px, 3.3vw, 42px); font-weight: 800; line-height: 1.3; }
+body.slsc-inner-page :is(.aw-search-page, .sos-documents) { background: var(--page-background); }
+body.slsc-inner-page .doc-shell { width: min(calc(100% - 64px), var(--container)); max-width: var(--container); margin-inline: auto; }
+body.slsc-inner-page .doc-intro { max-width: 780px; color: var(--page-muted); font-size: 16px; line-height: 1.8; }
+body.slsc-inner-page.is-si :is([data-page-heading], .slsc-page-trail, .aw-gallery-hero) { letter-spacing: normal; }
+body.slsc-inner-page.is-si :is(h1, h2, h3) { line-height: 1.6; letter-spacing: normal; }
+
+@media (max-width: 900px) {
+    body.slsc-inner-page :is(.first-appointments-grid, .brigade-commanders-grid, .school-leadership-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+}
+@media (max-width: 640px) {
+    body.slsc-inner-page .container,
+    body.slsc-inner-page :is(.aw-gallery-container, .aw-courses-container, .school-news-container,
+        .doc-container, .aw-contact-container, .aw-search-container, .publication-shell) { width: calc(100% - 32px); }
+    body.slsc-inner-page :is(.theme-page, .first-appointments-page, .brigade-commanders-page,
+        .school-leadership-page, .sos-leader-profile-page, .sos-commandant-profile) { padding-block: 28px 48px; }
+    body.slsc-inner-page :is(.aw-gallery-hero, .aw-courses-hero, .school-news-index-header,
+        .doc-hero, .aw-contact-hero, .aw-search-hero, .past-command-page > header) { padding-top: 28px; }
+    body.slsc-inner-page [data-page-heading] { margin-bottom: 24px; padding-bottom: 24px; }
+    body.slsc-inner-page :is(.first-appointments-grid, .brigade-commanders-grid, .school-leadership-grid) { grid-template-columns: 1fr; }
+    body.slsc-inner-page .page-article-card { margin-inline: 0; padding: 22px 18px; }
+    body.slsc-inner-page .history-year-filter { gap: 12px; padding: 16px; }
+    body.slsc-inner-page .history-year-filter label { flex: 1 1 140px; min-width: 0; }
+    body.slsc-inner-page .history-year-filter :is(input, select) { width: 100%; min-width: 0; }
+    body.slsc-inner-page [data-history-view="timeline"] > article { align-items: flex-start; gap: 14px; padding: 16px; }
+    body.slsc-inner-page [data-history-view="timeline"] .card-photo-wrap { flex-basis: 76px; max-width: 76px; }
+    body.slsc-inner-page .org-page { padding-top: 28px; }
+    body.slsc-inner-page .org-search-form { flex-wrap: wrap; }
+    body.slsc-inner-page .org-search-wrap { min-width: 0; flex-basis: 100%; }
+    body.slsc-inner-page .org-search-btn { width: 100%; }
+    body.slsc-inner-page .org-detail-cols { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    body.slsc-inner-page .org-detail-sidebar { position: static; }
+    body.slsc-inner-page :is(.aw-contact-layout, .doc-shell) { width: calc(100% - 32px); }
+    body.slsc-inner-page .aw-contact { padding-block: 28px 48px; }
+    .slsc-page-trail ol { font-size: 12px; gap: 4px 8px; }
+    .slsc-page-trail li { gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html:has(body.slsc-inner-page) { scroll-behavior: auto; }
+    body.slsc-inner-page *, body.slsc-inner-page *::before, body.slsc-inner-page *::after { animation: none !important; transition: none !important; }
+}

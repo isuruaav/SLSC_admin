@@ -26,6 +26,45 @@
     </div>
 
     <div x-show="mode === 'visual'" class="space-y-5">
+        <section class="rounded-xl border border-zinc-200 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-bold text-zinc-900">Header layout &amp; branding</h3>
+                    <p class="mt-1 text-xs text-zinc-500">Edit this language's header. Visual and HTML / CSS share the same source; custom CSS is retained.</p>
+                </div>
+                <button type="button" @click="applyHeaderPreset()" class="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800">Apply reference layout</button>
+            </div>
+            <p x-show="!header.available" class="mt-4 text-sm text-zinc-600">Apply the reference layout to add a language bar, editable branding and header actions while keeping your menu links. You can undo this change.</p>
+            <div x-show="header.available" class="mt-4 space-y-5">
+                <label class="block text-xs font-bold text-zinc-600">Header arrangement
+                    <select x-model="header.layout" @change="updateHeader('layout', $event.target.value)" class="mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-normal">
+                        <option value="inline">Logo, menu and actions in one row</option>
+                        <option value="stacked">Logo above the menu</option>
+                    </select>
+                </label>
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach (['topbarTitle' => 'Top bar title', 'motto' => 'Top bar motto', 'brandTitle' => 'Brand name', 'brandSubtitle' => 'Brand subtitle', 'homeHref' => 'Brand home link', 'logoUrl' => 'Logo image URL (empty = site logo)', 'conductLabel' => 'Secondary action label', 'conductHref' => 'Secondary action address', 'portalLabel' => 'Portal button label', 'portalHref' => 'Portal button address'] as $field => $label)
+                        <label class="block text-xs font-bold text-zinc-600">{{ $label }}
+                            <input type="text" x-model="header.{{ $field }}" x-on:{{ str_ends_with($field, 'Href') || $field === 'logoUrl' ? 'change' : 'input' }}="updateHeader('{{ $field }}', $event.target.value)" maxlength="{{ str_ends_with($field, 'Href') || $field === 'logoUrl' ? 2048 : 250 }}" class="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-normal">
+                        </label>
+                    @endforeach
+                </div>
+                <div class="flex flex-wrap gap-x-6 gap-y-3">
+                    @foreach (['showTopbar' => 'Top bar', 'showLanguages' => 'Language buttons', 'showSearch' => 'Search button', 'showConduct' => 'Secondary action', 'showPortal' => 'Portal button', 'showIcons' => 'Menu icons'] as $field => $label)
+                        <label class="flex items-center gap-2 text-xs font-semibold text-zinc-700"><input type="checkbox" x-model="header.{{ $field }}" @change="updateHeader('{{ $field }}', $event.target.checked)" class="rounded border-zinc-300 text-emerald-700">{{ $label }}</label>
+                    @endforeach
+                </div>
+                <fieldset class="border-t border-zinc-100 pt-4">
+                    <legend class="pr-2 text-xs font-bold text-zinc-700">Header colours</legend>
+                    <div class="grid grid-cols-2 gap-4 pt-2 sm:grid-cols-4">
+                        @foreach (['topbarStart' => 'Top bar start', 'topbarEnd' => 'Top bar end', 'topbarText' => 'Top bar text', 'background' => 'Main background', 'brand' => 'Brand name', 'subtitle' => 'Subtitle / action', 'portal' => 'Portal button'] as $field => $label)
+                            <label class="text-xs font-bold text-zinc-600">{{ $label }}<input type="color" x-model="headerStyle.{{ $field }}" @change="applyHeaderStyle()" class="mt-2 block h-10 w-full cursor-pointer rounded-lg border border-zinc-200 bg-white p-1"></label>
+                        @endforeach
+                    </div>
+                </fieldset>
+                <p x-show="headerError" x-text="headerError" role="alert" class="text-xs font-semibold text-red-700"></p>
+            </div>
+        </section>
         <p x-show="/\[\[(primary_menu|responsive_primary_navigation)\]\]/i.test(html)" class="rounded-lg bg-blue-50 p-3 text-xs text-blue-900">This header uses the shared site menu. Editing its links visually will create a menu for this header language.</p>
         <template x-if="navigationChoices().length > 1">
             <label class="block text-sm font-bold text-zinc-700">Navigation area

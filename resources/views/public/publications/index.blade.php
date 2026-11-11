@@ -2,11 +2,13 @@
 
 @php
     $isSinhala = $currentLocale === 'si';
-    $heading = $isSinhala ? 'ප්‍රකාශන' : 'Publications';
+    $heading = $pageTitle ?? ($isSinhala ? 'සිග්නලර් සඟරාව' : 'Signaller Magazine');
+    $kickerText = $pageKicker ?? ($isSinhala ? 'අපගේ සඟරා' : 'Explore our library');
+    $subtitleText = $pageSubtitle ?? ($isSinhala ? 'ශ්‍රී ලංකා සංඥා බලකායේ නවතම සඟරා. PDF ගොනුව කියවීමට කවරය මත ක්ලික් කරන්න.' : 'Explore our latest journals and publications. Select a cover to read the PDF.');
 @endphp
 
 @section('title', $heading.' | '.config('app.name'))
-@section('meta_description', $isSinhala ? 'සංඥා පාසලේ නවතම ප්‍රකාශන හා සඟරා කියවන්න.' : 'Read the latest journals, reports and publications from the School of Signals.')
+@section('meta_description', $subtitleText)
 @section('canonical', \App\Models\Publication::indexUrl($currentLocale))
 
 @push('styles')
@@ -22,6 +24,13 @@
             margin-inline: auto;
         }
         .publication-listing { padding-top: 36px; }
+        .publication-filters { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:24px; }
+        .publication-filters label { display:grid; gap:6px; font-size:13px; color:#234432; }
+        .publication-filters label:first-child { flex:1; min-width:180px; }
+        .publication-filters input,.publication-filters select,.publication-filters button { border:1px solid #cfdbd1; border-radius:8px; background:#fff; padding:11px 14px; font:inherit; }
+        .publication-filters button { background:#145c45; color:#fff; cursor:pointer; }
+        .publication-actions { display:flex; flex-wrap:wrap; gap:12px; }
+        .publication-count { margin-bottom:20px; font-size:13px; color:#526459; }
         .publication-grid {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -156,11 +165,11 @@
             <header class="aw-gallery-hero">
                 <div class="aw-gallery-container">
                     <p class="aw-gallery-kicker">
-                        {{ $isSinhala ? 'අපගේ ප්‍රකාශන' : 'Explore our library' }}
+                        {{ $kickerText }}
                     </p>
                     <h1 id="publications-title">{{ $heading }}</h1>
                     <p class="aw-gallery-description">
-                        {{ $isSinhala ? 'පාසලේ නවතම ප්‍රකාශන හා සඟරා. PDF ගොනුව කියවීමට කවරය මත ක්ලික් කරන්න.' : 'Explore our latest journals and publications. Select a cover to read the PDF.' }}
+                        {{ $subtitleText }}
                     </p>
                 </div>
             </header>
@@ -168,6 +177,20 @@
 
         <div class="publication-shell">
             <div class="publication-listing">
+                <form method="GET" action="{{ \App\Models\Publication::indexUrl($currentLocale) }}" class="publication-filters" role="search">
+                    <label for="publication-search">{{ $isSinhala ? 'ප්‍රකාශන සොයන්න' : 'Search publications' }}
+                        <input id="publication-search" type="search" name="q" value="{{ $search }}" maxlength="120" placeholder="{{ $isSinhala ? 'මාතෘකාව ඇතුළත් කරන්න' : 'Enter a title' }}">
+                    </label>
+                    <label for="publication-year">{{ $isSinhala ? 'වර්ෂය' : 'Year' }}
+                        <select id="publication-year" name="year"><option value="">{{ $isSinhala ? 'සියලු වර්ෂ' : 'All years' }}</option>@foreach ($years as $year)<option value="{{ $year }}" @selected((string) $selectedYear === (string) $year)>{{ $year }}</option>@endforeach</select>
+                    </label>
+                    <label for="publication-sort">{{ $isSinhala ? 'පිළිවෙළ' : 'Sort by' }}
+                        <select id="publication-sort" name="sort"><option value="newest" @selected($sort === 'newest')>{{ $isSinhala ? 'නවතම පළමුව' : 'Newest first' }}</option><option value="oldest" @selected($sort === 'oldest')>{{ $isSinhala ? 'පැරණිතම පළමුව' : 'Oldest first' }}</option></select>
+                    </label>
+                    <button type="submit">{{ $isSinhala ? 'සොයන්න' : 'Apply' }}</button>
+                    @if ($search !== '' || $selectedYear !== '' || $sort !== 'newest')<a class="publication-read" href="{{ \App\Models\Publication::indexUrl($currentLocale) }}">{{ $isSinhala ? 'පෙරහන් ඉවත් කරන්න' : 'Clear filters' }}</a>@endif
+                </form>
+                <p class="publication-count" role="status">{{ $isSinhala ? 'ප්‍රකාශන ගණන:' : 'Publications found:' }} {{ $publications->total() }}</p>
                 @if ($publications->isNotEmpty())
                     <div class="publication-grid">
                         @foreach ($publications as $publication)
@@ -189,17 +212,22 @@
                                 <time class="publication-date" datetime="{{ $publication->published_at->toDateString() }}">
                                     {{ $publication->published_at->format('d M Y') }}
                                 </time>
+                                @if ($publication->issue_number || $publication->issue_year)<p class="publication-date">{{ $publication->issue_number }} {{ $publication->issue_year }}</p>@endif
+                                <p class="publication-date">PDF · {{ number_format($publication->size_bytes / 1048576, 1) }} MB</p>
+                                <div class="publication-actions">
                                 <a class="publication-read" href="{{ $pdfUrl }}" target="_blank" rel="noopener noreferrer">
                                     {{ $isSinhala ? 'PDF කියවන්න' : 'Read PDF' }}
                                     <span aria-hidden="true">↗</span>
                                 </a>
+                                <a class="publication-read" href="{{ route('publications.download', ['publication' => $publication->uuid]) }}">{{ $isSinhala ? 'බාගන්න' : 'Download PDF' }}</a>
+                                </div>
                             </article>
                         @endforeach
                     </div>
                 @else
                     <div class="publication-empty">
                         <h2>{{ $isSinhala ? 'දැනට ප්‍රකාශන නොමැත' : 'No publications to display' }}</h2>
-                        <p>{{ $isSinhala ? 'නවතම ප්‍රකාශන සඳහා නැවත පිවිසෙන්න.' : 'Check back soon for our latest publications.' }}</p>
+                        <p>{{ $search !== '' || $selectedYear !== '' ? ($isSinhala ? 'වෙනත් මාතෘකාවක් හෝ වර්ෂයක් තෝරන්න.' : 'Try another title or year, or clear the filters above.') : ($isSinhala ? 'නවතම ප්‍රකාශන සඳහා නැවත පිවිසෙන්න.' : 'Check back soon for our latest publications.') }}</p>
                         @if ($publications->currentPage() > 1)
                             <a class="publication-read" href="{{ \App\Models\Publication::indexUrl($currentLocale) }}">
                                 {{ $isSinhala ? 'පළමු පිටුවට යන්න' : 'Go to the first page' }}

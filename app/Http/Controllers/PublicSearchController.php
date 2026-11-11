@@ -2,15 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BrigadeCommander;
 use App\Models\Course;
 use App\Models\Document;
+use App\Models\FirstAppointmentHolder;
+use App\Models\Gallery;
 use App\Models\News;
+use App\Models\Organization;
 use App\Models\Page;
 use App\Models\Publication;
+use App\Models\SchoolLeader;
 use App\Services\DocumentUploadManager;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -21,28 +29,21 @@ final class PublicSearchController extends Controller
     public function index(Request $request): View
     {
         $request->validate([
-            'q' => ['nullable', 'string'],
-            'type' => ['nullable', 'string'],
+            'q' => ['nullable', 'string', 'max:120'],
+            'type' => ['nullable', 'in:all,news,courses,documents,publications,pages,organizations,leadership,galleries,appointments,commanders'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
 
         $locale = $this->resolveLocale($request);
         app()->setLocale($locale);
 
         $query = trim((string) $request->query('q', ''));
-        $category = (string) $request->query('type', 'all');
+        $category = (string) ($request->query('type') ?: 'all');
+        $page = (int) $request->query('page', 1);
 
-        $searchData = $this->performSearch($query, $locale, 20);
+        $searchData = $this->performSearch($query, $locale, 20, $page, $category);
         $counts = $searchData['counts'];
-        $grouped = $searchData['grouped'];
-
-        $results = match ($category) {
-            'news' => $grouped['news'],
-            'courses' => $grouped['courses'],
-            'documents' => $grouped['documents'],
-            'publications' => $grouped['publications'],
-            'pages' => $grouped['pages'],
-            default => $searchData['all'],
-        };
+        $results = $searchData['all'];
 
         $searchParams = array_filter(['q' => $query !== '' ? $query : null, 'type' => $category !== 'all' ? $category : null]);
 
@@ -50,6 +51,7 @@ final class PublicSearchController extends Controller
             'query' => $query,
             'category' => $category,
             'results' => $results,
+            'pagination' => new LengthAwarePaginator($results, $counts[$category], 20, $page, ['path' => $request->url(), 'query' => $request->query()]),
             'counts' => $counts,
             'currentLocale' => $locale,
             'languageVersions' => [
@@ -69,7 +71,7 @@ final class PublicSearchController extends Controller
 
     public function suggest(Request $request): JsonResponse
     {
-        $request->validate(['q' => ['nullable', 'string']]);
+        $request->validate(['q' => ['nullable', 'string', 'max:120']]);
 
         $locale = $this->resolveLocale($request);
         app()->setLocale($locale);
@@ -85,7 +87,7 @@ final class PublicSearchController extends Controller
             ], 200, ['Content-Type' => 'application/json; charset=utf-8'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         }
 
-        $searchData = $this->performSearch($query, $locale, 4);
+        $searchData = $this->performSearch($query, $locale, 6);
 
         $results = $searchData['all']->take(6)->values()->all();
         $total = $searchData['counts']['all'];
@@ -112,11 +114,10 @@ final class PublicSearchController extends Controller
     /**
      * @return array{
      *     all: Collection<int, array{type: string, type_label: string, icon: string, title: string, excerpt: string, date: string|null, url: string}>,
-     *     grouped: array<string, Collection<int, array{type: string, type_label: string, icon: string, title: string, excerpt: string, date: string|null, url: string}>>,
      *     counts: array<string, int>
      * }
      */
-    private function performSearch(string $query, string $locale, int $limitPerType = 20): array
+    private function performSearch(string $query, string $locale, int $limitPerType = 20, int $page = 1, string $category = 'all'): array
     {
         $counts = [
             'all' => 0,
@@ -125,20 +126,12 @@ final class PublicSearchController extends Controller
             'documents' => 0,
             'publications' => 0,
             'pages' => 0,
-        ];
-
-        $grouped = [
-            'news' => collect(),
-            'courses' => collect(),
-            'documents' => collect(),
-            'publications' => collect(),
-            'pages' => collect(),
+            'organizations' => 0, 'leadership' => 0, 'galleries' => 0, 'appointments' => 0, 'commanders' => 0,
         ];
 
         if (mb_strlen($query) < 2) {
             return [
                 'all' => collect(),
-                'grouped' => $grouped,
                 'counts' => $counts,
             ];
         }
@@ -155,7 +148,10 @@ final class PublicSearchController extends Controller
                     ->orWhere('content', 'like', "%{$escaped}%");
             })
             ->latest('published_at')
-            ->limit($limitPerType)
+            ->latest('id')
+            ->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'news', $counts, $category, $page, $limitPerType);
+            })
             ->get()
             ->map(fn (News $item): array => [
                 'type' => 'news',
@@ -168,8 +164,6 @@ final class PublicSearchController extends Controller
                     ? route('news.show', ['slug' => $item->slug])
                     : route('news.show.localized', ['locale' => $locale, 'slug' => $item->slug]),
             ]);
-        $counts['news'] = $newsResults->count();
-        $grouped['news'] = $newsResults;
 
         // 2. Courses
         $courseResults = Course::query()
@@ -179,7 +173,10 @@ final class PublicSearchController extends Controller
                     ->orWhere('name_si', 'like', "%{$escaped}%");
             })
             ->orderBy('sort_order')
-            ->limit($limitPerType)
+            ->orderBy('id')
+            ->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'courses', $counts, $category, $page, $limitPerType);
+            })
             ->get()
             ->map(fn (Course $item): array => [
                 'type' => 'courses',
@@ -196,8 +193,6 @@ final class PublicSearchController extends Controller
                     ? route('courses.index')
                     : route('courses.index.localized', ['locale' => $locale]),
             ]);
-        $counts['courses'] = $courseResults->count();
-        $grouped['courses'] = $courseResults;
 
         // 3. Documents
         $documentResults = $this->documents->publicQuery($locale)
@@ -208,7 +203,10 @@ final class PublicSearchController extends Controller
                     ->orWhere('description_si', 'like', "%{$escaped}%");
             })
             ->latest('published_at')
-            ->limit($limitPerType)
+            ->latest('id')
+            ->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'documents', $counts, $category, $page, $limitPerType);
+            })
             ->get()
             ->map(fn (Document $item): array => [
                 'type' => 'documents',
@@ -221,18 +219,20 @@ final class PublicSearchController extends Controller
                     ? route('documents.show', ['slug' => $item->slug])
                     : route('documents.show.localized', ['locale' => $locale, 'slug' => $item->slug]),
             ]);
-        $counts['documents'] = $documentResults->count();
-        $grouped['documents'] = $documentResults;
 
         // 4. Publications
         $publicationResults = Publication::query()
             ->published()
+            ->where('locale', $locale)
             ->where(function ($q) use ($escaped): void {
                 $q->where('title', 'like', "%{$escaped}%")
                     ->orWhere('title_si', 'like', "%{$escaped}%");
             })
             ->latest('published_at')
-            ->limit($limitPerType)
+            ->latest('id')
+            ->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'publications', $counts, $category, $page, $limitPerType);
+            })
             ->get()
             ->map(fn (Publication $item): array => [
                 'type' => 'publications',
@@ -243,18 +243,19 @@ final class PublicSearchController extends Controller
                 'date' => $item->published_at?->format('d M Y'),
                 'url' => route('publications.pdf', ['publication' => $item->uuid]),
             ]);
-        $counts['publications'] = $publicationResults->count();
-        $grouped['publications'] = $publicationResults;
 
         // 5. Pages
         $pageResults = Page::query()
             ->published()
+            ->orderBy('id')
             ->where('locale', $locale)
             ->where(function ($q) use ($escaped): void {
                 $q->where('title', 'like', "%{$escaped}%")
                     ->orWhere('content', 'like', "%{$escaped}%");
             })
-            ->limit($limitPerType)
+            ->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'pages', $counts, $category, $page, $limitPerType);
+            })
             ->get()
             ->map(fn (Page $item): array => [
                 'type' => 'pages',
@@ -267,21 +268,89 @@ final class PublicSearchController extends Controller
                     ? route('pages.show', ['slug' => $item->slug])
                     : route('pages.show.localized', ['locale' => $locale, 'slug' => $item->slug]),
             ]);
-        $counts['pages'] = $pageResults->count();
-        $grouped['pages'] = $pageResults;
+
+        $organizationsResults = Organization::query()->published()->with('translations')->whereHas('translations', fn ($translation) => $translation->where('locale', $locale)->where(fn ($translation) => $translation->where('title', 'like', "%{$escaped}%")->orWhere('summary', 'like', "%{$escaped}%")))
+            ->orderBy('id')->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'organizations', $counts, $category, $page, $limitPerType);
+            })->get()->map(fn (Organization $item): array => [
+                'type' => 'organizations', 'type_label' => $locale === 'si' ? 'ආයතන' : 'Organizations', 'icon' => 'fa-sitemap',
+                'title' => $item->titleForLocale($locale), 'excerpt' => Str::limit(strip_tags((string) $item->summaryForLocale($locale)), 160), 'date' => null,
+                'url' => $locale === 'si' ? route('organization.show.localized', ['locale' => 'si', 'slug' => $item->slug]) : route('organization.show', ['slug' => $item->slug]),
+            ]);
+
+        $leadershipResults = SchoolLeader::query()->where('is_active', true)->whereHas('position', fn ($position) => $position->where('is_active', true))->where(fn ($person) => $person->where('name_en', 'like', "%{$escaped}%")->orWhere('name_si', 'like', "%{$escaped}%"))
+            ->orderBy('id')->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'leadership', $counts, $category, $page, $limitPerType);
+            })->get()->map(fn (SchoolLeader $item): array => [
+                'type' => 'leadership', 'type_label' => $locale === 'si' ? 'නායකත්වය' : 'Leadership', 'icon' => 'fa-user-tie',
+                'title' => $item->displayNameWithRankForLocale($locale), 'excerpt' => $item->appointmentLabelForLocale($locale), 'date' => null,
+                'url' => $item->appointmentUrlForLocale($locale) ?? url(($locale === 'si' ? '/si' : '').'/school-leadership'),
+            ]);
+
+        $galleriesResults = Gallery::query()->published()->where(fn ($gallery) => $gallery->where('title', 'like', "%{$escaped}%")->orWhere('title_si', 'like', "%{$escaped}%"))
+            ->orderBy('id')->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'galleries', $counts, $category, $page, $limitPerType);
+            })->get()->map(fn (Gallery $item): array => [
+                'type' => 'galleries', 'type_label' => $locale === 'si' ? 'ඡායාරූප එකතු' : 'Galleries', 'icon' => 'fa-images',
+                'title' => (string) ($locale === 'si' && $item->title_si ? $item->title_si : $item->title), 'excerpt' => Str::limit(strip_tags((string) $item->description), 160), 'date' => null,
+                'url' => $locale === 'si' ? route('galleries.show.localized', ['locale' => 'si', 'slug' => $item->slug]) : route('galleries.show', ['slug' => $item->slug]),
+            ]);
+
+        $appointmentsResults = FirstAppointmentHolder::query()->active()->where(fn ($person) => $person->where('name_en', 'like', "%{$escaped}%")->orWhere('name_si', 'like', "%{$escaped}%")->orWhere('appointment_en', 'like', "%{$escaped}%")->orWhere('appointment_si', 'like', "%{$escaped}%"))
+            ->orderBy('id')->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'appointments', $counts, $category, $page, $limitPerType);
+            })->get()->map(fn (FirstAppointmentHolder $item): array => [
+                'type' => 'appointments', 'type_label' => $locale === 'si' ? 'පළමු පත්වීම්' : 'First Appointments', 'icon' => 'fa-award',
+                'title' => $item->nameForLocale($locale), 'excerpt' => $item->appointmentForLocale($locale), 'date' => null,
+                'url' => ($locale === 'si' ? route('first-appointments.index.localized', ['locale' => 'si']) : route('first-appointments.index')).'#holder-'.$item->id,
+            ]);
+
+        $commandersResults = BrigadeCommander::query()->active()->where(fn ($person) => $person->where('name_en', 'like', "%{$escaped}%")->orWhere('name_si', 'like', "%{$escaped}%"))
+            ->orderBy('id')->tap(function ($builder) use (&$counts, $category, $page, $limitPerType): void {
+                $this->limitResults($builder, 'commanders', $counts, $category, $page, $limitPerType);
+            })->get()->map(fn (BrigadeCommander $item): array => [
+                'type' => 'commanders', 'type_label' => $locale === 'si' ? 'බලසේනාධිපතිවරු' : 'Brigade Commanders', 'icon' => 'fa-medal',
+                'title' => $item->nameForLocale($locale), 'excerpt' => (string) $item->periodForLocale($locale), 'date' => null,
+                'url' => ($locale === 'si' ? route('brigade-commanders.index.localized', ['locale' => 'si']) : route('brigade-commanders.index')).'#commander-'.$item->id,
+            ]);
 
         $all = $newsResults
             ->concat($courseResults)
             ->concat($documentResults)
             ->concat($publicationResults)
-            ->concat($pageResults);
+            ->concat($pageResults)
+            ->concat($organizationsResults)
+            ->concat($leadershipResults)
+            ->concat($galleriesResults)
+            ->concat($appointmentsResults)
+            ->concat($commandersResults);
 
-        $counts['all'] = $all->count();
+        $counts['all'] = array_sum($counts);
 
         return [
             'all' => $all,
-            'grouped' => $grouped,
             'counts' => $counts,
         ];
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @param  array<string, int>  $counts
+     */
+    private function limitResults(Builder $query, string $type, array &$counts, string $category, int $page, int $perPage): void
+    {
+        $counts[$type] = (clone $query)->count();
+        $start = ($page - 1) * $perPage;
+        if ($category !== 'all') {
+            $query->offset($start)->limit($category === $type ? $perPage : 0);
+
+            return;
+        }
+        $preceding = array_sum($counts) - $counts[$type];
+        $offset = max(0, $start - $preceding);
+        $take = max(0, $start + $perPage - max($start, $preceding));
+        $query->offset($offset)->limit($take);
     }
 }

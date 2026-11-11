@@ -4,10 +4,12 @@ use App\Livewire\Admin\SchoolLeaders\SchoolLeaderIndex;
 use App\Livewire\Admin\SchoolLeaders\SchoolLeaderProfiles;
 use App\Livewire\Admin\SchoolLeaders\SchoolLeadershipPositionIndex;
 use App\Models\AuditLog;
+use App\Models\MediaAsset;
 use App\Models\SchoolLeader;
 use App\Models\SchoolLeadershipPosition;
 use App\Models\User;
 use App\Services\LeadershipProfileContent;
+use App\Services\MediaUrlService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -81,21 +83,72 @@ it('opens the complete profile editor under the administration layout', function
         ->get(route('admin.school-leadership-profiles.index', ['leader' => $leader->id]))
         ->assertOk()
         ->assertSeeText('Leadership Profiles')
-        ->assertSeeText('HTML + Tailwind CSS')
+        ->assertSeeText('Visual biography editor')
         ->assertSeeText('Enable public profile')
         ->assertSeeText('සිංහල')
         ->assertSeeText('Save Profile');
 });
 
-it('requires meaningful content in both languages before enabling', function (): void {
-    $leader = editableProfileLeader();
+it('allows a biography in only one language and keeps the other language as a photo and name page', function (): void {
+    $leader = editableProfileLeader('adjutant');
     Livewire::actingAs(profileEditorActor())->test(SchoolLeaderProfiles::class)
         ->set('profileHtmlEn', '<p>English biography</p>')
         ->set('profileHtmlSi', '<script>alert(1)</script>')
         ->set('profileEnabled', true)
-        ->call('save')->assertHasErrors('profileHtmlSi');
+        ->call('save')->assertHasNoErrors();
 
-    expect($leader->refresh()->profile_enabled)->toBeFalse();
+    expect($leader->refresh()->profile_enabled)->toBeTrue()
+        ->and($leader->profile_html_si)->toBe('')
+        ->and($leader->profileUrlForLocale('en'))->not->toBeNull()
+        ->and($leader->profileUrlForLocale('si'))->toBeNull();
+    $this->get($leader->appointmentUrlForLocale('en'))->assertOk()->assertSee('English biography');
+    $this->get($leader->appointmentUrlForLocale('si'))->assertOk()->assertSeeText($leader->name_si)
+        ->assertDontSee('English biography')->assertDontSee('data-leadership-profile-frame', false);
+});
+
+it('shows a present or past officers photo and name without requiring any profile content', function (string $role, ?string $endDate): void {
+    $image = MediaAsset::factory()->create();
+    $leader = editableProfileLeader($role, ['end_date' => $endDate, 'image_media_id' => $image->id]);
+    Livewire::actingAs(profileEditorActor())->test(SchoolLeaderProfiles::class)
+        ->assertSeeText('Show appointment on website')
+        ->set('profileEnabled', true)->call('save')->assertHasNoErrors()
+        ->assertSet('previewEn', '')->assertSet('previewSi', '');
+
+    $leader->refresh();
+    expect($leader->hasPublicProfile())->toBeFalse()
+        ->and($leader->profileUrlForLocale('en'))->toBeNull();
+    foreach (['en', 'si'] as $locale) {
+        $this->get($leader->appointmentUrlForLocale($locale))->assertOk()
+            ->assertSeeText($leader->nameForLocale($locale))
+            ->assertSee(app(MediaUrlService::class)->mediumOrOriginal($image))
+            ->assertDontSee('data-leadership-profile-frame', false);
+    }
+    $listing = $endDate ? route('school-leadership.history') : ($role === 'commandant' ? route('home') : route('school-leadership.index'));
+    $this->get($listing)->assertOk()->assertSeeText($leader->name_en)
+        ->assertDontSee('href="'.$leader->appointmentUrlForLocale('en').'"', false);
+})->with([
+    ['commandant', null], ['adjutant', null], ['commandant', '2026-01-01'], ['adjutant', '2026-01-01'],
+]);
+
+it('controls appointment visibility separately from the optional biography and can reenable hidden appointments', function (): void {
+    $leader = editableProfileLeader('adjutant', [
+        'profile_enabled' => true, 'profile_html_en' => '<p>Saved service history</p>',
+    ]);
+    $url = $leader->appointmentUrlForLocale('en');
+    $actor = profileEditorActor();
+    $editor = Livewire::actingAs($actor)->test(SchoolLeaderProfiles::class);
+    $editor->set('profileEnabled', false)->call('save')->assertHasNoErrors();
+    $this->get($url)->assertOk()->assertSeeText($leader->name_en)->assertDontSee('Saved service history')
+        ->assertDontSee('data-leadership-profile-frame', false);
+    $editor->set('appointmentEnabled', false)->call('save')->assertHasNoErrors();
+    $this->get($url)->assertNotFound();
+    $this->get(route('school-leadership.index'))->assertOk()->assertDontSeeText($leader->name_en);
+    expect($leader->refresh()->profile_html_en)->toBe('<p>Saved service history</p>');
+
+    Livewire::actingAs($actor)->test(SchoolLeaderProfiles::class)
+        ->assertSet('editingId', $leader->id)->assertSet('appointmentEnabled', false)
+        ->set('appointmentEnabled', true)->set('profileEnabled', true)->call('save')->assertHasNoErrors();
+    $this->get($url)->assertOk()->assertSeeText($leader->name_en)->assertSee('Saved service history');
 });
 
 it('previews unsaved edits without publishing them', function (): void {
@@ -113,10 +166,11 @@ it('rejects editing actions for viewers and users without leadership access', fu
     $leader = editableProfileLeader();
     Livewire::actingAs(profileEditorActor(false))->test(SchoolLeaderProfiles::class)
         ->assertDontSeeHtml('wire:submit="save"')
+        ->set('appointmentEnabled', false)
         ->call('save')->assertForbidden();
 
     Livewire::actingAs(User::factory()->create())->test(SchoolLeaderProfiles::class)->assertForbidden();
-    expect($leader->refresh()->profile_enabled)->toBeFalse();
+    expect($leader->refresh()->profile_enabled)->toBeFalse()->and($leader->is_active)->toBeTrue();
 });
 
 it('keeps separate content when switching appointment holders', function (): void {
@@ -130,7 +184,7 @@ it('keeps separate content when switching appointment holders', function (): voi
         ->assertSet('editingId', $adjutant->id);
 });
 
-it('offers active present and past appointments including custom types in the profile editor', function (): void {
+it('offers present past and hidden appointments including custom types in the profile editor', function (): void {
     foreach (SchoolLeader::allowedRoles() as $role) {
         editableProfileLeader($role);
     }
@@ -143,10 +197,10 @@ it('offers active present and past appointments including custom types in the pr
     editableProfileLeader('adjutant', ['name_en' => 'Inactive Adjutant', 'is_active' => false]);
 
     Livewire::actingAs(profileEditorActor())->test(SchoolLeaderProfiles::class)
-        ->assertViewHas('leaders', fn ($leaders) => $leaders->count() === 6)
+        ->assertViewHas('leaders', fn ($leaders) => $leaders->count() === 7)
         ->assertSeeText('Training Officer')
         ->assertSeeText('Former Instructor')
-        ->assertDontSeeText('Inactive Adjutant');
+        ->assertSeeText('Inactive Adjutant');
 });
 
 it('offers profile creation and editing for past appointments', function (): void {
@@ -203,7 +257,7 @@ it('isolates profile styles in a sandboxed document and prevents style tag break
         ->not->toContain('</style><script>');
 });
 
-it('publishes enabled profiles for original and custom types and hides disabled pages', function (string $role): void {
+it('publishes enabled biographies for original and custom types and hides only biography content when disabled', function (string $role): void {
     SchoolLeadershipPosition::query()->firstOrCreate(['key' => $role], [
         'name_en' => 'Additional Appointment '.$role,
         'name_si' => 'අමතර පත්වීම',
@@ -227,8 +281,9 @@ it('publishes enabled profiles for original and custom types and hides disabled 
     $this->get($listing)->assertOk()->assertSee($englishUrl);
     $this->get($sinhalaListing)->assertOk()->assertSee('href="'.$sinhalaUrl.'"', false);
     $leader->update(['profile_enabled' => false]);
-    $this->get($englishUrl)->assertNotFound();
-    $this->get($sinhalaUrl)->assertNotFound();
+    $this->get($englishUrl)->assertOk()->assertSeeText($leader->name_en)->assertDontSee('English career for '.$role)
+        ->assertDontSee('data-leadership-profile-frame', false);
+    $this->get($sinhalaUrl)->assertOk()->assertSeeText($leader->name_si)->assertDontSee('data-leadership-profile-frame', false);
     $this->get($listing)->assertOk()->assertDontSee('href="'.$englishUrl.'"', false);
     $this->get($sinhalaListing)->assertOk()->assertDontSee('href="'.$sinhalaUrl.'"', false);
 })->with(['commandant', 'chief_instructor', 'adjutant', 'warrant_officer', 'training_officer', 'training_officer_2']);
@@ -256,7 +311,7 @@ it('creates and enables a profile after adding a new present appointment through
     $url = route('school-leadership.profile', ['appointment' => 'training-officer']);
     $this->get(route('school-leadership.index'))->assertOk()->assertSeeText('New Training Officer')
         ->assertDontSee('href="'.$url.'"', false);
-    $this->get($url)->assertNotFound();
+    $this->get($url)->assertOk()->assertSeeText('New Training Officer')->assertDontSee('data-leadership-profile-frame', false);
 
     Livewire::actingAs($actor)->test(SchoolLeaderProfiles::class)
         ->assertSet('editingId', $leader->id)
@@ -280,7 +335,7 @@ it('keeps former profiles available by record while excluding inactive profiles'
     $leader = editableProfileLeader('adjutant', ['profile_enabled' => true, 'end_date' => '2026-01-01']);
     $url = route('school-leadership.profile', ['appointment' => 'adjutant']);
     $this->get($url)->assertNotFound();
-    $recordUrl = $leader->profileUrlForLocale('en');
+    $recordUrl = $leader->appointmentUrlForLocale('en');
     $this->get($recordUrl)->assertOk();
     $leader->update(['end_date' => null, 'is_active' => false]);
     $this->get($url)->assertNotFound();
@@ -354,7 +409,8 @@ it('hides disabled past profiles while keeping their saved content editable', fu
         'profile_html_en' => '<p>Saved former biography</p>',
     ]);
     $url = route('school-leadership.show', ['leader' => $leader->id]);
-    $this->get($url)->assertNotFound();
+    $this->get($url)->assertOk()->assertSeeText($leader->name_en)->assertDontSee('Saved former biography')
+        ->assertDontSee('data-leadership-profile-frame', false);
     $this->get(route('school-leadership.history'))->assertOk()->assertDontSee('href="'.$url.'"', false);
     Livewire::actingAs(profileEditorActor())->test(SchoolLeaderProfiles::class)
         ->assertSet('editingId', $leader->id)

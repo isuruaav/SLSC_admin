@@ -82,28 +82,163 @@
         ? $specialPrograms
         : collect();
 
+    $getProgramMeta = static function (string $title, string $category, string $locale): array {
+        $t = mb_strtolower($title);
+        $isSi = ($locale === 'si');
+
+        if (str_contains($t, 'conduct') || str_contains($t, 'ආචාර ධර්ම')) {
+            return [
+                'icon' => 'fa-solid fa-scale-balanced',
+                'desc' => $isSi ? 'විනය, ආචාර ධර්ම හා වටිනාකම් පද්ධතිය' : 'Core values, military discipline & standards',
+            ];
+        }
+        if (str_contains($t, 'rugby') || str_contains($t, 'රග්බි')) {
+            return [
+                'icon' => 'fa-solid fa-trophy',
+                'desc' => $isSi ? 'සංඥා රග්බි කණ්ඩායමේ නිල තේමා ගීතය' : 'Corps rugby anthem, pride & team spirit',
+            ];
+        }
+        if (str_contains($t, 'flag') || str_contains($t, 'ධජ')) {
+            return [
+                'icon' => 'fa-solid fa-flag',
+                'desc' => $isSi ? 'සංඥා බලකායේ නිල ධජය හා සංකේත' : 'Regimental colors & official insignia',
+            ];
+        }
+        if (str_contains($t, 'march') || str_contains($t, 'පෙළපාළි')) {
+            return [
+                'icon' => 'fa-solid fa-person-marching',
+                'desc' => $isSi ? 'හමුදා පෙළපාළි තාලය සහ සංගීතය' : 'Parade beats and marching tunes',
+            ];
+        }
+        if (str_contains($t, 'song') || str_contains($t, 'ගීත')) {
+            return [
+                'icon' => 'fa-solid fa-music',
+                'desc' => $isSi ? 'රෙජිමේන්තු නිල ගීතය හා උදාරත්වය' : 'Regimental anthem celebrating valor & service',
+            ];
+        }
+        if (str_contains($t, 'sacrifice') || str_contains($t, 'පරිත්‍යාග') || str_contains($t, 'hero') || str_contains($t, 'රණවිරු')) {
+            return [
+                'icon' => 'fa-solid fa-medal',
+                'desc' => $isSi ? 'මව්බිම වෙනුවෙන් දිවි පිදූ රණවිරු උපහාරය' : 'Honouring the fallen heroes of the Corps',
+            ];
+        }
+        if (str_contains($t, 'anniversary') || str_contains($t, 'සංවත්සර')) {
+            return [
+                'icon' => 'fa-solid fa-gem',
+                'desc' => $isSi ? '75 වසරක අභිමානවත් බලකා ඉතිහාසය' : 'Diamond jubilee milestones & legacy',
+            ];
+        }
+        if (str_contains($t, 'ex-service') || str_contains($t, 'ex -') || str_contains($t, 'servicemen') || str_contains($t, 'විශ්‍රාමික හමුදා')) {
+            return [
+                'icon' => 'fa-solid fa-user-shield',
+                'desc' => $isSi ? 'විශ්‍රාමික සංඥා සාමාජික එකමුතුව' : 'Veterans community, brotherhood & support',
+            ];
+        }
+        if (str_contains($t, 'junior') || str_contains($t, 'කනිෂ්ඨ')) {
+            return [
+                'icon' => 'fa-solid fa-children',
+                'desc' => $isSi ? 'පවුල් සහ දූදරු සුබසාධන සමාජය' : 'Youth engagement & family welfare',
+            ];
+        }
+        if (str_contains($t, 'seva vanitha') || str_contains($t, 'සේවා වනිතා')) {
+            return [
+                'icon' => 'fa-solid fa-hand-holding-heart',
+                'desc' => $isSi ? 'සංඥා සේවා වනිතා සුබසාධන වැඩසටහන්' : 'Welfare initiatives & family empowerment',
+            ];
+        }
+        if (str_contains($t, 'achievement') || str_contains($t, 'ජයග්‍රහණ')) {
+            return [
+                'icon' => 'fa-solid fa-certificate',
+                'desc' => $isSi ? 'වෘත්තීය සහ තාක්ෂණික ජයග්‍රහණ' : 'Technical excellence & military accolades',
+            ];
+        }
+        if (str_contains($t, 'bungalow') || str_contains($t, 'බංගලා')) {
+            return [
+                'icon' => 'fa-solid fa-hotel',
+                'desc' => $isSi ? 'නිවාඩු නිකේතන හා පහසුකම් වෙන්කරවා ගැනීම' : 'Holiday bungalows & rest facilities',
+            ];
+        }
+        if (str_contains($t, 'research') || str_contains($t, 'development') || str_contains($t, 'පර්යේෂණ')) {
+            return [
+                'icon' => 'fa-solid fa-microchip',
+                'desc' => $isSi ? 'නවීන සන්නිවේදන තාක්ෂණික පර්යේෂණ' : 'Advanced ICT innovations & R&D projects',
+            ];
+        }
+        if (str_contains($t, 'veteran') || str_contains($t, 'විශ්‍රාමික')) {
+            return [
+                'icon' => 'fa-solid fa-shield-halved',
+                'desc' => $isSi ? 'විශ්‍රාමික රණවිරු සුබසාධනය හා පහසුකම්' : 'Pensions, healthcare & post-service welfare',
+            ];
+        }
+        if (str_contains($t, 'book') || str_contains($t, 'history') || str_contains($t, 'ඉතිහාස') || str_contains($t, 'ග්‍රන්ථ')) {
+            return [
+                'icon' => 'fa-solid fa-book-open',
+                'desc' => $isSi ? 'සංඥා බලකායේ ඓතිහාසික ග්‍රන්ථ එළිදැක්වීම' : 'Chronicling decades of military communications',
+            ];
+        }
+
+        return match ($category) {
+            'community' => [
+                'icon' => 'fa-solid fa-users',
+                'desc' => $isSi ? 'ප්‍රජා සහ සුබසාධන වැඩසටහන්' : 'Community support & welfare initiatives',
+            ],
+            'resources' => [
+                'icon' => 'fa-solid fa-folder-open',
+                'desc' => $isSi ? 'දැනුම, සම්පත් හා පහසුකම්' : 'Institutional resources & technical services',
+            ],
+            default => [
+                'icon' => 'fa-solid fa-landmark',
+                'desc' => $isSi ? 'බලකායේ උරුමය හා සම්ප්‍රදායන්' : 'Traditions, identity & regimental heritage',
+            ],
+        };
+    };
+
     $specialProgramsList = [];
     if ($dbSpecialPrograms->isNotEmpty()) {
         foreach ($dbSpecialPrograms as $sp) {
+            $pTitle = $sp->titleForLocale($homeLocale);
+            $pCat = $sp->category;
+            $pMeta = $getProgramMeta($pTitle, $pCat, $homeLocale);
             $specialProgramsList[] = [
-                'title' => $sp->titleForLocale($homeLocale),
-                'url' => $sp->url,
-                'category' => $sp->category,
+                'id' => $sp->id,
+                'title' => $pTitle,
+                'url' => $sp->linkUrl(),
+                'category' => $pCat,
+                'category_label' => $sp->categoryLabel($homeLocale),
                 'open_in_new_tab' => $sp->open_in_new_tab,
                 'image_url' => $sp->imageUrl(),
+                'icon' => $pMeta['icon'],
+                'description' => $pMeta['desc'],
             ];
         }
     } else {
         foreach ($defaultSpecialPrograms as $dsp) {
+            $pTitle = ($homeLocale === 'si' && !empty($dsp['title_si'])) ? $dsp['title_si'] : $dsp['title'];
+            $pCat = $dsp['category'];
+            $pMeta = $getProgramMeta($pTitle, $pCat, $homeLocale);
             $specialProgramsList[] = [
-                'title' => ($homeLocale === 'si' && !empty($dsp['title_si'])) ? $dsp['title_si'] : $dsp['title'],
+                'id' => null,
+                'title' => $pTitle,
                 'url' => $dsp['url'],
-                'category' => $dsp['category'],
+                'category' => $pCat,
+                'category_label' => match($pCat) {
+                    'heritage' => $homeLocale === 'si' ? 'උරුමය' : 'Heritage',
+                    'community' => $homeLocale === 'si' ? 'ප්‍රජාව' : 'Community',
+                    'resources' => $homeLocale === 'si' ? 'සම්පත්' : 'Resources',
+                    default => ucfirst($pCat),
+                },
                 'open_in_new_tab' => true,
                 'image_url' => null,
+                'icon' => $pMeta['icon'],
+                'description' => $pMeta['desc'],
             ];
         }
     }
+
+    $progHeritageCount = collect($specialProgramsList)->where('category', 'heritage')->count();
+    $progCommunityCount = collect($specialProgramsList)->where('category', 'community')->count();
+    $progResourcesCount = collect($specialProgramsList)->where('category', 'resources')->count();
+    $progAllCount = count($specialProgramsList);
 
     // Default news
     $defaultNews = [
@@ -169,35 +304,37 @@
                 @php
                     $slideTranslation = $slide->translation($homeLocale);
                     $slideTitle = $slideTranslation?->title ?? $slide->title;
-                    $slideHeading = $slideTranslation?->subtitle ?? $slide->subtitle ?? 'THE CORPS OF SIGNALS';
-                    $slideDesc = $slideTranslation?->description ?? $slide->description ?? 'A proud heritage of service, discipline, innovation and professional excellence.';
-                    $slideUrl = $slide->resolvedButtonUrl($homeLocale) ?: '#about';
-                    $slideBtn = $slideTranslation?->button_label ?? $slide->button_label ?? 'Discover Our Corps';
+                    $slideSubtitle = $slideTranslation?->subtitle ?? $slide->subtitle;
+                    $slideUrl = $slide->resolvedButtonUrl($homeLocale);
+                    $slideBtn = $slideTranslation?->button_label ?? $slide->button_label;
+                    $hasButton = !empty($slideBtn) && !empty($slideUrl);
                     $slideImage = $slide->image ? ($mediaUrls->original($slide->image) ?? $mediaUrls->mediumOrOriginal($slide->image)) : $themeAssetBase . '/images/programs-sample.jpg';
                 @endphp
                 <article class="hero-slide {{ $index === 0 ? 'is-active' : '' }}" aria-hidden="{{ $index === 0 ? 'false' : 'true' }}" {{ $index !== 0 ? 'inert' : '' }}>
                     <img class="hero-image" src="{{ $slideImage }}" alt="{{ $slideTitle }}" width="1090" height="326" {{ $index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' }}>
                     <div class="container hero-inner">
                         <div class="hero-content">
-                            <p class="hero-overline"><span class="hero-pulse" aria-hidden="true"></span><span>{{ $slideHeading }}</span></p>
                             <h1>{{ $slideTitle }}</h1>
-                            <p class="hero-description">{{ $slideDesc }}</p>
-                            <div class="hero-links">
-                                <a class="button button-green" href="{{ $slideUrl }}">
-                                    <span>{{ $slideBtn }}</span>
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
-                                </a>
-                                <a class="hero-secondary" href="#special-programs">
-                                    <span data-i18n="navPrograms">{{ __('theme-slsc::interface.navPrograms') }}</span>
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
-                                </a>
-                            </div>
+                            @if (!empty($slideSubtitle))
+                                <p class="hero-description">{{ $slideSubtitle }}</p>
+                            @endif
+                            @if ($hasButton)
+                                <div class="hero-links">
+                                    <a class="button button-green" href="{{ $slideUrl }}" {{ str_starts_with($slideUrl, 'http') ? 'target="_blank" rel="noopener noreferrer"' : '' }}>
+                                        <span>{{ $slideBtn }}</span>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </article>
             @endforeach
         @else
             @foreach ($defaultSlides as $index => $slide)
+                @php
+                    $hasButton = !empty($slide['url']) && !empty($slide['button'] ?? $slide['cta'] ?? null);
+                @endphp
                 <article class="hero-slide {{ $index === 0 ? 'is-active' : '' }}" aria-hidden="{{ $index === 0 ? 'false' : 'true' }}" {{ $index !== 0 ? 'inert' : '' }}>
                     <img class="hero-image" src="{{ $slide['image'] }}" alt="{{ __('theme-slsc::interface.'.$slide['title']) }}" width="1090" height="326" {{ $index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' }}>
                     <div class="container hero-inner">
@@ -205,16 +342,14 @@
                             <p class="hero-overline"><span class="hero-pulse" aria-hidden="true"></span><span data-i18n="{{ $slide['label'] }}">{{ __('theme-slsc::interface.'.$slide['label']) }}</span></p>
                             <h1 data-i18n="{{ $slide['title'] }}">{{ __('theme-slsc::interface.'.$slide['title']) }}</h1>
                             <p class="hero-description" data-i18n="{{ $slide['description'] }}">{{ __('theme-slsc::interface.'.$slide['description']) }}</p>
-                            <div class="hero-links">
-                                <a class="button button-green" href="{{ $slide['url'] }}" {{ str_starts_with($slide['url'], 'https:') ? 'target="_blank" rel="noopener noreferrer"' : '' }}>
-                                    <span data-i18n="{{ $slide['cta'] }}">{{ __('theme-slsc::interface.'.$slide['cta']) }}</span>
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
-                                </a>
-                                <a class="hero-secondary" href="#special-programs">
-                                    <span data-i18n="navPrograms">{{ __('theme-slsc::interface.navPrograms') }}</span>
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
-                                </a>
-                            </div>
+                            @if ($hasButton)
+                                <div class="hero-links">
+                                    <a class="button button-green" href="{{ $slide['url'] }}" {{ str_starts_with($slide['url'], 'https:') ? 'target="_blank" rel="noopener noreferrer"' : '' }}>
+                                        <span data-i18n="{{ $slide['cta'] }}">{{ __('theme-slsc::interface.'.$slide['cta']) }}</span>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </article>
@@ -491,10 +626,10 @@
     </div>
 </section>
 
-{{-- 6. Special Programs Directory --}}
-<section id="special-programs" class="section-space" aria-labelledby="programsTitle">
+{{-- 6. Special Programs Directory (Compact Landscape Banners) --}}
+<section id="special-programs" class="section-space special-programs-compact" aria-labelledby="programsTitle">
     <div class="container">
-        <div class="section-heading reveal">
+        <div class="section-heading reveal programs-heading-compact">
             <div>
                 <p class="eyebrow"><span class="label-line" aria-hidden="true"></span><span data-i18n="programsEyebrow">{{ __('theme-slsc::interface.programsEyebrow') }}</span></p>
                 <h2 id="programsTitle" class="section-title" data-i18n="programsTitle">{{ __('theme-slsc::interface.programsTitle') }}</h2>
@@ -502,13 +637,18 @@
             </div>
             <span class="section-index" aria-hidden="true">{{ count($specialProgramsList) }}<span data-i18n="programsLabel">{{ __('theme-slsc::interface.programsLabel') }}</span></span>
         </div>
-        <div class="filter-bar program-filters enhanced-only">
-            <label class="input-wrap">
-                <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+
+        {{-- Slim Single-Line Filter Bar --}}
+        <div class="filter-bar program-filters enhanced-only program-filters-slim">
+            <div class="program-search-wrap">
+                <svg class="icon search-input-icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
                 <span class="sr-only" data-i18n="searchPrograms">{{ __('theme-slsc::interface.searchPrograms') }}</span>
-                <input id="programSearch" type="search" placeholder="{{ __('theme-slsc::interface.programSearchPlaceholder') }}" data-i18n-placeholder="programSearchPlaceholder" autocomplete="off">
-            </label>
-            <label class="select-wrap">
+                <input id="programSearch" type="search" placeholder="{{ __('theme-slsc::interface.programSearchPlaceholder') }}" data-i18n-placeholder="programSearchPlaceholder" autocomplete="off" class="program-search-input">
+                <button type="button" class="program-search-clear" id="programSearchClear" aria-label="Clear search" style="display: none;">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <label class="select-wrap program-select-wrap">
                 <span class="sr-only" data-i18n="programCategories">{{ __('theme-slsc::interface.programCategories') }}</span>
                 <select id="programCategory">
                     <option value="all" data-i18n="allPrograms">{{ __('theme-slsc::interface.allPrograms') }}</option>
@@ -518,24 +658,54 @@
                 </select>
                 <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-down"></use></svg>
             </label>
-            <span class="result-count" id="programCount" aria-live="polite" aria-atomic="true">{{ count($specialProgramsList) }} programs</span>
+            <div class="program-counter-badge">
+                <span class="result-count" id="programCount" aria-live="polite" aria-atomic="true">{{ count($specialProgramsList) }} programs</span>
+            </div>
         </div>
+
+        {{-- 4-Column Compact Landscape Banner Grid --}}
         <ul class="programs-grid" id="programGrid">
             @foreach ($specialProgramsList as $index => $program)
                 <li class="program-item reveal" data-program-category="{{ $program['category'] }}">
-                    <a class="program-card" href="{{ $program['url'] }}" @if($program['open_in_new_tab']) target="_blank" rel="noopener noreferrer" @endif data-search-item="programs" data-entry-link @if(!empty($program['image_url'])) style="--program-bg: url('{{ $program['image_url'] }}');" @endif>
-                        <span class="program-number" aria-hidden="true">{{ str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                        <h3 data-entry-title>{{ $program['title'] }}</h3>
-                        <svg class="icon program-arrow" aria-hidden="true" focusable="false"><use href="#i-external"></use></svg>
+                    <a class="program-card program-card-compact program-card--{{ $program['category'] }}" href="{{ $program['url'] }}" @if($program['open_in_new_tab']) target="_blank" rel="noopener noreferrer" @endif data-search-item="programs" data-entry-link title="{{ $program['title'] }}">
+                        @if(!empty($program['image_url']))
+                            <div class="program-banner-bg has-image">
+                                <img src="{{ $program['image_url'] }}" alt="{{ $program['title'] }}" loading="lazy" class="program-banner-img">
+                            </div>
+                        @else
+                            <div class="program-banner-bg fallback-bg fallback-bg--{{ $program['category'] }}">
+                                <i class="{{ $program['icon'] }} program-fallback-icon" aria-hidden="true"></i>
+                            </div>
+                        @endif
+
+                        <span class="program-number-tag" aria-hidden="true">{{ str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
+
+                        <div class="program-banner-bar">
+                            <span class="program-banner-title" data-entry-title>{{ $program['title'] }}</span>
+                            <span class="program-banner-arrow" aria-hidden="true">
+                                @if($program['open_in_new_tab'])
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-external"></use></svg>
+                                @else
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
+                                @endif
+                            </span>
+                        </div>
                     </a>
                 </li>
             @endforeach
         </ul>
-        <div class="empty-state" id="noPrograms" hidden>
-            <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+
+        {{-- Empty State --}}
+        <div class="empty-state program-empty-state" id="noPrograms" hidden>
+            <div class="empty-icon-circle" aria-hidden="true">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
             <h3 data-i18n="noPrograms">{{ __('theme-slsc::interface.noPrograms') }}</h3>
             <p data-i18n="tryAnotherSearch">{{ __('theme-slsc::interface.tryAnotherSearch') }}</p>
-            <button class="button button-outline" type="button" data-reset="programs" data-i18n="resetFilters">{{ __('theme-slsc::interface.resetFilters') }}</button>
+            <button class="button button-outline" type="button" data-reset="programs" data-i18n="resetFilters">
+                <i class="fa-solid fa-rotate-left" style="margin-right: 6px;"></i>
+                <span data-i18n="resetFilters">{{ __('theme-slsc::interface.resetFilters') }}</span>
+            </button>
         </div>
     </div>
 </section>
@@ -575,7 +745,7 @@
             <p class="eyebrow"><span class="label-line" aria-hidden="true"></span><span data-i18n="joinEyebrow">{{ __('theme-slsc::interface.joinEyebrow') }}</span></p>
             <h2 id="joinTitle" class="section-title" data-i18n="joinTitle">{{ __('theme-slsc::interface.joinTitle') }}</h2>
             <p class="section-subtitle" data-i18n="joinDescription">{{ __('theme-slsc::interface.joinDescription') }}</p>
-            <a class="button button-green join-cta" href="#registrationDialog" data-open-registration aria-haspopup="dialog">
+            <a class="button button-green join-cta" href="{{ app()->getLocale() === 'si' ? route('registration.create.localized', ['locale' => 'si']) : route('registration.create') }}" data-open-registration aria-haspopup="dialog">
                 <span data-i18n="joinRegister">{{ __('theme-slsc::interface.joinRegister') }}</span>
                 <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"></use></svg>
             </a>

@@ -6,6 +6,7 @@ use App\Enums\MediaType;
 use App\Enums\MediaVisibility;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\MediaDuplicateFinder;
 use App\Services\MediaUploadService;
 use App\Services\MediaUrlService;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,18 @@ final class MediaUpload extends Component
     public mixed $file = null;
 
     public string $type = 'image';
+
+    /** @var array<int, mixed> */
+    public array $batchFiles = [];
+
+    /** @var array<int, array{name: string, status: string, message: string, id: int|null, url: string|null}> */
+    #[Locked]
+    public array $batchResults = [];
+
+    #[Locked]
+    public ?int $duplicateMediaId = null;
+
+    public bool $reuseDuplicates = true;
 
     public string $visibility = 'public';
 
@@ -59,6 +72,7 @@ final class MediaUpload extends Component
 
     public function updatedFile(): void
     {
+        $this->duplicateMediaId = $this->file instanceof TemporaryUploadedFile ? app(MediaDuplicateFinder::class)->find($this->file, $this->visibility, $this->actor())?->id : null;
         $this->resetValidation(
             'file',
         );
@@ -379,5 +393,53 @@ final class MediaUpload extends Component
         );
 
         return $actor;
+    }
+
+    public function uploadBatch(): void
+    {
+        Gate::authorize('media.upload');
+        $this->validate(['batchFiles' => ['required', 'array', 'min:1', 'max:20'], 'visibility' => ['required', 'in:public,internal,restricted']]);
+        foreach (array_keys($this->batchFiles) as $index) {
+            $this->retryBatch((int) $index);
+        }
+    }
+
+    public function updatedBatchFiles(): void
+    {
+        $this->batchResults = [];
+    }
+
+    public function retryBatch(int $index): void
+    {
+        Gate::authorize('media.upload');
+        $this->validate(['visibility' => ['required', 'in:public,internal,restricted']]);
+        $file = $this->batchFiles[$index] ?? null;
+        abort_unless($file instanceof TemporaryUploadedFile, 404);
+        $name = $file->getClientOriginalName();
+        try {
+            $actor = $this->actor();
+            $duplicate = $this->reuseDuplicates ? app(MediaDuplicateFinder::class)->find($file, $this->visibility, $actor) : null;
+            $media = $duplicate ?? app(MediaUploadService::class)->upload($file, str_starts_with((string) $file->getMimeType(), 'image/') ? MediaType::Image : MediaType::Document, MediaVisibility::from($this->visibility), $actor);
+            $this->batchResults[$index] = ['name' => $name, 'status' => $duplicate ? 'reused' : 'uploaded', 'message' => $duplicate ? 'Matching library file reused.' : 'Uploaded successfully.', 'id' => $media->id, 'url' => app(MediaUrlService::class)->namedOriginal($media)];
+            unset($this->batchFiles[$index]);
+        } catch (\Throwable $exception) {
+            if (! $exception instanceof ValidationException) {
+                report($exception);
+            }
+            $message = $exception instanceof ValidationException ? collect($exception->errors())->flatten()->implode(' ') : 'Upload failed. Retry this file.';
+            $this->batchResults[$index] = ['name' => $name, 'status' => 'error', 'message' => $message, 'id' => null, 'url' => null];
+        }
+    }
+
+    public function useExistingFile(): void
+    {
+        Gate::authorize('media.upload');
+        abort_unless($this->file instanceof TemporaryUploadedFile, 404);
+        $media = app(MediaDuplicateFinder::class)->find($this->file, $this->visibility, $this->actor());
+        abort_unless($media !== null && $media->id === $this->duplicateMediaId, 404);
+        $this->uploadedMediaId = $media->id;
+        $this->file = null;
+        $this->duplicateMediaId = null;
+        session()->flash('status', 'Existing library file selected. No duplicate was uploaded.');
     }
 }

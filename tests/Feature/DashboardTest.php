@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\News;
+use App\Models\Page;
+use App\Models\Publication;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 
@@ -26,5 +29,24 @@ test('authorized users are redirected to the admin dashboard', function (): void
     $this->actingAs($user)
         ->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('AWCMS Foundation Ready');
+        ->assertSee('Continue Editing');
+});
+
+test('dashboard offers drafts, publication counts and an upload shortcut', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole('Site Administrator');
+    Page::factory()->create(['title' => 'Unfinished history']);
+    News::factory()->create(['title' => 'Unfinished news', 'status' => 'draft']);
+    $publication = Publication::query()->create(['title' => 'Unfinished journal', 'disk' => 'local', 'pdf_path' => 'publications/draft.pdf', 'cover_path' => 'publications/draft.jpg', 'original_name' => 'draft.pdf', 'size_bytes' => 10, 'cover_width' => 600, 'cover_height' => 800, 'is_published' => false]);
+    $this->actingAs($user)->get(route('admin.dashboard'))->assertOk()
+        ->assertSeeText('Unfinished history')->assertSeeText('Unfinished news')->assertSeeText('Unfinished journal')
+        ->assertSeeText('Upload Publication')->assertViewHas('publicationCount', 1);
+    $this->get(route('admin.publications.index', ['edit' => $publication->id]))->assertOk()->assertSeeText('Edit publication');
+});
+
+test('dashboard draft shortcuts respect content permissions', function (): void {
+    $user = User::factory()->create();
+    $user->givePermissionTo(['admin.access', 'dashboard.view']);
+    Page::factory()->create(['title' => 'Restricted draft']);
+    $this->actingAs($user)->get(route('admin.dashboard'))->assertOk()->assertDontSeeText('Restricted draft')->assertDontSeeText('Upload Publication');
 });

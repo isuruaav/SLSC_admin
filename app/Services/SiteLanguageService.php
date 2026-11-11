@@ -6,8 +6,8 @@ use App\Enums\ThemeLayoutLocale;
 use App\Models\SiteSetting;
 use BackedEnum;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 final class SiteLanguageService
 {
@@ -54,14 +54,22 @@ final class SiteLanguageService
      * Prefer published translations supplied by the content controller. For
      * listing pages, retain the current route, identifiers and search filters.
      *
-     * @param array<int|string, mixed> $versions
+     * @param  array<int|string, mixed>  $versions
      * @return list<array{code: string, available: bool, url: ?string}>
      */
     public function switcherLinks(array $versions = []): array
     {
         if ($versions !== []) {
-            return array_values(array_filter($versions, fn ($version): bool => is_array($version)
-                && in_array($version['code'] ?? null, $this->codes(), true)));
+            $links = [];
+            foreach ($versions as $version) {
+                if (! is_array($version) || ! is_string($version['code'] ?? null) || ! in_array($version['code'], $this->codes(), true)) {
+                    continue;
+                }
+                $url = is_string($version['url'] ?? null) ? $version['url'] : null;
+                $links[] = ['code' => $version['code'], 'available' => (bool) ($version['available'] ?? ($url !== null)), 'url' => $url];
+            }
+
+            return $links;
         }
 
         $request = request();

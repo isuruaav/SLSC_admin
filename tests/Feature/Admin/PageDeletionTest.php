@@ -118,6 +118,54 @@ test('site administrator can restore a trashed page', function (): void {
         ->toBeFalse();
 });
 
+test('restoring a reused slug selects an available suffix and records the changed URL', function (): void {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('Site Administrator');
+
+    $page = Page::factory()->create(['slug' => 'slsc-flag']);
+    $page->delete();
+
+    $replacement = Page::factory()->create(['slug' => 'slsc-flag']);
+    Page::factory()->create(['slug' => 'slsc-flag-2']);
+    $deletedSuffix = Page::factory()->create(['slug' => 'slsc-flag-3']);
+    $deletedSuffix->delete();
+
+    Livewire::actingAs($administrator)
+        ->test(PageIndex::class)
+        ->set('recordState', 'trashed')
+        ->call('restorePage', $page->id)
+        ->assertHasNoErrors()
+        ->assertSee('/en/pages/slsc-flag-3');
+
+    expect($page->fresh()->trashed())->toBeFalse()
+        ->and($page->fresh()->slug)->toBe('slsc-flag-3')
+        ->and($replacement->fresh()->slug)->toBe('slsc-flag')
+        ->and($deletedSuffix->fresh()->trashed())->toBeTrue();
+
+    $log = AuditLog::query()->where('event', 'pages.restored')->latest('id')->firstOrFail();
+
+    expect($log->old_values['slug'])->toBe('slsc-flag')
+        ->and($log->new_values['slug'])->toBe('slsc-flag-3');
+});
+
+test('restoring a page keeps its slug when only another language uses it', function (): void {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('Site Administrator');
+
+    $page = Page::factory()->create(['slug' => 'slsc-flag', 'locale' => 'en']);
+    $page->delete();
+    Page::factory()->create(['slug' => 'slsc-flag', 'locale' => 'si']);
+
+    Livewire::actingAs($administrator)
+        ->test(PageIndex::class)
+        ->set('recordState', 'trashed')
+        ->call('restorePage', $page->id)
+        ->assertHasNoErrors();
+
+    expect($page->fresh()->trashed())->toBeFalse()
+        ->and($page->fresh()->slug)->toBe('slsc-flag');
+});
+
 test('page delete and restore actions create audit records', function (): void {
     $administrator = User::factory()->create();
     $administrator->assignRole('Site Administrator');

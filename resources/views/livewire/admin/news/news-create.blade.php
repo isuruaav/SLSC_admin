@@ -87,7 +87,9 @@
 
 
 
-    <form wire:submit="save" wire:confirm="Save this news article as a draft?" class="space-y-6">
+    <form wire:submit="save" data-unsaved-form data-draft-key="news-create" class="space-y-6">
+            <x-admin.publishing-checklist :title="$title" :content="$content" :translated-title="$sinhalaTitle ?? ''" :blocks="$blocks ?? []" />
+        <x-admin.editor-status />
 
         @if ($translationSourceNewsId === null)
 

@@ -4,6 +4,7 @@
     $previewLayout = ($themeLayout && view()->exists($themeLayout))
         ? $themeLayout
         : (view()->exists('theme-slsc::layout') ? 'theme-slsc::layout' : 'layouts.public');
+    $currentLocale = app()->getLocale();
 @endphp
 
 @extends($previewLayout)
@@ -21,68 +22,78 @@
 @endpush
 
 @section('content')
-    <div class="border-b border-amber-200 bg-amber-50">
-        <div class="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <div>
-                <p class="text-sm font-bold text-amber-900">
-                    Administrator Preview
-                </p>
-
-                <p class="mt-1 text-xs text-amber-700">
-                    This is a preview of the current page content.
-                </p>
+    {{-- Modern SLSC Administrator Preview Top Bar --}}
+    <div class="admin-preview-bar">
+        <div class="admin-preview-container">
+            <div class="admin-preview-info">
+                <span class="admin-preview-icon" aria-hidden="true">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </span>
+                <div>
+                    <p class="admin-preview-title">Administrator Preview Mode</p>
+                    <p class="admin-preview-desc">Viewing live page layout and content preview</p>
+                </div>
             </div>
 
-            <span class="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-800">
-                {{ $page->status->label() }}
-            </span>
+            <div class="admin-preview-actions">
+                <span class="admin-preview-status {{ $page->status === \App\Enums\PageStatus::Published ? 'status-published' : 'status-draft' }}">
+                    <i class="fa-solid {{ $page->status === \App\Enums\PageStatus::Published ? 'fa-circle-check' : 'fa-clock' }}"></i>
+                    {{ $page->status->label() }}
+                </span>
+
+                <a href="{{ route('admin.pages.edit', $page) }}" class="admin-preview-btn admin-preview-btn-edit">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Edit Page</span>
+                </a>
+
+                @if ($page->status === \App\Enums\PageStatus::Published)
+                    <a href="{{ route('pages.show', $page->slug) }}" target="_blank" class="admin-preview-btn admin-preview-btn-public">
+                        <span>Open Live Page</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 
-    <article>
-        @if ($page->show_title || $page->excerpt)
-            <header class="mx-auto max-w-5xl px-5 py-12 sm:px-6 lg:px-8 lg:py-16">
-                <div class="border-b border-zinc-200 pb-8">
+    {{-- Main CMS Page Article --}}
+    <main class="theme-page">
+        <div class="container">
+            @if ($page->show_title || $page->excerpt)
+                <header class="cms-page-head">
+                    <div class="kicker">
+                        <span class="kicker-pulse"></span>
+                        <span>{{ $currentLocale === 'si' ? 'ශ්‍රී ලංකා සංඥා බලකාය' : 'Sri Lanka Signal Corps' }}</span>
+                    </div>
+
                     @if ($page->show_title)
-                        <h1 class="text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl lg:text-5xl">
+                        <h1 class="title-lg">
                             {{ $page->title }}
                         </h1>
                     @endif
 
                     @if ($page->excerpt)
-                        <p class="{{ $page->show_title ? 'mt-5 ' : '' }}max-w-3xl text-lg leading-8 text-zinc-600">
+                        <p class="lead">
                             {{ $page->excerpt }}
                         </p>
                     @endif
-                </div>
-            </header>
-        @endif
+                </header>
+            @endif
 
-        @if ($safeContent !== '')
-            @if ($page->getRawOriginal('editor_mode') === \App\Enums\PageEditorMode::Visual->value)
-                <div id="cms-page-{{ $page->getKey() }}"
-                    @class([
-                        'mx-auto max-w-5xl px-5 sm:px-6 lg:px-8',
-                        'pb-12 pt-4 lg:pb-16 lg:pt-6' => $page->show_title || $page->excerpt,
-                        'py-12 lg:py-16' => ! ($page->show_title || $page->excerpt),
-                    ])
-                >
+            @if ($safeContent !== '')
+                <article class="page-article-card" id="cms-page-{{ $page->getKey() }}">
                     <div class="awcms-content">
                         {!! $safeContent !!}
                     </div>
-                </div>
-            @else
-                <div id="cms-page-{{ $page->getKey() }}" class="page-html-content">
-                    {!! $safeContent !!}
+                </article>
+            @endif
+
+            {{-- Legacy page blocks remain visible in previews for existing pages. --}}
+            @if ($pageBlocks !== [])
+                <div class="page-blocks-wrap" style="margin-top: 2rem;">
+                    <x-page.blocks :blocks="$pageBlocks" />
                 </div>
             @endif
-        @endif
-
-        {{-- Legacy page blocks remain visible in previews for existing pages. --}}
-        @if ($pageBlocks !== [])
-            <div class="mx-auto max-w-5xl px-5 pb-12 sm:px-6 lg:px-8 lg:pb-16">
-                <x-page.blocks :blocks="$pageBlocks" />
-            </div>
-        @endif
-    </article>
+        </div>
+    </main>
 @endsection

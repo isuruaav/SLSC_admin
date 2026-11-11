@@ -1,0 +1,178 @@
+[
+    {
+        "label": "Home",
+        "href": "/"
+    },
+    {
+        "label": "Appointments",
+        "children": [
+            {
+                "label": "Colonel Commandant",
+                "href": "/school-leadership/colonel-commandant"
+            },
+            {
+                "label": "Chief Signal Officer",
+                "href": "/school-leadership/chief-signal-officer"
+            },
+            {
+                "label": "Director IT",
+                "href": "/school-leadership/director-it"
+            },
+            {
+                "label": "Commander 1 Signal Brigade",
+                "href": "/school-leadership/commander-1-signal-brigade"
+            },
+            {
+                "label": "Commander 2 Signal Brigade",
+                "href": "/school-leadership/commander-2-signal-brigade"
+            },
+            {
+                "label": "Regimental Centre Commandant",
+                "href": "/school-leadership/regimental-centre-commandant"
+            },
+            {
+                "label": "Regimental Adjutant",
+                "href": "/school-leadership/regimental-adjutant"
+            },
+            {
+                "label": "Regimental Sergeant Major",
+                "href": "/school-leadership/regimental-sergeant-major"
+            }
+        ]
+    },
+    {
+        "label": "History",
+        "children": [
+            {
+                "label": "History of Signal Corps",
+                "href": "/history-sri-lanka-signal-corps"
+            },
+            {
+                "label": "1st Appointments Holders",
+                "href": "/first-appoinment-holders"
+            },
+            {
+                "label": "Regtl Comds & Col Comdts",
+                "href": "/regt-comdt-col-comdt"
+            },
+            {
+                "label": "Chief Signal Officers",
+                "href": "/chief-signal-officers"
+            },
+            {
+                "label": "Directors of IT",
+                "href": "/directors-of-it"
+            },
+            {
+                "label": "Bde Comds",
+                "href": "/brigade-commanders"
+            },
+            {
+                "label": "1 Bde Comds",
+                "href": "/1-bde-comds"
+            },
+            {
+                "label": "2 Bde Comds",
+                "href": "/2-bde-comds"
+            },
+            {
+                "label": "Cen Comdts",
+                "href": "/centre-commandants"
+            },
+            {
+                "label": "Regimental Adjutants",
+                "href": "/regimental-adjutants"
+            },
+            {
+                "label": "Regimental Sergeant Major",
+                "href": "/regimental-sergeant-major"
+            }
+        ]
+    },
+    {
+        "label": "Organization",
+        "href": "/organization"
+    },
+    {
+        "label": "Magazine",
+        "children": [
+            {
+                "label": "Signaller Magazine 2025 - E version",
+                "href": "https://alt.army.lk/signaller/2025/signaller_journal_2025/",
+                "new_tab": true
+            },
+            {
+                "label": "Signaller Magazine 2024 - E version",
+                "href": "https://alt.army.lk/signaller/2024/signaller_journal_2024/",
+                "new_tab": true
+            },
+            {
+                "label": "Signaller Magazines",
+                "href": "/signaller-magazines"
+            },
+            {
+                "label": "Signals Association Magazine",
+                "href": "/signals-association-magazine"
+            }
+        ]
+    },
+    {
+        "label": "Sports",
+        "children": [
+            {
+                "label": "Sport and Athletics",
+                "href": "/sport"
+            },
+            {
+                "label": "Signal Colors",
+                "href": "/2025/slsc_colors_2025/signaller"
+            }
+        ]
+    },
+    {
+        "label": "Gallery",
+        "children": [
+            {
+                "label": "Image Gallery",
+                "href": "/gallery"
+            },
+            {
+                "label": "CSO Conference Photo Album",
+                "href": "/cso-conference-photo-gallery"
+            }
+        ]
+    },
+    {
+        "label": "Contact",
+        "children": [
+            {
+                "label": "Colonel Commandant",
+                "href": "/contact-commandant"
+            },
+            {
+                "label": "HQ Chief Signal Officer",
+                "href": "/contact-cso"
+            },
+            {
+                "label": "Directorate of IT",
+                "href": "/contact-directorate-of-it"
+            },
+            {
+                "label": "1 Signal Brigade",
+                "href": "/contact-signal-brigade"
+            },
+            {
+                "label": "2 Signal Brigade",
+                "href": "/2-signal/brig"
+            },
+            {
+                "label": "Regimental Centre",
+                "href": "/contact-regimental-headquarters"
+            },
+            {
+                "label": "Units",
+                "href": "/contact-signal-units"
+            }
+        ]
+    }
+]

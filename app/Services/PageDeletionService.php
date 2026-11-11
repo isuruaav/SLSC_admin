@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PageStatus;
 use App\Models\Page;
 use App\Models\User;
+use App\Support\PageSlugger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -90,11 +91,18 @@ final class PageDeletionService
                 $status,
             );
 
-            $lockedPage->restore();
+            $oldSlug = (string) $lockedPage->slug;
 
             $lockedPage->forceFill([
+                'slug' => PageSlugger::unique(
+                    $oldSlug,
+                    $pageId,
+                    (string) $lockedPage->getRawOriginal('locale'),
+                ),
                 'updated_by' => $actor->id,
-            ])->save();
+            ]);
+
+            $lockedPage->restore();
 
             app(AuditLogger::class)->log(
                 event: 'pages.restored',
@@ -104,10 +112,12 @@ final class PageDeletionService
                 oldValues: [
                     'status' => $status->value,
                     'deleted' => true,
+                    'slug' => $oldSlug,
                 ],
                 newValues: [
                     'status' => $status->value,
                     'deleted' => false,
+                    'slug' => $lockedPage->slug,
                 ],
             );
         });

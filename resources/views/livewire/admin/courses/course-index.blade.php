@@ -96,9 +96,9 @@
             <h1 class="ca-title">Courses</h1>
             <p class="ca-subtitle">Organize programmes, keep course details current, and control what visitors can see.</p>
         </div>
-        <button type="button" wire:click="create" class="ca-primary">
+        @can('courses.create')<button type="button" wire:click="create" class="ca-primary">
             <i class="fa-solid fa-plus" aria-hidden="true"></i><span>Add course</span>
-        </button>
+        </button>@endcan
     </header>
 
     @if (session('status'))
@@ -124,9 +124,9 @@
         <aside class="ca-sidebar" aria-label="Course categories">
             <div class="ca-sidebar-top">
                 <h2 class="ca-sidebar-title"><i class="fa-solid fa-layer-group mr-2 text-emerald-700" aria-hidden="true"></i>Browse courses</h2>
-                <button type="button" wire:click="openCategoryForm" class="ca-mini-icon" aria-label="Add category" title="Add category">
+                @can('courses.categories.manage')<button type="button" wire:click="openCategoryForm" class="ca-mini-icon" aria-label="Add category" title="Add category">
                     <i class="fa-solid fa-folder-plus" aria-hidden="true"></i>
-                </button>
+                </button>@endcan
             </div>
 
             @if ($categoryFormOpen)
@@ -158,7 +158,7 @@
                             <span class="ca-side-label min-w-0"><i class="fa-solid fa-folder" aria-hidden="true"></i><span class="truncate">{{ $category->name }}</span></span>
                             <span class="ca-count">{{ $category->courses_count }}</span>
                         </button>
-                        <span class="ca-category-tools opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                        @can('courses.categories.manage')<span class="ca-category-tools opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
                             <button type="button" wire:click="openCategoryForm({{ $category->id }})" class="ca-mini-icon" title="Edit category" aria-label="Edit {{ $category->name }}">
                                 <i class="fa-solid fa-pen" aria-hidden="true"></i>
                             </button>
@@ -166,7 +166,7 @@
                                 class="ca-mini-icon danger" title="Delete category" aria-label="Delete {{ $category->name }}">
                                 <i class="fa-solid fa-trash" aria-hidden="true"></i>
                             </button>
-                        </span>
+                        </span>@endcan
                     </div>
                 @endforeach
             </div>
@@ -251,7 +251,8 @@
                             </div>
                             @foreach ($qualifications as $index => $qualification)
                                 <div wire:key="course-qualification-{{ $index }}" class="ca-qual-row">
-                                    <textarea wire:model="qualifications.{{ $index }}" rows="2" maxlength="500" aria-label="Qualification {{ $index + 1 }}" class="ca-input"></textarea>
+                                    <textarea wire:model="qualifications.{{ $index }}" rows="2" maxlength="500" aria-label="Qualification {{ $index + 1 }}" class="ca-input" placeholder="English qualification"></textarea>
+                                    <textarea wire:model="qualificationsSi.{{ $index }}" rows="2" maxlength="500" lang="si" aria-label="Sinhala qualification {{ $index + 1 }}" placeholder="සිංහල සුදුසුකම" class="ca-input"></textarea>
                                     <x-admin.icon-action label="Remove qualification" icon="trash" tone="danger" type="button" wire:click="removeQualification({{ $index }})" />
                                 </div>
                                 @error('qualifications.'.$index)<p class="ca-error">{{ $message }}</p>@enderror
@@ -313,15 +314,15 @@
                         @endif
                     </div>
                     <div class="ca-actions">
-                        <x-admin.icon-action label="Edit course" icon="pencil-square" tone="info" type="button" wire:click="edit({{ $course->id }})" />
-                        <x-admin.icon-action
+                        @can('courses.update')<x-admin.icon-action label="Edit course" icon="pencil-square" tone="info" type="button" wire:click="edit({{ $course->id }})" />@endcan
+                        @can('courses.publish')<x-admin.icon-action
                             :label="$course->is_active ? 'Deactivate course' : 'Activate course'"
                             :icon="$course->is_active ? 'eye-slash' : 'eye'"
                             :tone="$course->is_active ? 'warning' : 'success'"
                             type="button" wire:click="toggleActive({{ $course->id }})"
                         />
-                        <x-admin.icon-action label="Delete course" icon="trash" tone="danger" type="button"
-                            wire:click="delete({{ $course->id }})" wire:confirm="Delete this course and its qualifications?" />
+                        @endcan @can('courses.delete')<x-admin.icon-action label="Delete course" icon="trash" tone="danger" type="button"
+                            wire:click="delete({{ $course->id }})" wire:confirm="Delete this course and its qualifications?" />@endcan
                     </div>
                 </article>
             @empty

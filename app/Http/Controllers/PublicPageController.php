@@ -8,6 +8,8 @@ use App\Enums\PageStatus;
 use App\Models\Page;
 use App\Services\PageBlockRenderer;
 use App\Services\PageHtmlSanitizer;
+use App\Services\SiteLanguageService;
+use App\Services\SiteUrlService;
 use App\Services\ThemeViewResolver;
 use App\Support\PageSeo;
 use Illuminate\Contracts\View\View;
@@ -83,6 +85,8 @@ final class PublicPageController extends Controller
             : $htmlSanitizer->sanitize(
                 $rawContent,
             );
+
+        $safeContent = app(SiteUrlService::class)->resolveHtml($safeContent);
 
         $pageBlocks = app(
             PageBlockRenderer::class,
@@ -172,7 +176,7 @@ final class PublicPageController extends Controller
     : null,
                 ];
             },
-            app(\App\Services\SiteLanguageService::class)->choices(PageLocale::cases()),
+            app(SiteLanguageService::class)->choices(PageLocale::cases()),
         );
 
         return $this->pageView(

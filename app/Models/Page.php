@@ -30,6 +30,7 @@ final class Page extends Model
      */
     protected $guarded = [
         'id',
+        'active_slug',
     ];
 
     /**

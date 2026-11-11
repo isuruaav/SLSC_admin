@@ -366,7 +366,9 @@
 
     @else
 
-        <form wire:submit="save" wire:confirm="Save changes to this news draft?" class="space-y-6">
+        <form wire:submit="save" data-unsaved-form data-draft-key="news-edit" class="space-y-6">
+            <x-admin.publishing-checklist :title="$title" :content="$content" :translated-title="$sinhalaTitle ?? ''" :blocks="$blocks ?? []" />
+        <x-admin.editor-status />
 
 
 

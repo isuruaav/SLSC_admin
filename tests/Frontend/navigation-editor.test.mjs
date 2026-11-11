@@ -26,9 +26,9 @@ const config = {
     icons: [{ label: 'Home', class: 'fa-solid fa-house' }, { label: 'Education', class: 'fa-solid fa-graduation-cap' }, { label: 'People', class: 'fa-solid fa-users' }],
     siteMenuHtml: '<nav class="aw-navigation"><ul><li><a href="/">Shared Home</a></li><li><a href="/news">Shared News</a></li></ul></nav>',
 };
-function editor(html = existing, css = '.keep-header { padding: 17px; }') {
+function editor(html = existing, css = '.keep-header { padding: 17px; }', configuration = config) {
     const wire = { layoutHtml: html, layoutCss: css, $set(name, value) { this[name] = value; } };
-    const value = window.awcmsNavigationEditor(wire, config);
+    const value = window.awcmsNavigationEditor(wire, configuration);
     value.$watch = () => {};
     value.$nextTick = (callback) => callback();
     value.$refs = { menuList: {}, preview: {}, linkLabel: { focus() {} } };
@@ -37,6 +37,99 @@ function editor(html = existing, css = '.keep-header { padding: 17px; }') {
     return { value, wire };
 }
 const doc = (html) => new DOMParser().parseFromString(html);
+
+const referenceHeader = `<header class="aw-header aw-header-reference">
+<div class="aw-topbar"><span class="aw-topbar-text">School, Kandy</span><span class="aw-topbar-motto">Technological Sound</span><div class="aw-header-languages">[[language_switcher]]</div></div>
+<div class="aw-header-inner"><a class="aw-brand" href="[[site_url:/]]"><span class="aw-brand-logo">[[site_logo]]</span><span class="aw-brand-copy"><span class="aw-brand-title">School of Signals</span><span class="aw-brand-subtitle">Sri Lanka Army</span></span></a>
+<nav class="aw-navigation"><a class="custom-home" href="[[site_url:/]]">Home</a><a href="[[site_url:/courses]]">Courses</a></nav>
+<div class="aw-header-actions"><a class="aw-header-conduct" href="[[site_url:/documents]]"><span class="aw-action-label">Code of Conduct</span></a><span class="aw-header-search">[[search_button]]</span><a class="aw-header-portal" href="https://lms.army.lk"><span class="aw-action-label">LMS Portal</span></a>[[mobile_menu_toggle]]</div></div>
+<div id="mobileMenu"><div class="aw-mobile-navigation"><a href="[[site_url:/]]">Home</a><a href="[[site_url:/courses]]">Courses</a></div><div class="aw-mobile-actions"><a class="aw-header-conduct" href="[[site_url:/documents]]"><span class="aw-action-label">Code of Conduct</span></a><a class="aw-header-portal" href="https://lms.army.lk"><span class="aw-action-label">LMS Portal</span></a></div></div></header>`;
+
+test('header branding, layout, language controls and actions round-trip through Visual and HTML', () => {
+    const { value, wire } = editor(referenceHeader, baseCss);
+    assert.equal(value.header.available, true);
+    assert.equal(value.header.brandTitle, 'School of Signals');
+    assert.equal(value.updateHeader('brandTitle', 'සංඥා පාසල'), true);
+    value.updateHeader('topbarTitle', 'මහනුවර');
+    value.updateHeader('conductLabel', 'චර්යාධර්ම');
+    value.updateHeader('conductHref', '/si/documents');
+    value.updateHeader('portalHref', 'https://learning.example.test');
+    value.updateHeader('showSearch', false);
+    value.updateHeader('layout', 'stacked');
+    value.updateHeader('logoUrl', '/images/custom-logo.png');
+    let result = doc(wire.layoutHtml);
+    assert.equal(result.querySelectorAll('a[href="[[site_url:/si/documents]]"]').length, 2);
+    assert.equal(result.querySelectorAll('a[href="https://learning.example.test"]').length, 2);
+    assert.equal(result.querySelector('.aw-header-search').classList.contains('aw-hidden'), true);
+    assert.equal(result.querySelector('.aw-header').classList.contains('aw-header-stacked'), true);
+    assert.equal(result.querySelector('.aw-brand-logo img').getAttribute('src'), '/images/custom-logo.png');
+    value.html = value.html.replace('>සංඥා පාසල<', '>New school name<');
+    value.switchMode('visual');
+    assert.equal(value.header.brandTitle, 'New school name');
+    assert.equal(value.header.showSearch, false);
+    assert.equal(value.header.layout, 'stacked');
+    value.update('label', 'Homepage');
+    result = doc(value.html);
+    assert.equal(result.querySelector('.aw-brand-title').textContent, 'New school name');
+    assert.equal(result.querySelectorAll('.aw-mobile-actions a').length, 2);
+    assert.equal(result.querySelectorAll('#mobileMenu a[href="[[site_url:/si/documents]]"]').length, 1);
+});
+
+test('visual menu edits preserve CSS changes made inside the base block and custom layouts', () => {
+    const customCss = baseCss.replace('grid-template-columns: auto minmax(0, 1fr) auto', 'grid-template-columns: 240px 1fr 260px') + '\n.aw-topbar { border-bottom: 3px solid red; }';
+    const { value } = editor(referenceHeader, customCss);
+    value.update('label', 'Updated');
+    value.chooseIcon('fa-solid fa-house');
+    assert.equal(value.css, customCss);
+    value.updateHeader('motto', 'A custom motto');
+    assert.equal(value.css, customCss);
+});
+
+test('header colours can be edited from either mode and undo restores the header fields', () => {
+    const { value } = editor(referenceHeader, baseCss);
+    value.headerStyle.background = '#abc123';
+    value.applyHeaderStyle();
+    value.css = value.css.replace('--aw-header-background: #abc123', '--aw-header-background: #123abc');
+    value.codeChanged();
+    assert.equal(value.headerStyle.background, '#123abc');
+    value.updateHeader('brandTitle', 'Edited name');
+    value.undo(-1);
+    assert.equal(value.header.brandTitle, 'School of Signals');
+});
+
+test('the reference layout preserves current menu links and custom CSS when applied', () => {
+    const { value } = editor(existing, '.custom { color: red; }', { ...config, defaultHtml: referenceHeader });
+    value.applyHeaderPreset();
+    assert.equal(value.header.available, true);
+    assert.deepEqual(value.rows().map((item) => item.label), ['Home', 'History', 'School History', 'Courses']);
+    assert.ok(value.css.includes('.custom { color: red; }'));
+    assert.ok(value.html.includes('[[language_switcher]]'));
+    assert.ok(doc(value.html).querySelector('#mobileMenu .conduct'));
+});
+
+test('unsafe header addresses cannot be saved and labels are inserted as text', () => {
+    const { value } = editor(referenceHeader, baseCss);
+    const original = value.html;
+    assert.equal(value.updateHeader('portalHref', 'javascript:alert(1)'), false);
+    assert.equal(value.updateHeader('logoUrl', 'javascript:alert(1)'), false);
+    assert.equal(value.html, original);
+    value.header.portalHref = 'javascript:alert(1)';
+    assert.equal(value.flush(), false);
+    value.header.portalHref = 'https://lms.army.lk';
+    value.updateHeader('brandTitle', '<img src=x onerror=alert(1)>');
+    assert.equal(doc(value.html).querySelector('.aw-brand-title img'), null);
+});
+
+test('removing optional header components in HTML does not block a later visual save', () => {
+    const { value } = editor(referenceHeader, baseCss);
+    const document = doc(value.html);
+    document.querySelectorAll('.aw-header-portal, .aw-header-conduct, .aw-brand-logo').forEach((node) => node.remove());
+    value.html = document.body.innerHTML;
+    value.switchMode('visual');
+    assert.equal(value.header.showPortal, false);
+    assert.equal(value.flushHeader(), true);
+    assert.equal(doc(value.html).querySelector('.aw-header-portal'), null);
+});
 
 test('opening existing HTML preserves the header and CSS exactly', () => {
     const { value, wire } = editor();
@@ -276,6 +369,7 @@ test('an invalid preview response preserves the last valid preview', async () =>
 
 test('preview controls open and close the mobile menu without executing iframe scripts', () => {
     const { value } = editor();
+    value.setPreviewWidth('mobile');
     const preview = doc('<button id="mobileToggle"><i class="fa-solid fa-bars"></i></button><div id="mobileMenu" class="mobile-menu"></div>');
     preview.body.getBoundingClientRect = () => ({ height: 420 });
     value.$refs.preview.contentDocument = preview;
@@ -287,6 +381,17 @@ test('preview controls open and close the mobile menu without executing iframe s
     value.setPreviewMenu(false);
     assert.ok(!preview.querySelector('#mobileMenu').classList.contains('open'));
     assert.ok(preview.querySelector('#mobileToggle .fa-bars'));
+});
+
+test('preview highlights the language home page without using the admin iframe location', () => {
+    const { value } = editor();
+    const preview = doc('<base href="https://example.test/school/"><body><nav class="aw-navigation"><a id="home" href="https://example.test/school/si">Home</a><a id="other" class="active" href="https://example.test/school/courses" aria-current="page">Courses</a><a id="external" href="https://other.test/school/si">Other site</a></nav></body>');
+    preview.body.dataset.previewCurrentUrl = 'https://example.test/school/si';
+    value.highlightPreviewLinks(preview);
+    assert.equal(preview.querySelector('#home').getAttribute('aria-current'), 'page');
+    assert.ok(!preview.querySelector('#other').classList.contains('active'));
+    assert.equal(preview.querySelector('#other').getAttribute('aria-current'), null);
+    assert.ok(!preview.querySelector('#external').classList.contains('active'));
 });
 
 function publicNavigation() {

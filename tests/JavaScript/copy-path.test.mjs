@@ -4,7 +4,7 @@ import { test } from 'node:test';
 globalThis.window = {};
 const { copyPathToClipboard } = await import('../../resources/js/copy-path.js');
 
-function inputFor(value = 'http://localhost/storage/media/image.jpg') {
+function inputFor(value = '/media-files/image.jpg') {
     return {
         value,
         focused: false,
@@ -14,13 +14,13 @@ function inputFor(value = 'http://localhost/storage/media/image.jpg') {
     };
 }
 
-test('copies the full current file URL using the browser clipboard', async () => {
+test('copies the displayed portable file path using the browser clipboard', async () => {
     const input = inputFor();
     let copied;
     const clipboard = { async writeText(value) { copied = value; } };
     assert.equal(await copyPathToClipboard(input, clipboard), true);
     assert.equal(copied, input.value);
-    input.value = 'http://localhost/document-files/si/notice/view';
+    input.value = '/document-files/si/notice/view';
     await copyPathToClipboard(input, clipboard);
     assert.equal(copied, input.value);
 });

@@ -52,10 +52,28 @@
         </div>
     @endif
 
-    @if (auth()->user()->can('settings.manage') || auth()->user()->can('hero-slides.view') || auth()->user()->can('school-leaders.view'))
+    @if (auth()->user()->can('organizations.view') || auth()->user()->can('organizations.categories.manage') || auth()->user()->can('organizations.import'))
+        <div class="admin-nav-group" x-show="!navSearch.trim() || Array.from($el.querySelectorAll('a')).some(link => link.innerText.toLowerCase().includes(navSearch.trim().toLowerCase()))">
+            <p class="admin-nav-heading">Organization Management</p>
+            @can('organizations.view')
+                <x-admin.nav-link :href="route('admin.organizations.index')" :active="request()->routeIs('admin.organizations.index') || request()->routeIs('admin.organizations.edit')" icon="fa-solid fa-sitemap" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">All Organizations</x-admin.nav-link>
+            @endcan
+            @can('organizations.create')
+                <x-admin.nav-link :href="route('admin.organizations.create')" :active="request()->routeIs('admin.organizations.create')" icon="fa-solid fa-plus" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Add New Organization</x-admin.nav-link>
+            @endcan
+            @can('organizations.categories.manage')
+                <x-admin.nav-link :href="route('admin.organizations.categories.index')" :active="request()->routeIs('admin.organizations.categories.*')" icon="fa-solid fa-tags" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Categories</x-admin.nav-link>
+            @endcan
+            @can('organizations.import')
+                <x-admin.nav-link :href="route('admin.organizations.import.index')" :active="request()->routeIs('admin.organizations.import.*')" icon="fa-solid fa-file-import" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Import Legacy Content</x-admin.nav-link>
+            @endcan
+        </div>
+    @endif
+
+    @if (auth()->user()->can('courses.view') || auth()->user()->can('settings.manage') || auth()->user()->can('hero-slides.view') || auth()->user()->can('school-leaders.view') || auth()->user()->can('first-appointments.view') || auth()->user()->can('brigade-commanders.view'))
         <div class="admin-nav-group" x-show="!navSearch.trim() || Array.from($el.querySelectorAll('a')).some(link => link.innerText.toLowerCase().includes(navSearch.trim().toLowerCase()))">
             <p class="admin-nav-heading">School &amp; Training</p>
-            @can('settings.manage')
+            @can('courses.view')
                 <x-admin.nav-link :href="route('admin.courses.index')" :active="request()->routeIs('admin.courses.*')" icon="fa-solid fa-graduation-cap" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Courses</x-admin.nav-link>
             @endcan
             @can('hero-slides.view')
@@ -63,6 +81,12 @@
             @endcan
             @can('settings.manage')
                 <x-admin.nav-link :href="route('admin.special-programs.index')" :active="request()->routeIs('admin.special-programs.*')" icon="fa-solid fa-shapes" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Special Programs</x-admin.nav-link>
+            @endcan
+            @can('first-appointments.view')
+                <x-admin.nav-link :href="route('admin.first-appointments.index')" :active="request()->routeIs('admin.first-appointments.*')" icon="fa-solid fa-award" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">1st Appointments Holders</x-admin.nav-link>
+            @endcan
+            @can('brigade-commanders.view')
+                <x-admin.nav-link :href="route('admin.brigade-commanders.index')" :active="request()->routeIs('admin.brigade-commanders.*')" icon="fa-solid fa-medal" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Brigade Commanders</x-admin.nav-link>
             @endcan
             @can('school-leaders.view')
                 <x-admin.nav-link :href="route('admin.school-leaders.index')" :active="request()->routeIs('admin.school-leaders.*')" icon="fa-solid fa-user-tie" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">School Leadership</x-admin.nav-link>
@@ -80,6 +104,7 @@
             @can('settings.manage')
                 <x-admin.nav-link :href="route('admin.site-settings.index')" :active="request()->routeIs('admin.site-settings.*')" icon="fa-solid fa-sliders" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Site Settings</x-admin.nav-link>
             @endcan
+            @can('settings.manage')<x-admin.nav-link :href="route('admin.system-tools')" :active="request()->routeIs('admin.system-tools')" icon="fa-solid fa-database" x-show="!navSearch.trim() || $el.innerText.toLowerCase().includes(navSearch.trim().toLowerCase())">Backups &amp; System Status</x-admin.nav-link>@endcan
             @can('contacts.manage')
                 <livewire:admin.contact-messages.contact-message-nav-link />
             @endcan

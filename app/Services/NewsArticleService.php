@@ -117,7 +117,6 @@ final class NewsArticleService
                 $locale,
                 $safeTranslationGroup,
                 $editorMode,
-                $newsType,
             ): News {
                 $news = News::query()
                     ->create([
@@ -400,7 +399,6 @@ final class NewsArticleService
                 $safeSeoTitle,
                 $safeSeoDescription,
                 $safeEditorMode,
-                $newsType,
             ): News {
                 /*
                  * Preserve bounded old values for audit

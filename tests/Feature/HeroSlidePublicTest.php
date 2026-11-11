@@ -171,3 +171,32 @@ it('uses english fallback and excludes inactive hero slides', function (): void 
         ->assertDontSeeText('සඟවා ඇති සිංහල ස්ලයිඩරය')
         ->assertDontSeeText('Hidden Legacy Slide');
 });
+
+it('renders slider buttons only when configured and does not render extra links or hardcoded copy', function (): void {
+    $slideWithoutButton = HeroSlide::query()->create([
+        'title' => 'Slide Without Button',
+        'subtitle' => 'Only subtitle added from admin',
+        'button_label' => null,
+        'button_url' => null,
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+
+    $response = $this->get(route('home'))->assertOk();
+
+    $response->assertSeeText('Slide Without Button');
+    $response->assertSeeText('Only subtitle added from admin');
+    $response->assertDontSeeText('A proud heritage of service, discipline, innovation and professional excellence.');
+    $response->assertDontSeeText('Discover Our Corps');
+    $response->assertDontSee('hero-secondary');
+
+    $slideWithoutButton->update([
+        'button_label' => 'Learn More',
+        'button_url' => '/page/aboutus',
+    ]);
+
+    $updatedResponse = $this->get(route('home'))->assertOk();
+    $updatedResponse->assertSeeText('Learn More');
+    $updatedResponse->assertSee('/pages/aboutus');
+    $updatedResponse->assertDontSee('hero-secondary');
+});

@@ -7,10 +7,13 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use App\Models\Gallery;
 use App\Models\News;
+use App\Models\Organization;
 use App\Models\Page;
+use App\Models\SchoolLeader;
 use App\Services\SiteLanguageService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 
 class PublicSitemapController extends Controller
 {
@@ -20,7 +23,7 @@ class PublicSitemapController extends Controller
         $urls = [];
 
         // 1. Static Core Routes
-        foreach ($enabledLocales as $loc) {
+        foreach (array_intersect($enabledLocales, ['en', 'si']) as $loc) {
             $isEn = $loc === 'en';
 
             $urls[] = [
@@ -98,7 +101,7 @@ class PublicSitemapController extends Controller
         try {
             $pages = Page::query()->published()->get();
             foreach ($pages as $page) {
-                $rawLocale = $page->locale instanceof \BackedEnum ? $page->locale->value : (string) $page->locale;
+                $rawLocale = (string) $page->getRawOriginal('locale');
                 if (! in_array($rawLocale, $enabledLocales, true)) {
                     continue;
                 }
@@ -124,7 +127,7 @@ class PublicSitemapController extends Controller
         try {
             $newsList = News::query()->published()->orderByDesc('published_at')->get();
             foreach ($newsList as $item) {
-                $rawLocale = $item->locale instanceof \BackedEnum ? $item->locale->value : (string) $item->locale;
+                $rawLocale = (string) $item->getRawOriginal('locale');
                 if (! in_array($rawLocale, $enabledLocales, true)) {
                     continue;
                 }
@@ -173,17 +176,43 @@ class PublicSitemapController extends Controller
         } catch (\Throwable) {
         }
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach ($enabledLocales as $locale) {
+            if (! in_array($locale, ['en', 'si'], true)) {
+                continue;
+            }
+            foreach (['organization', 'first-appointments', 'brigade-commanders'] as $section) {
+                $urls[] = ['loc' => route($section.'.index'.($locale === 'si' ? '.localized' : ''), $locale === 'si' ? ['locale' => 'si'] : []), 'changefreq' => 'weekly', 'priority' => '0.7'];
+            }
+            foreach (Organization::query()->published()->get() as $organization) {
+                $urls[] = ['loc' => route('organization.show'.($locale === 'si' ? '.localized' : ''), ['slug' => $organization->slug, ...($locale === 'si' ? ['locale' => 'si'] : [])]), 'lastmod' => $this->formatDate($organization->updated_at), 'changefreq' => 'monthly', 'priority' => '0.7'];
+            }
+            foreach (SchoolLeader::query()->where('is_active', true)->whereHas('position', fn ($query) => $query->where('is_active', true))->with('position')->get() as $leader) {
+                $url = $leader->appointmentUrlForLocale($locale);
+                if ($url) {
+                    $urls[] = ['loc' => $url, 'lastmod' => $this->formatDate($leader->updated_at), 'changefreq' => 'monthly', 'priority' => '0.6'];
+                }
+            }
+            foreach (PublicPastAppointmentsController::APPOINTMENTS as $appointment) {
+                $urls[] = ['loc' => url(($locale === 'si' ? '/si' : '').'/'.$appointment['slug']), 'changefreq' => 'monthly', 'priority' => '0.6'];
+            }
+            if ($locale === 'si') {
+                foreach (Gallery::query()->published()->get() as $gallery) {
+                    $urls[] = ['loc' => route('galleries.show.localized', ['locale' => 'si', 'slug' => $gallery->slug]), 'lastmod' => $this->formatDate($gallery->updated_at), 'changefreq' => 'weekly', 'priority' => '0.7'];
+                }
+            }
+        }
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         foreach ($urls as $entry) {
             $xml .= "    <url>\n";
-            $xml .= '        <loc>' . htmlspecialchars($entry['loc'], ENT_XML1, 'UTF-8') . "</loc>\n";
+            $xml .= '        <loc>'.htmlspecialchars($entry['loc'], ENT_XML1, 'UTF-8')."</loc>\n";
             if (! empty($entry['lastmod'])) {
-                $xml .= '        <lastmod>' . htmlspecialchars($entry['lastmod'], ENT_XML1, 'UTF-8') . "</lastmod>\n";
+                $xml .= '        <lastmod>'.htmlspecialchars($entry['lastmod'], ENT_XML1, 'UTF-8')."</lastmod>\n";
             }
-            $xml .= '        <changefreq>' . htmlspecialchars($entry['changefreq'], ENT_XML1, 'UTF-8') . "</changefreq>\n";
-            $xml .= '        <priority>' . htmlspecialchars($entry['priority'], ENT_XML1, 'UTF-8') . "</priority>\n";
+            $xml .= '        <changefreq>'.htmlspecialchars($entry['changefreq'], ENT_XML1, 'UTF-8')."</changefreq>\n";
+            $xml .= '        <priority>'.htmlspecialchars($entry['priority'], ENT_XML1, 'UTF-8')."</priority>\n";
             $xml .= "    </url>\n";
         }
 
@@ -203,7 +232,7 @@ class PublicSitemapController extends Controller
 
         if (is_string($date) && ! empty($date)) {
             try {
-                return \Illuminate\Support\Carbon::parse($date)->toDateString();
+                return Carbon::parse($date)->toDateString();
             } catch (\Throwable) {
                 return null;
             }
@@ -212,4 +241,3 @@ class PublicSitemapController extends Controller
         return null;
     }
 }
-

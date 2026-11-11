@@ -79,6 +79,7 @@ final class LeadershipProfileContent
     public function document(string $html, string $css, string $compiledCss, string $locale): string
     {
         $safeHtml = $this->htmlSanitizer->sanitize($html);
+        $safeHtml = app(SiteUrlService::class)->resolveHtml($safeHtml);
         $safeCss = $this->layoutSanitizer->sanitizeCss($css);
         $activeTheme = config('awcms.active_theme');
         $themeCssPath = null;

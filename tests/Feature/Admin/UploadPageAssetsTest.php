@@ -10,6 +10,7 @@ use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\User;
 use App\Services\MediaUrlService;
+use App\Services\SiteUrlService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -37,7 +38,7 @@ it('provides uploaded file paths that survive page publishing', function (string
         ->assertSee('Copy Path');
 
     $media = MediaAsset::query()->sole();
-    $path = app(MediaUrlService::class)->namedOriginal($media);
+    $path = app(SiteUrlService::class)->portable(app(MediaUrlService::class)->namedOriginal($media));
     expect($path)->toEndWith('/'.$file->getClientOriginalName());
     Storage::disk('public')->assertExists($media->path);
 
@@ -79,7 +80,7 @@ it('clears the previous public path when a private file is uploaded', function (
         ->assertHasNoErrors()
         ->assertSee('Public image path');
 
-    $path = app(MediaUrlService::class)->namedOriginal(MediaAsset::query()->sole());
+    $path = app(SiteUrlService::class)->portable(app(MediaUrlService::class)->namedOriginal(MediaAsset::query()->sole()));
 
     $upload->set('file', UploadedFile::fake()->image('private.jpg', 100, 80))
         ->set('visibility', MediaVisibility::Internal->value)
@@ -113,13 +114,13 @@ it('provides stable document paths after saving even when table filters hide the
         $upload->set('sinhalaFile', UploadedFile::fake()->createWithContent('sinhala.pdf', "%PDF-1.4\nSinhala\n%%EOF\n"));
     }
 
-    $upload->call('save')->assertHasNoErrors()->assertSee('Copy Path');
+    $upload->call('saveAndPublish')->assertHasNoErrors()->assertSee('Copy Path');
     $document = Document::query()->sole();
 
     $this->app['auth']->logout();
 
     foreach (['en', 'si'] as $locale) {
-        $path = route('document-files.view', ['locale' => $locale, 'slug' => $document->slug]);
+        $path = app(SiteUrlService::class)->portable(route('document-files.view', ['locale' => $locale, 'slug' => $document->slug]));
         $upload->assertSee('value="'.$path.'"', false);
 
         $page = Page::factory()->published()->create([

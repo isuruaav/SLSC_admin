@@ -1,4 +1,24 @@
 export function initializeNavigation(d, w, on = (node, event, handler) => node?.addEventListener(event, handler), labels = { open: 'Open menu', close: 'Close menu' }) {
+    const groups = [...d.querySelectorAll('[data-slsc-nav-group]')];
+    const closeOtherGroups = current => groups.forEach(group => { if (group !== current) group.open = false; });
+    const desktopHover = () => w.matchMedia?.('(min-width: 1024px) and (hover: hover)').matches;
+    groups.forEach(group => {
+        on(group, 'toggle', () => { if (group.open) closeOtherGroups(group); });
+        on(group, 'pointerenter', () => { if (desktopHover()) { closeOtherGroups(group); group.open = true; } });
+        on(group, 'pointerleave', () => { if (desktopHover()) group.open = false; });
+        on(group, 'keydown', event => {
+            if (event.key === 'Escape' && group.open) {
+                event.preventDefault();
+                event.stopPropagation();
+                group.open = false;
+                group.querySelector('summary')?.focus();
+            }
+        });
+    });
+    on(d, 'click', event => groups.forEach(group => { if (!group.contains(event.target)) group.open = false; }));
+    on(d, 'focusin', event => groups.forEach(group => { if (!group.contains(event.target)) group.open = false; }));
+    on(w, 'resize', () => closeOtherGroups(null));
+
     const path = w.location.pathname.replace(/\/+$/, '') || '/';
     d.querySelectorAll('.desktop-nav a, .mobile-menu a, .aw-navigation a').forEach(link => {
         const href = link.getAttribute('href');

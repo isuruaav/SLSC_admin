@@ -72,6 +72,12 @@ final class SiteSetting extends Model
         'maintenance_mode',
         'maintenance_message',
         'maintenance_message_si',
+        'publications_title_en',
+        'publications_title_si',
+        'publications_kicker_en',
+        'publications_kicker_si',
+        'publications_subtitle_en',
+        'publications_subtitle_si',
         'updated_by',
     ];
 
@@ -141,5 +147,26 @@ final class SiteSetting extends Model
             'primary_color' => '#166534',
             'accent_color' => '#ca8a04',
         ]);
+    }
+
+    public function publicationTitle(string $locale = 'en'): string
+    {
+        return $locale === 'si'
+            ? (trim((string) $this->publications_title_si) !== '' ? (string) $this->publications_title_si : 'සිග්නලර් සඟරාව')
+            : (trim((string) $this->publications_title_en) !== '' ? (string) $this->publications_title_en : 'Signaller Magazine');
+    }
+
+    public function publicationKicker(string $locale = 'en'): string
+    {
+        return $locale === 'si'
+            ? (trim((string) $this->publications_kicker_si) !== '' ? (string) $this->publications_kicker_si : 'අපගේ සඟරා')
+            : (trim((string) $this->publications_kicker_en) !== '' ? (string) $this->publications_kicker_en : 'Explore our library');
+    }
+
+    public function publicationSubtitle(string $locale = 'en'): string
+    {
+        return $locale === 'si'
+            ? (trim((string) $this->publications_subtitle_si) !== '' ? (string) $this->publications_subtitle_si : 'ශ්‍රී ලංකා සංඥා බලකායේ නවතම සඟරා. PDF ගොනුව කියවීමට කවරය මත ක්ලික් කරන්න.')
+            : (trim((string) $this->publications_subtitle_en) !== '' ? (string) $this->publications_subtitle_en : 'Explore our latest journals and publications. Select a cover to read the PDF.');
     }
 }

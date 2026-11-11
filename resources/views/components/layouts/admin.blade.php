@@ -64,11 +64,11 @@
         .admin-skip-link{position:fixed;top:8px;left:8px;z-index:100;transform:translateY(-150%);border-radius:8px;background:#fff;padding:10px 14px;color:#123c2a;font-size:13px;font-weight:700;box-shadow:0 4px 16px #0002}
         .admin-skip-link:focus{transform:translateY(0)}
         @media(prefers-reduced-motion:reduce){.admin-shell *,.admin-shell *::before,.admin-shell *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
-        @media(max-width:1023px){.admin-brand{height:76px}.admin-sidebar{display:flex;flex-direction:column}}
     </style>
 </head>
 
 <body
+    data-admin-user="{{ auth()->id() }}"
     class="admin-shell min-h-full bg-zinc-100 text-zinc-950 antialiased"
     x-data="{ sidebarOpen: false }"
 >
